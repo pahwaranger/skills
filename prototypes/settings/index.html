@@ -1,0 +1,465 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Steve — Settings (PROTOTYPE)</title>
+<!--
+  THROWAWAY PROTOTYPE — Steve Settings tab.
+  Question: what should the Settings tab look like, and how should the
+  disabled-interval dependency (Minutes between checks, when Automatic checks
+  is off) read?
+
+  DECISION: variant C is LOCKED (see NOTES.md). Variants A and B are kept on
+  purpose as context for the SwiftUI build — do not delete them. Opens on C.
+
+  Three variants, switchable via ?variant=A|B|C and the floating bottom bar:
+    A — Flat vertical form; disabled interval is greyed inline.
+    B — Grouped sections; interval nested under the toggle, collapses when off.
+    C — Grouped sections; interval nested under the toggle, stays visible but
+        disables (greys) when off.   << LOCKED
+
+  No persistence. Controls flip in-memory state only. Run:
+    python3 prototypes/settings/serve.py    then open http://localhost:8755/
+-->
+<style>
+  :root {
+    color-scheme: light dark;
+
+    /* light */
+    --win-bg: #ececec;
+    --content-bg: #f5f5f7;
+    --card-bg: #ffffff;
+    --titlebar-bg: #e3e3e3;
+    --text: #1d1d1f;
+    --text-secondary: #86868b;
+    --separator: rgba(0,0,0,0.10);
+    --separator-strong: rgba(0,0,0,0.16);
+    --accent: #0a84ff;
+    --control-bg: #ffffff;
+    --control-border: rgba(0,0,0,0.18);
+    --track-off: #e0e0e2;
+    --segment-bg: #e7e7ea;
+    --segment-sel: #ffffff;
+    --shadow: 0 18px 60px rgba(0,0,0,0.28), 0 2px 8px rgba(0,0,0,0.12);
+    --tab-active-bg: rgba(0,0,0,0.07);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --win-bg: #2a2a2c;
+      --content-bg: #232325;
+      --card-bg: #2e2e30;
+      --titlebar-bg: #353537;
+      --text: #f5f5f7;
+      --text-secondary: #98989d;
+      --separator: rgba(255,255,255,0.10);
+      --separator-strong: rgba(255,255,255,0.16);
+      --accent: #0a84ff;
+      --control-bg: #3a3a3c;
+      --control-border: rgba(255,255,255,0.16);
+      --track-off: #555558;
+      --segment-bg: #1c1c1e;
+      --segment-sel: #636366;
+      --shadow: 0 18px 60px rgba(0,0,0,0.55), 0 2px 8px rgba(0,0,0,0.4);
+      --tab-active-bg: rgba(255,255,255,0.12);
+    }
+  }
+
+  * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Arial, sans-serif;
+    background: radial-gradient(120% 120% at 50% 0%, #d7d7da 0%, #bcbcc0 100%);
+    color: var(--text);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 48px 16px 96px;
+    -webkit-font-smoothing: antialiased;
+  }
+  @media (prefers-color-scheme: dark) {
+    body { background: radial-gradient(120% 120% at 50% 0%, #1a1a1c 0%, #050506 100%); }
+  }
+
+  /* ---------- window chrome (shared) ---------- */
+  .window {
+    width: 560px;
+    max-width: 100%;
+    background: var(--win-bg);
+    border-radius: 12px;
+    box-shadow: var(--shadow);
+    overflow: hidden;
+    border: 0.5px solid var(--separator-strong);
+  }
+  .titlebar {
+    height: 44px;
+    background: var(--titlebar-bg);
+    display: flex;
+    align-items: center;
+    padding: 0 14px;
+    position: relative;
+    border-bottom: 0.5px solid var(--separator);
+  }
+  .traffic { display: flex; gap: 8px; }
+  .traffic span { width: 12px; height: 12px; border-radius: 50%; display: inline-block; }
+  .traffic .r { background: #ff5f57; }
+  .traffic .y { background: #febc2e; }
+  .traffic .g { background: #28c840; }
+  .title {
+    position: absolute; left: 0; right: 0; text-align: center;
+    font-size: 13px; font-weight: 600; color: var(--text);
+    pointer-events: none;
+  }
+  /* tab bar */
+  .tabs {
+    display: flex; justify-content: center; gap: 2px;
+    background: var(--titlebar-bg);
+    padding: 6px 0 12px;
+    border-bottom: 0.5px solid var(--separator);
+  }
+  .tab {
+    appearance: none; border: 0; background: transparent;
+    font: inherit; color: var(--text-secondary);
+    display: flex; flex-direction: column; align-items: center; gap: 3px;
+    padding: 6px 18px; border-radius: 7px; cursor: default;
+    font-size: 11px; font-weight: 500;
+  }
+  .tab .glyph { font-size: 17px; line-height: 1; }
+  .tab.active { background: var(--tab-active-bg); color: var(--text); }
+
+  .content { background: var(--content-bg); padding: 22px; min-height: 320px; }
+
+  /* ---------- generic controls ---------- */
+  .switch { position: relative; width: 38px; height: 23px; flex: none; }
+  .switch input { display: none; }
+  .switch .track {
+    position: absolute; inset: 0; border-radius: 999px;
+    background: var(--track-off); transition: background .18s ease;
+  }
+  .switch .thumb {
+    position: absolute; top: 2px; left: 2px; width: 19px; height: 19px;
+    border-radius: 50%; background: #fff;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.35); transition: transform .18s ease;
+  }
+  .switch input:checked + .track { background: var(--accent); }
+  .switch input:checked + .track + .thumb { transform: translateX(15px); }
+
+  .segmented { display: inline-flex; background: var(--segment-bg); border-radius: 8px; padding: 2px; }
+  .segmented button {
+    appearance: none; border: 0; background: transparent; font: inherit;
+    font-size: 12px; font-weight: 500; color: var(--text);
+    padding: 4px 14px; border-radius: 6px; cursor: pointer;
+  }
+  .segmented button.sel { background: var(--segment-sel); box-shadow: 0 1px 2px rgba(0,0,0,0.18); }
+
+  .stepper { display: inline-flex; align-items: center; gap: 8px; }
+  .stepper input {
+    width: 56px; text-align: right; font: inherit; font-size: 13px;
+    padding: 4px 7px; border-radius: 6px;
+    border: 1px solid var(--control-border); background: var(--control-bg);
+    color: var(--text);
+  }
+  .stepper .bumps { display: inline-flex; flex-direction: column; }
+  .stepper .bumps button {
+    appearance: none; font: inherit; font-size: 9px; line-height: 1;
+    width: 20px; height: 12px; cursor: pointer;
+    border: 1px solid var(--control-border); background: var(--control-bg);
+    color: var(--text);
+  }
+  .stepper .bumps button:first-child { border-radius: 5px 5px 0 0; border-bottom: 0; }
+  .stepper .bumps button:last-child { border-radius: 0 0 5px 5px; }
+  .unit { font-size: 13px; color: var(--text-secondary); }
+
+  .disabled { opacity: 0.38; pointer-events: none; }
+
+  /* ---------- Variant A: flat vertical form ---------- */
+  .formA { display: flex; flex-direction: column; }
+  .rowA {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 13px 2px;
+    border-bottom: 0.5px solid var(--separator);
+  }
+  .rowA:last-child { border-bottom: 0; }
+  .rowA .label { font-size: 13px; font-weight: 500; }
+  .rowA .ctrl { display: flex; align-items: center; gap: 8px; }
+  .hintA {
+    font-size: 11px; color: var(--text-secondary);
+    margin: -6px 2px 0; min-height: 14px; transition: opacity .15s;
+  }
+
+  /* ---------- Variants B & C: grouped sections ---------- */
+  .groupB { margin-bottom: 24px; }
+  .groupB > h3 {
+    margin: 0 0 7px 4px; font-size: 11px; font-weight: 600;
+    text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-secondary);
+  }
+  .card {
+    background: var(--card-bg); border-radius: 10px;
+    border: 0.5px solid var(--separator);
+    overflow: hidden;
+  }
+  .rowB {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 12px 14px;
+    border-bottom: 0.5px solid var(--separator);
+  }
+  .card .rowB:last-child { border-bottom: 0; }
+  .rowB .label { font-size: 13px; font-weight: 500; }
+  .rowB .ctrl { display: flex; align-items: center; gap: 8px; }
+  .nested {
+    padding: 12px 14px 12px 30px;
+    border-bottom: 0.5px solid var(--separator);
+    background: rgba(127,127,127,0.05);
+    display: flex; align-items: center; justify-content: space-between;
+    overflow: hidden;
+    transition: max-height .22s ease, opacity .18s ease, padding .22s ease;
+    max-height: 60px;
+  }
+  .card .nested:last-child { border-bottom: 0; }
+  .nested.collapsed { max-height: 0; opacity: 0; padding-top: 0; padding-bottom: 0; border-bottom: 0; }
+  .nested .label { font-size: 13px; }
+  .nested .label.disabled { pointer-events: none; }
+  .nested .sub { font-size: 11px; color: var(--text-secondary); display:block; margin-top: 2px; }
+  .captionB { font-size: 11px; color: var(--text-secondary); margin: 7px 4px 0; }
+
+  /* ---------- floating switcher ---------- */
+  .switcher {
+    position: fixed; bottom: 22px; left: 50%; transform: translateX(-50%);
+    display: flex; align-items: center; gap: 4px;
+    background: rgba(28,28,30,0.92); color: #fff;
+    border-radius: 999px; padding: 6px 8px;
+    box-shadow: 0 8px 30px rgba(0,0,0,0.45);
+    font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+    backdrop-filter: blur(12px);
+    z-index: 50;
+  }
+  .switcher button {
+    appearance: none; border: 0; background: rgba(255,255,255,0.12);
+    color: #fff; width: 30px; height: 30px; border-radius: 50%;
+    font-size: 15px; cursor: pointer; display: grid; place-items: center;
+  }
+  .switcher button:hover { background: rgba(255,255,255,0.25); }
+  .switcher .lbl { font-size: 12.5px; font-weight: 600; padding: 0 12px; white-space: nowrap; }
+  .switcher .lbl small { font-weight: 400; opacity: 0.7; }
+  .switcher .lock { color: #34c759; font-weight: 700; margin-left: 2px; }
+</style>
+</head>
+<body>
+  <div class="window">
+    <div class="titlebar">
+      <div class="traffic"><span class="r"></span><span class="y"></span><span class="g"></span></div>
+      <div class="title">Steve</div>
+    </div>
+    <div class="tabs">
+      <button class="tab"><span class="glyph">⤓</span>Review</button>
+      <button class="tab active"><span class="glyph">⚙</span>Settings</button>
+    </div>
+    <div class="content" id="content"></div>
+  </div>
+
+  <div class="switcher">
+    <button id="prev" aria-label="Previous variant">‹</button>
+    <div class="lbl" id="vlabel"></div>
+    <button id="next" aria-label="Next variant">›</button>
+  </div>
+
+<script>
+  // ---- in-memory state (no persistence) ----
+  const state = {
+    launchAtLogin: true,
+    autoChecks: true,
+    minutes: 60,
+    diffView: 'split', // 'split' | 'unified'
+  };
+
+  const VARIANTS = {
+    A: { name: 'Flat form · greyed inline', render: renderA },
+    B: { name: 'Grouped · nested-collapse', render: renderB },
+    C: { name: 'Grouped · nested-disable  ✓ LOCKED', render: renderC },
+  };
+  const ORDER = ['A', 'B', 'C'];
+  const LOCKED = 'C'; // decision; A & B kept as context
+
+  function getVariant() {
+    const v = new URLSearchParams(location.search).get('variant');
+    return ORDER.includes(v) ? v : LOCKED;
+  }
+
+  // ---- shared control builders ----
+  function toggle(key) {
+    return `<label class="switch">
+      <input type="checkbox" ${state[key] ? 'checked' : ''} data-toggle="${key}">
+      <span class="track"></span><span class="thumb"></span>
+    </label>`;
+  }
+  function stepper() {
+    return `<span class="stepper">
+      <input type="number" min="1" max="1440" value="${state.minutes}" data-minutes>
+      <span class="bumps">
+        <button data-bump="1">▲</button>
+        <button data-bump="-1">▼</button>
+      </span>
+      <span class="unit">min</span>
+    </span>`;
+  }
+  function diffSegmented() {
+    return `<span class="segmented">
+      <button class="${state.diffView==='split'?'sel':''}" data-diffval="split">Split</button>
+      <button class="${state.diffView==='unified'?'sel':''}" data-diffval="unified">Unified</button>
+    </span>`;
+  }
+
+  // ---- Variant A: flat vertical form, interval greyed inline ----
+  function renderA() {
+    const off = !state.autoChecks;
+    return `
+      <div class="formA">
+        <div class="rowA">
+          <span class="label">Launch at login</span>
+          <span class="ctrl">${toggle('launchAtLogin')}</span>
+        </div>
+        <div class="rowA">
+          <span class="label">Automatic checks</span>
+          <span class="ctrl">${toggle('autoChecks')}</span>
+        </div>
+        <div class="rowA">
+          <span class="label ${off?'disabled':''}">Minutes between checks</span>
+          <span class="ctrl ${off?'disabled':''}">${stepper()}</span>
+        </div>
+        <div class="rowA">
+          <span class="label">Default diff view</span>
+          <span class="ctrl">${diffSegmented()}</span>
+        </div>
+      </div>
+      <p class="hintA">${off
+        ? 'Automatic checks are off — Steve only checks when you pick “Check for updates.”'
+        : '&nbsp;'}</p>
+    `;
+  }
+
+  // ---- Variant B: grouped sections, interval nested + collapses when off ----
+  function renderB() {
+    const off = !state.autoChecks;
+    return `
+      <div class="groupB">
+        <h3>Syncing</h3>
+        <div class="card">
+          <div class="rowB">
+            <span class="label">Automatic checks</span>
+            <span class="ctrl">${toggle('autoChecks')}</span>
+          </div>
+          <div class="nested ${off?'collapsed':''}">
+            <span class="label">Minutes between checks
+              <small class="sub">How often Steve looks at Origin for changes.</small>
+            </span>
+            <span class="ctrl">${stepper()}</span>
+          </div>
+        </div>
+        <p class="captionB">${off
+          ? 'Off — Steve only checks when you choose “Check for updates” from the menu.'
+          : 'Steve checks Origin on this interval and flags changes in the menu bar.'}</p>
+      </div>
+
+      <div class="groupB">
+        <h3>General</h3>
+        <div class="card">
+          <div class="rowB">
+            <span class="label">Launch at login</span>
+            <span class="ctrl">${toggle('launchAtLogin')}</span>
+          </div>
+          <div class="rowB">
+            <span class="label">Default diff view</span>
+            <span class="ctrl">${diffSegmented()}</span>
+          </div>
+        </div>
+        <p class="captionB">How diffs open in the Review tab. You can still switch per-review.</p>
+      </div>
+    `;
+  }
+
+  // ---- Variant C (LOCKED): grouped sections, interval nested but stays visible & just disables ----
+  function renderC() {
+    const off = !state.autoChecks;
+    return `
+      <div class="groupB">
+        <h3>Syncing</h3>
+        <div class="card">
+          <div class="rowB">
+            <span class="label">Automatic checks</span>
+            <span class="ctrl">${toggle('autoChecks')}</span>
+          </div>
+          <div class="nested">
+            <span class="label ${off?'disabled':''}">Minutes between checks
+              <small class="sub">How often Steve looks at Origin for changes.</small>
+            </span>
+            <span class="ctrl ${off?'disabled':''}">${stepper()}</span>
+          </div>
+        </div>
+        <p class="captionB">${off
+          ? 'Off — Steve only checks when you choose “Check for updates” from the menu.'
+          : 'Steve checks Origin on this interval and flags changes in the menu bar.'}</p>
+      </div>
+
+      <div class="groupB">
+        <h3>General</h3>
+        <div class="card">
+          <div class="rowB">
+            <span class="label">Launch at login</span>
+            <span class="ctrl">${toggle('launchAtLogin')}</span>
+          </div>
+          <div class="rowB">
+            <span class="label">Default diff view</span>
+            <span class="ctrl">${diffSegmented()}</span>
+          </div>
+        </div>
+        <p class="captionB">How diffs open in the Review tab. You can still switch per-review.</p>
+      </div>
+    `;
+  }
+
+  // ---- render + wire ----
+  function render() {
+    const v = getVariant();
+    document.getElementById('content').innerHTML = VARIANTS[v].render();
+    document.getElementById('vlabel').innerHTML = `${v} <small>— ${VARIANTS[v].name}</small>`;
+    wire();
+  }
+
+  function wire() {
+    const root = document.getElementById('content');
+    root.querySelectorAll('[data-toggle]').forEach(el =>
+      el.addEventListener('change', () => { state[el.dataset.toggle] = el.checked; render(); }));
+    const min = root.querySelector('[data-minutes]');
+    if (min) min.addEventListener('change', () => {
+      let n = parseInt(min.value, 10); if (isNaN(n)) n = 60;
+      state.minutes = Math.min(1440, Math.max(1, n)); render();
+    });
+    root.querySelectorAll('[data-bump]').forEach(el =>
+      el.addEventListener('click', () => {
+        state.minutes = Math.min(1440, Math.max(1, state.minutes + parseInt(el.dataset.bump,10)));
+        render();
+      }));
+    root.querySelectorAll('[data-diffval]').forEach(el =>
+      el.addEventListener('click', () => { state.diffView = el.dataset.diffval; render(); }));
+  }
+
+  function go(dir) {
+    const i = ORDER.indexOf(getVariant());
+    const next = ORDER[(i + dir + ORDER.length) % ORDER.length];
+    const p = new URLSearchParams(location.search); p.set('variant', next);
+    history.replaceState(null, '', '?' + p.toString());
+    render();
+  }
+  document.getElementById('prev').addEventListener('click', () => go(-1));
+  document.getElementById('next').addEventListener('click', () => go(1));
+  document.addEventListener('keydown', e => {
+    const t = e.target;
+    if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable)) return;
+    if (e.key === 'ArrowLeft') go(-1);
+    if (e.key === 'ArrowRight') go(1);
+  });
+
+  render();
+</script>
+</body>
+</html>
