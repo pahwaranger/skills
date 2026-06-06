@@ -63,6 +63,5 @@ state only. Opens on the locked variant C; A and B stay reachable via the switch
 ## Cleanup
 
 Throwaway. Once the SwiftUI Settings tab implements the locked **C** layout, delete
-this directory (`index.html`, `serve.py`) and the `settings-prototype` entry in
-`.claude/launch.json`. (The variant comparison lives on here and in this file until
-then — that's the point of keeping A and B around.)
+this directory (`index.html`, `serve.py`). (The variant comparison lives on here and
+in this file until then — that's the point of keeping A and B around.)
