@@ -85,4 +85,24 @@ Only offer to create an ADR when all three are true:
 
 If any of the three is missing, skip the ADR. Use the format in [ADR-FORMAT.md](./ADR-FORMAT.md).
 
+### Offer prototype prompts for unresolved design questions
+
+When a design question cannot be resolved by reasoning alone — the answer depends on how the code actually feels, or how a UI actually renders — offer to create a prototype prompt that another agent can implement.
+
+Present it as one of the options when the question is first raised. Example: "We could (a) decide now, (b) defer, or (c) prototype it — I can write a prompt another agent can pick up."
+
+If the user chooses to prototype, do the following:
+
+1. **Pick a slug** — a short kebab-case name for what is being explored (e.g. `order-state-machine`, `checkout-flow-variants`).
+2. **Create the directory** `prototypes/<slug>/` at the project root. Create `prototypes/` itself if it doesn't exist.
+3. **Write `prototypes/<slug>/PROMPT.md`** with everything a cold agent needs to build the prototype and record results. The file must contain:
+   - **Question** — the specific design question the prototype must answer, in one sentence.
+   - **Context** — the relevant domain terms (from `CONTEXT.md`), constraints, and decisions already made in this grilling session.
+   - **Prototype type** — `logic` (terminal/state-machine) or `ui` (visual variants), with a one-line justification.
+   - **What to build** — a concrete description of the prototype: the states/transitions to exercise, or the UI variants to render.
+   - **How to record results** — what the agent should write back when done: the answer to the question, the verdict (adopt / reject / inconclusive), and any follow-up questions that arose.
+4. **Surface the path** to the user so they know where the prompt lives and can hand it off.
+
+Do not start the prototype yourself — the purpose of this step is to create a handoff artifact.
+
 </supporting-info>
