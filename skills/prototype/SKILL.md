@@ -28,3 +28,5 @@ The two branches produce very different artifacts — getting this wrong wastes 
 ## When done
 
 The _answer_ is the most important thing to carry forward from a prototype. Capture it somewhere durable (commit message, ADR, ticket, or a `NOTES.md` inside the prototype's `prototypes/<session>/` subdirectory) along with the question it was answering. If the user is around, that capture is a quick conversation; if not, leave the placeholder in `NOTES.md` so they (or you, on the next pass) can fill in the verdict. The prototype itself stays under `prototypes/` — the captured answer is what gets folded into the real code.
+
+Beyond the original question, the user often surfaces other relevant details during a prototype session — constraints they realised, design decisions they settled, things they want to remember. Before closing out, review those with the user and ask which ones should also be absorbed into `NOTES.md` (or an ADR, ticket, etc.). Don't silently discard them.

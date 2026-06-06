@@ -93,6 +93,22 @@ Behaviour:
 
 Put the switcher in a single shared component so both sub-shapes can reuse it. Locate it wherever shared UI lives in the project.
 
+#### Multi-target prototypes
+
+When the session covers several distinct targets (e.g. the header, the sidebar, and the empty state — each with their own variants), the switcher gains a second axis:
+
+- **Target selector** — a row of labelled buttons across the top of the switcher bar, one per target plus a **Unified** entry at the end. Clicking a target label navigates to that target's page/component and resets the variant to that target's current selection.
+- **Variant cycling** (left/right arrows) — applies only to the active target.
+- **Unified view** — a single page/route that renders all targets simultaneously, each using its currently locked-in variant. The locked-in variant per target is stored in the URL (e.g. `?header=B&sidebar=A&emptyState=C`) so the unified view is shareable. As the user locks in variants one target at a time, the Unified view assembles into the actual intended design.
+
+```tsx
+// pseudo-code for multi-target switcher URL shape
+// individual target view:  ?target=header&variant=B
+// unified view:            ?target=unified&header=B&sidebar=A&emptyState=C
+```
+
+The Unified entry should be disabled (greyed out) until at least one target has a locked-in variant, so the user knows it becomes meaningful progressively.
+
 ### 5. Hand it over
 
 Surface the URL (and the `?variant=` keys). The user will flip through whenever they get to it. The interesting feedback is usually **"I want the header from B with the sidebar from C"** — that's the actual design they want.
