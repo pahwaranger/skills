@@ -15,7 +15,7 @@ If the question is "what should this look like" — wrong branch. Use [UI.md](UI
 
 ### 1. State the question
 
-Before writing code, write down what state model and what question you're prototyping. One paragraph, in the prototype's README or a comment at the top of the file. A logic prototype that answers the wrong question is pure waste — make the question explicit so it can be checked later, whether the user is watching now or returning to it AFK.
+Before writing code, create the prototype's home — `prototypes/<session-name>/` at the repo root — and write down what state model and what question you're prototyping. One paragraph, in a `NOTES.md` in that directory or a comment at the top of the entry file. A logic prototype that answers the wrong question is pure waste — make the question explicit so it can be checked later, whether the user is watching now or returning to it AFK.
 
 ### 2. Pick the language
 
@@ -36,7 +36,7 @@ The right shape depends on the question:
 
 Pick whichever shape best fits the question being asked, *not* whichever is easiest to wire to a TUI. Keep it pure: no I/O, no terminal code, no `console.log` for control flow. The TUI imports it and calls into it; nothing flows the other direction.
 
-This is what makes the prototype useful past its own lifetime. When the question's been answered, the validated reducer / machine / function set can be lifted into the real module — the TUI shell gets deleted.
+This is what makes the prototype useful past its own lifetime. When the question's been answered, the validated reducer / machine / function set can be lifted into the real module — the TUI shell stays behind in `prototypes/<session>/` as a record.
 
 ### 4. Build the smallest TUI that exposes the state
 
@@ -68,7 +68,7 @@ Give the user the run command. They'll drive it themselves; the interesting mome
 
 ### 7. Capture the answer
 
-When the prototype has done its job, the answer to the question is the only thing worth keeping. If the user is around, ask what it taught them. If not, leave a `NOTES.md` next to the prototype so the answer can be filled in (or filled in by you, if you've watched the session) before the prototype gets deleted.
+When the prototype has done its job, the answer to the question is the most important thing to carry forward. If the user is around, ask what it taught them. If not, leave a `NOTES.md` in the prototype's `prototypes/<session>/` directory so the answer can be filled in (or filled in by you, if you've watched the session). Fold the answer into the real code; the prototype itself stays under `prototypes/`.
 
 ## Anti-patterns
 
