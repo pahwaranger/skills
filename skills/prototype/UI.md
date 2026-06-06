@@ -19,13 +19,15 @@ A UI prototype is much easier to judge when it's **butting up against the rest o
 
 The route already exists. Variants are rendered **on the same route**, gated by a `?variant=` URL search param. The existing data fetching, params, and auth all stay — only the rendering swaps. This is the default; pick it unless there's a specific reason not to.
 
+The variant components and switcher live in `prototypes/<session-name>/`, isolated from production code — the existing route just imports them and adds the temporary `?variant=` gate. That keeps the prototype in one isolated tree even though it renders against the real page.
+
 If the prototype is for something that doesn't yet have a page but *would naturally live inside one* (a new section of the dashboard, a new card on the settings screen, a new step in an existing flow) — that's still sub-shape A. Mount the variants inside the host page.
 
 ### Sub-shape B — a new page (last resort)
 
 Only use this when the thing being prototyped genuinely has no existing page to live inside — e.g. an entirely new top-level surface, or a flow that can't be embedded anywhere sensible.
 
-Create a **throwaway route** following whatever routing convention the project already uses — don't invent a new top-level structure. Name it so it's obviously a prototype (e.g. include the word `prototype` in the path or filename). Same `?variant=` pattern.
+Create a **throwaway route** following whatever routing convention the project already uses — don't invent a new top-level structure. Name it so it's obviously a prototype (e.g. include the word `prototype` in the path or filename). Keep the variant components and switcher under `prototypes/<session-name>/`; the throwaway route is a thin entry point that imports them. Same `?variant=` pattern.
 
 Before committing to sub-shape B, sanity-check: is there really no existing page this could be embedded in? An empty route hides design problems that a populated one would expose.
 
@@ -95,14 +97,14 @@ Put the switcher in a single shared component so both sub-shapes can reuse it. L
 
 Surface the URL (and the `?variant=` keys). The user will flip through whenever they get to it. The interesting feedback is usually **"I want the header from B with the sidebar from C"** — that's the actual design they want.
 
-### 6. Capture the answer and clean up
+### 6. Capture the answer and absorb the winner
 
-Once a variant has won, write down which one and why (commit message, ADR, ticket, or a `NOTES.md` next to the prototype if running AFK and the user hasn't responded yet). Then:
+Once a variant has won, write down which one and why (commit message, ADR, ticket, or a `NOTES.md` in the prototype's `prototypes/<session>/` directory if running AFK and the user hasn't responded yet). Then fold the winner into the real code and un-wire the temporary hooks from production:
 
-- **Sub-shape A** — delete the losing variants and the switcher; fold the winner into the existing page.
-- **Sub-shape B** — promote the winning variant to a real route, delete the throwaway route and the switcher.
+- **Sub-shape A** — fold the winning variant into the existing page, and remove the temporary `?variant=` gate and switcher import from that route. The variant components and switcher stay in `prototypes/<session>/`.
+- **Sub-shape B** — promote the winning variant to a real route, and remove the throwaway route entry point. The variant components and switcher stay in `prototypes/<session>/`.
 
-Don't leave variant components or the switcher lying around. They rot fast and confuse the next reader.
+The point is to leave production clean — no `?variant=` gates, throwaway routes, or switcher imports lingering in real code — while keeping the prototype itself under `prototypes/` as a record of how the decision was reached. Don't delete the prototype directory.
 
 ## Anti-patterns
 
