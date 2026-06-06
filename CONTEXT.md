@@ -20,3 +20,9 @@ _Avoid_: mirror, clone, backup.
 An external origin a skill was drawn or derived from. Every source the repo has
 used is recorded for attribution; the repo keeps no live tie to any of them.
 _Avoid_: upstream, remote.
+
+**Ticket**:
+A unit of work to be completed, as referenced by the skills. The canonical term
+for the work-item concept.
+_Avoid_: issue — except when naming a platform's native feature (GitHub/GitLab
+"issues", the `gh issue` / `glab issue` CLI), which keep their real names.
