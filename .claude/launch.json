@@ -1,0 +1,12 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "settings-prototype",
+      "runtimeExecutable": "python3",
+      "runtimeArgs": ["prototypes/settings/serve.py"],
+      "port": 8755,
+      "autoPort": true
+    }
+  ]
+}
