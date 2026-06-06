@@ -11,6 +11,8 @@ Ask the questions one at a time, waiting for feedback on each question before co
 
 If a question can be answered by exploring the codebase, explore the codebase instead.
 
+Before asking the first question, survey the full design space and estimate how many questions you expect to ask. Tell the user upfront: "I have ~N questions for you." Then prefix each question with its sequence position: **Question X of ~N:**. Revise the estimate whenever a branch opens or closes — say so briefly when you do ("Adding ~2 questions after that answer — now ~N total.").
+
 </what-to-do>
 
 <supporting-info>
