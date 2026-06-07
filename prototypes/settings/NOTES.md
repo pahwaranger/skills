@@ -60,8 +60,9 @@ python3 prototypes/settings/serve.py
 Self-contained `index.html`, no build, no persistence — controls flip in-memory
 state only. Opens on the locked variant C; A and B stay reachable via the switcher.
 
-## Cleanup
+## Retention
 
-Throwaway. Once the SwiftUI Settings tab implements the locked **C** layout, delete
-this directory (`index.html`, `serve.py`). (The variant comparison lives on here and
-in this file until then — that's the point of keeping A and B around.)
+**Kept, not deleted** — per [ADR 0005](../../docs/adr/0005-steve-ui-locked-via-prototypes.md),
+this prototype stays in the repo as living reference for the SwiftUI build and a
+record of the rejected variants (A and B remain reachable via the switcher). It
+outlives the usual throwaway lifecycle.
