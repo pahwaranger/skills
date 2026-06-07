@@ -109,7 +109,11 @@ Do not start the prototype yourself — the purpose of this step is to create a 
 
 5. **Ask whether to pause or continue.** After surfacing the path, ask: "Do you want to pause here while you review the prototype, or should I keep going and come back to this at the end?"
 
-   - **Pause** — tell the user you're waiting and to let you know when the prototype is done. When they return, read the prototype's results (check `prototypes/<slug>/` for any output or notes the agent left), summarise what you learned, then resume the questions from where you left off.
+   - **Pause** — tell the user you're waiting and to let you know when the prototype is done. When they return:
+     1. Read the prototype's results (check `prototypes/<slug>/` for any output or notes the agent left) and summarise what you learned.
+     2. If the results clearly answer the original question, state the decision and ask the user to confirm it before moving on. If the results are inconclusive, say so and treat the question as still open.
+     3. Scan the results for new unknowns or side-effects that the prototype surfaced. For each one that qualifies as a grilling question, add it to the session and update the question count ("The prototype raised ~N new questions — adding them now, now ~N total.")
+     4. Resume the remaining questions.
    - **Continue** — note that the questions whose answers depend on the prototype outcome are deferred (tell the user: "I'll park those and come back to them at the end"). Adjust the running question count to exclude the deferred questions for now, then proceed with all remaining independent questions. Once those are done, flag the return: "The prototype question is still open — revisiting it now." and work through the deferred questions as if they were next in the original sequence.
 
 </supporting-info>
