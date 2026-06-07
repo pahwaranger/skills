@@ -114,3 +114,11 @@ _Avoid_: floating toolbar (it's sticky, not floating).
 A button that cycles the bulk selection through three states:
 Select all actionable → Select new only (Update available + Removed; excludes Skipped) → Deselect all.
 Present in both the action header (always visible) and the materialising toolbar.
+
+**Menu-bar icon**:
+Steve's status-bar item, defined by two independent axes: a **base colour**
+(monochrome when idle, system red for **attention** — ≥1 Update available or
+Removed on origin) and **pulsing** (overlaid in the current colour whenever a check
+is in flight). Checking is a modifier, not a separate state, so a check while
+pending shows as pulsing red.
+_Avoid_: badge, badge dot (attention is a colour change, not a dot).

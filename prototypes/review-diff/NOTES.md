@@ -40,6 +40,17 @@ Cycles: **Select all** (every actionable skill) → **Select new only** (Update 
 ### Diff direction
 Base = Installed (S), head = Origin (O). Green = what Origin adds/changes; red = what's currently installed that Origin no longer has. Sides labelled **Installed** / **Origin**.
 
+### Non-text files (decided — not in the prototype)
+The unit is the whole skill directory, so a skill may carry non-text assets
+(images, PDFs, fonts, compiled helpers). The prototype only models text diffs;
+production handles binaries as follows:
+- **Change detection** for *every* file is by **content hash**, so a changed binary
+  still flips the skill to *Update available* and participates in Update/Skip.
+- **Display**: text files get the normal diff; non-text files get a file card with
+  the usual status pill (Modified / Added / Deleted) but a **"Binary — no preview"**
+  body. Images *may* show before/after thumbnails.
+- **Not in v1**: no visual image/PDF diffing.
+
 ---
 
 ## Why D over A, B, C

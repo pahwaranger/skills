@@ -27,12 +27,20 @@ A and C are eliminated. Delete their render functions and the switcher when prom
 
 ## Icon states
 
-All three share the same icon-state controls (Idle / Checking / Attention):
-- **Idle** — monochrome `↺`, adapts to light/dark menu bar.
-- **Checking** — opacity pulse animation (~1.5s cycle).
-- **Attention** — solid `#FF3B30` (macOS system red), no badge dot.
+The prototype exposes Idle / Checking / Attention as a mutually-exclusive toggle,
+but in production they are **two independent axes**, because a check can run while
+updates are already pending:
 
-No issues with any of the three icon states across light and dark mode.
+- **Base colour** — monochrome `↺` (Idle, adapts to light/dark menu bar) **or**
+  solid `#FF3B30` macOS system red (Attention: ≥1 skill Update available or Removed
+  on origin). No badge dot.
+- **Pulsing** — an opacity pulse (~1.5s cycle) layered on whenever a check is in
+  flight, in the *current* base colour.
+
+So **Checking is a modifier, not a third state**. Precedence (decided): checking
+pulses the current colour — a check while pending = **pulsing red**; a check while
+clean = **pulsing monochrome**. The icon settles to its base colour when the check
+finishes. No issues with either base colour across light and dark mode.
 
 ## Build notes (from verification pass)
 
@@ -42,4 +50,4 @@ No issues with any of the three icon states across light and dark mode.
 
 **Animated icon** — `.symbolEffect(.pulse)` on macOS 14+; manual opacity `withAnimation(.easeInOut.repeatForever())` on macOS 13. Worth a quick smoke-test in the actual menu bar renderer before shipping.
 
-**Minimum target** — `MenuBarExtra` requires macOS 13 (Ventura). If earlier support is needed, fall back to `NSStatusItem` + `NSPopover` with a hosted SwiftUI view.
+**Minimum target** — support policy is a **rolling window of the latest two macOS major releases** (as of 2026-06 that's macOS 15 Sequoia + macOS 26; floor = macOS 15). That clears `MenuBarExtra` (13+) and `.symbolEffect` (14+) with margin, so the `NSStatusItem` + `NSPopover` fallback is **not needed**.

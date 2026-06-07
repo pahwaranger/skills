@@ -21,3 +21,7 @@ and a fully native diff renderer because rebuilding PR-grade diff UI is not.
   expected, not accidental.
 - The Review-tab design is locked: see `prototypes/review-diff/NOTES.md` for the
   full spec (Variant D — C's sidebar × B's collapsible-file pane).
+- **Support floor: a rolling window of the latest two macOS major releases** (as of
+  2026-06, macOS 15 Sequoia + macOS 26; floor = macOS 15). This clears `MenuBarExtra`
+  (13+) and `.symbolEffect` (14+), so no `NSStatusItem`/`NSPopover` fallback is
+  needed. The trade-off: a Mac drops out of support each fall when a new major ships.
