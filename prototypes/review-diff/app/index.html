@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Steve — Review tab (PROTOTYPE)</title>
+    <!--
+      THROWAWAY PROTOTYPE — Steve Review tab.
+      Question: what should the multi-skill diff review surface look/feel like?
+
+      Three variants, switchable via ?variant=A|B|C and the floating bottom bar:
+        A — Flat scroll + persistent footer bar
+        B — Collapsible files + appears-on-check floating toolbar
+        C — Three column (sidebar | file tree | diff) + sidebar action header
+
+      No persistence. All actions update in-memory state only.
+      Run: cd prototypes/review-diff/app && npm install && npm run dev
+      Then open: http://localhost:5199/
+    -->
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

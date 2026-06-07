@@ -72,3 +72,45 @@ Acknowledged, not actionable by default.
 
 **Removed on origin**:
 A cached/installed skill that origin no longer has. Treated as a change to sync.
+
+### Steve UI surfaces
+
+**Review tab**:
+The primary window tab where the user inspects and acts on pending skill changes.
+Contains the sidebar and the diff pane. Design locked; see
+`prototypes/review-diff/NOTES.md`.
+_Avoid_: sync window, update window.
+
+**Settings tab**:
+The secondary window tab for app preferences (launch-at-login, check interval,
+default diff view). Design locked; see `prototypes/settings/NOTES.md`.
+
+**Sidebar** (Review tab):
+The left panel of the Review tab. Lists all managed skills grouped by state
+(Removed on origin → Update available → Skipped → Up-to-date, alpha within group).
+Contains a sticky **action header** at the top and a scrollable **skill list** below.
+_Avoid_: skill list (that's the scrollable region inside the sidebar, not the sidebar itself).
+
+**Action header**:
+The sticky strip pinned to the top of the Review-tab sidebar. Holds the
+3-state select toggle, Update N, and Skip N buttons — always visible without scrolling.
+
+**Diff pane**:
+The right panel of the Review tab. Shows the selected skill's per-file diffs as
+collapsible file cards. Hosts the pane header (skill name + Split/Unified toggle)
+and the materialising selection toolbar.
+
+**File card**:
+A collapsible section in the diff pane representing one file within a skill's diff.
+Header shows: filename, status pill (Modified/Added/Deleted), line counts (+N/−N).
+Open by default; clicking the header collapses/expands.
+
+**Materialising toolbar**:
+A selection-action bar that appears in the diff pane only when ≥ 1 skill is checked.
+Contains the 3-state toggle, Update, Skip, and a ✕ to dismiss.
+_Avoid_: floating toolbar (it's sticky, not floating).
+
+**3-state select toggle**:
+A button that cycles the bulk selection through three states:
+Select all actionable → Select new only (Update available + Removed; excludes Skipped) → Deselect all.
+Present in both the action header (always visible) and the materialising toolbar.

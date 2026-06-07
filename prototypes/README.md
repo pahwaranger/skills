@@ -11,11 +11,11 @@ build that surface with the `/prototype` skill (UI branch). The structural
 decisions are fixed constraints; the variants explore the genuinely-open visual and
 interaction treatments within them.
 
-| Prototype | Surface | What it locks in |
-|-----------|---------|------------------|
-| [`menu-bar-dropdown/`](./menu-bar-dropdown/PROMPT.md) | The dropdown panel + the three menu-bar icon states | Density, status-line treatment, row/state visual language |
-| [`review-diff/`](./review-diff/PROMPT.md) | The Review tab (sidebar of skills + PR-style diff + selection + bulk actions) | Diff density, file organization, how selection & bulk actions are surfaced |
-| [`settings/`](./settings/PROMPT.md) | The Settings tab | Form layout and how dependent controls are grouped |
+| Prototype | Surface | Status | Verdict |
+|-----------|---------|--------|---------|
+| [`menu-bar-dropdown/`](./menu-bar-dropdown/PROMPT.md) | Dropdown panel + three menu-bar icon states | ⬜ Not built | — |
+| [`review-diff/`](./review-diff/NOTES.md) | Review tab — sidebar + diff pane + selection + bulk actions | ✅ Locked | Variant D: sticky action header sidebar × collapsible file cards pane — see NOTES.md |
+| [`settings/`](./settings/NOTES.md) | Settings tab | ✅ Locked | Variant C: grouped sections, interval nested + disabled (not hidden) — see NOTES.md |
 
 These are **throwaway** (no networking, no persistence — fake data only). When a
 treatment wins, capture the verdict in a `NOTES.md` next to that prototype, then

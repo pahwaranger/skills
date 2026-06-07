@@ -15,5 +15,9 @@ and a fully native diff renderer because rebuilding PR-grade diff UI is not.
 
 ## Consequences
 
-- A web diff dependency (e.g. diff2html/Monaco) and a JS↔Swift bridge live inside
-  an otherwise-native app — expected, not accidental.
+- **diff2html** is the chosen web diff library (confirmed by the Review-tab
+  prototype; Monaco was the other candidate and was not needed). A diff2html
+  dependency and a JS↔Swift bridge live inside an otherwise-native app —
+  expected, not accidental.
+- The Review-tab design is locked: see `prototypes/review-diff/NOTES.md` for the
+  full spec (Variant D — C's sidebar × B's collapsible-file pane).
