@@ -109,7 +109,7 @@ Do not start the prototype yourself — the purpose of this step is to create a 
 
 5. **Ask whether to pause or continue.** After surfacing the path, ask: "Do you want to pause here while you review the prototype, or should I keep going and come back to this at the end?"
 
-   - **Pause** — stop the session. The user will resume it after the prototype is reviewed.
+   - **Pause** — tell the user you're waiting and to let you know when the prototype is done. When they return, read the prototype's results (check `prototypes/<slug>/` for any output or notes the agent left), summarise what you learned, then resume the questions from where you left off.
    - **Continue** — note that the questions whose answers depend on the prototype outcome are deferred (tell the user: "I'll park those and come back to them at the end"). Adjust the running question count to exclude the deferred questions for now, then proceed with all remaining independent questions. Once those are done, flag the return: "The prototype question is still open — revisiting it now." and work through the deferred questions as if they were next in the original sequence.
 
 </supporting-info>
