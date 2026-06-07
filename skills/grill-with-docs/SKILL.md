@@ -107,4 +107,9 @@ If the user chooses to prototype, do the following:
 
 Do not start the prototype yourself — the purpose of this step is to create a handoff artifact.
 
+5. **Ask whether to pause or continue.** After surfacing the path, ask: "Do you want to pause here while you review the prototype, or should I keep going and come back to this at the end?"
+
+   - **Pause** — stop the session. The user will resume it after the prototype is reviewed.
+   - **Continue** — note that the questions whose answers depend on the prototype outcome are deferred (tell the user: "I'll park those and come back to them at the end"). Adjust the running question count to exclude the deferred questions for now, then proceed with all remaining independent questions. Once those are done, flag the return: "The prototype question is still open — revisiting it now." and work through the deferred questions as if they were next in the original sequence.
+
 </supporting-info>
