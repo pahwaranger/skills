@@ -11,6 +11,8 @@ Ask the questions one at a time, waiting for feedback on each question before co
 
 If a question can be answered by exploring the codebase, explore the codebase instead.
 
+Before asking the first question, survey the full design space and estimate how many questions you expect to ask. Tell the user upfront: "I have ~N questions for you." Then prefix each question with its sequence position: **Question X of ~N:**. Revise the estimate whenever a branch opens or closes — say so briefly when you do ("Adding ~2 questions after that answer — now ~N total.").
+
 </what-to-do>
 
 <supporting-info>
@@ -84,5 +86,34 @@ Only offer to create an ADR when all three are true:
 3. **The result of a real trade-off** — there were genuine alternatives and you picked one for specific reasons
 
 If any of the three is missing, skip the ADR. Use the format in [ADR-FORMAT.md](./ADR-FORMAT.md).
+
+### Offer prototype prompts for unresolved design questions
+
+When a design question cannot be resolved by reasoning alone — the answer depends on how the code actually feels, or how a UI actually renders — offer to create a prototype prompt that another agent can implement.
+
+Present it as one of the options when the question is first raised. Example: "We could (a) decide now, (b) defer, or (c) prototype it — I can write a prompt another agent can pick up."
+
+If the user chooses to prototype, do the following:
+
+1. **Pick a slug** — a short kebab-case name for what is being explored (e.g. `order-state-machine`, `checkout-flow-variants`).
+2. **Create the directory** `prototypes/<slug>/` at the project root. Create `prototypes/` itself if it doesn't exist.
+3. **Write `prototypes/<slug>/PROMPT.md`** with everything a cold agent needs to build the prototype and record results. The file must contain:
+   - **Question** — the specific design question the prototype must answer, in one sentence.
+   - **Context** — the relevant domain terms (from `CONTEXT.md`), constraints, and decisions already made in this grilling session.
+   - **Prototype type** — `logic` (terminal/state-machine) or `ui` (visual variants), with a one-line justification.
+   - **What to build** — a concrete description of the prototype: the states/transitions to exercise, or the UI variants to render.
+   - **How to record results** — what the agent should write back when done: the answer to the question, the verdict (adopt / reject / inconclusive), and any follow-up questions that arose.
+4. **Surface the path** to the user so they know where the prompt lives and can hand it off.
+
+Do not start the prototype yourself — the purpose of this step is to create a handoff artifact.
+
+5. **Ask whether to pause or continue.** After surfacing the path, ask: "Do you want to pause here while you review the prototype, or should I keep going and come back to this at the end?"
+
+   - **Pause** — tell the user you're waiting and to let you know when the prototype is done. When they return:
+     1. Read the prototype's results (check `prototypes/<slug>/` for any output or notes the agent left) and summarise what you learned.
+     2. If the results clearly answer the original question, state the decision and ask the user to confirm it before moving on. If the results are inconclusive, say so and treat the question as still open.
+     3. Scan the results for new unknowns or side-effects that the prototype surfaced. For each one that qualifies as a grilling question, add it to the session and update the question count ("The prototype raised ~N new questions — adding them now, now ~N total.")
+     4. Resume the remaining questions.
+   - **Continue** — note that the questions whose answers depend on the prototype outcome are deferred (tell the user: "I'll park those and come back to them at the end"). Adjust the running question count to exclude the deferred questions for now, then proceed with all remaining independent questions. Once those are done, flag the return: "The prototype question is still open — revisiting it now." and work through the deferred questions as if they were next in the original sequence.
 
 </supporting-info>
