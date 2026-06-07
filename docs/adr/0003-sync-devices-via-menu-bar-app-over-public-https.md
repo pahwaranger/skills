@@ -20,3 +20,8 @@ the probe — both acceptable for a personal, single-public-repo tool.
 - The app keeps its own **Cache** (last-seen Origin) separate from the working
   clone; per-skill change detection is a content diff of the tarball against the
   Cache, not a git operation.
+- **Cadence & triggers**: Steve checks on **app launch**, on an **hourly timer**
+  (interval configurable, default 60 min; an "automatic checks" toggle disables the
+  timer), and on the manual **Check for updates** button. A failed check is
+  **non-destructive** — keep the last-known state and Cache, show a soft error in
+  the status line ("Couldn't reach origin · checked Nh ago"), and retry next tick.

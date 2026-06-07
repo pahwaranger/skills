@@ -75,6 +75,14 @@ A cached/installed skill that origin no longer has. Treated as a change to sync.
 
 ### Steve UI surfaces
 
+**Window**:
+Steve's single reused window, hosting the Review tab and the Settings tab. Clicking
+a non-up-to-date skill row opens/raises it on the **Review tab** focused on that
+skill; the **Settings** button opens/raises it on the Settings tab. As an accessory
+(`LSUIElement`) app, Steve uses **transient activation** to bring the window to the
+front without earning a permanent Dock tile.
+_Avoid_: modal, popup, dialog (it's a reusable window, not a modal).
+
 **Review tab**:
 The primary window tab where the user inspects and acts on pending skill changes.
 Contains the sidebar and the diff pane. Design locked; see
