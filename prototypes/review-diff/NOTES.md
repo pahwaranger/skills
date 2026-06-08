@@ -22,7 +22,7 @@ Opens on Variant D by default. Switch variants with `← →` arrow keys or the 
 
 ### Sidebar (from Variant C)
 - **Sticky action header** always pinned at the top: 3-state select toggle + Update N + Skip N. Bulk actions never require scrolling to find.
-- Grouped skill list below: Removed → Updates → Skipped → Current, alphabetical within each group.
+- Grouped skill list below: Removed → Updates → Skipped → Up to date, alphabetical within each group.
 - Checkboxes on all actionable skills; up-to-date skills shown without checkbox (non-selectable).
 - State group labels coloured to match their state (red / blue / orange / gray).
 
@@ -66,3 +66,16 @@ production handles binaries as follows:
 
 ## Variants A–C
 Kept for context. Do not delete — useful reference for the SwiftUI build.
+
+---
+
+## Build notes (from the gap audit — apply in the SwiftUI build)
+- **Render explicit "Installed" / "Origin" side labels** on the split diff. diff2html's
+  split view does not label its two columns by default; the prototype hides its headers,
+  so this must be added in the WKWebView build. (Direction: base = Installed (S), head = Origin (O).)
+- **GitHub links use the resolved default branch**, not a literal. The prototype now
+  uses `tree/master/...` to match reality, but the real app should read the default
+  branch from the API (see ADR 0003) rather than hardcoding it.
+- **Origin moving mid-review**: the Review window is an immutable snapshot at open;
+  Update/Skip re-validate the live Origin SHA at commit time and block with a reload
+  prompt if it moved (see ADR 0006). Not modelled in the prototype.

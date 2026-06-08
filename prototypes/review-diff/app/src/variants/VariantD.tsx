@@ -26,13 +26,13 @@ const GROUP_LABEL: Record<string, string> = {
   removed:  'Removed',
   update:   'Updates',
   skipped:  'Skipped',
-  uptodate: 'Current',
+  uptodate: 'Up to date',
 }
 const STATE_BADGE: Record<string, string> = {
   removed:  'Removed',
   update:   'Update',
   skipped:  'Skipped',
-  uptodate: 'Current',
+  uptodate: 'Up to date',
 }
 
 function selectMode(checked: Set<string>, skills: Skill[]): 'none' | 'all' | 'new' | 'partial' {
@@ -227,7 +227,7 @@ export default function VariantD({
               <p>Up to date</p>
               <span>Nothing to sync for this skill.</span>
               <a
-                href={`https://github.com/pahwaranger/skills/tree/main/skills/${selected.id}`}
+                href={`https://github.com/pahwaranger/skills/tree/master/skills/${selected.id}`}
                 target="_blank" rel="noreferrer"
               >
                 View on GitHub ↗

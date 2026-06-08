@@ -25,3 +25,9 @@ and a fully native diff renderer because rebuilding PR-grade diff UI is not.
   2026-06, macOS 15 Sequoia + macOS 26; floor = macOS 15). This clears `MenuBarExtra`
   (13+) and `.symbolEffect` (14+), so no `NSStatusItem`/`NSPopover` fallback is
   needed. The trade-off: a Mac drops out of support each fall when a new major ships.
+- **Distribution: build-from-source per device** (Xcode, local development signing) —
+  no Apple Developer account, no notarization, no DMG. Updating Steve means pulling
+  the repo and rebuilding on that device. We accept per-device build friction to avoid
+  the $99/yr Developer Program; `SMAppService` login-item registration works under
+  local development signing on the machine that built it. (Switching to Developer ID +
+  notarized distribution later is possible if the friction outweighs the cost.)

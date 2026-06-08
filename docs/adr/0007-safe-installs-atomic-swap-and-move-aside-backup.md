@@ -9,9 +9,16 @@ disk), the rest still succeed and the failed skill stays in its prior state.
 
 Before any overwrite or delete, the replaced/removed directory is **moved aside**
 into `~/Library/Application Support/Steve/backups/<timestamp>/` and retained for
-**7 days**, then pruned. Even though the skills directory is a pure consumption
-target (authoring happens in the repo clone) and Origin is always re-fetchable, a
-surprise bulk Update should never be unrecoverable.
+**7 days**, then pruned (pruning runs **on each app launch and after each install**;
+if the app was quit past the window, stale backups are cleaned on next launch). Even
+though the skills directory is a pure consumption target (authoring happens in the
+repo clone) and Origin is always re-fetchable, a surprise bulk Update should never be
+unrecoverable.
+
+Update (and Skip) **re-validate the live Origin SHA against the review snapshot
+before swapping** — if Origin moved since the Review window opened, the install is
+blocked and the user is asked to reload and re-review (see ADR 0006). An install
+therefore only ever writes content the user actually reviewed.
 
 ## Why
 

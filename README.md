@@ -21,6 +21,11 @@ handled by **Steve** (`app/`), a macOS menu-bar app that treats this repo as
 or auth required. See [ADR 0003](docs/adr/0003-sync-devices-via-menu-bar-app-over-public-https.md)
 and [ADR 0004](docs/adr/0004-steve-native-swiftui-agent-with-embedded-web-diff.md).
 
+> **Status / prerequisite:** Steve isn't built yet (`app/` is not yet scaffolded),
+> and the default branch has **not been pushed to GitHub**, so Origin is currently
+> empty. Until it's pushed, any cached skill would read as *Removed on origin* —
+> that's expected, not a bug. Push the default branch before running Steve.
+
 ## Validity bar
 
 A skill must be **runtime-valid** — i.e. the Claude Code runtime loads it
