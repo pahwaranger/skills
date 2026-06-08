@@ -17,6 +17,8 @@
 		C00000000000000000000008 /* Installer.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000009 /* Installer.swift */; };
 		C00000000000000000000009 /* Scheduler.swift in Sources */ = {isa = PBXBuildFile; fileRef = B0000000000000000000000A /* Scheduler.swift */; };
 		C0000000000000000000000A /* SteveTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B0000000000000000000000B /* SteveTests.swift */; };
+		C0000000000000000000000B /* CacheTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B0000000000000000000000E /* CacheTests.swift */; };
+		C0000000000000000000000C /* Cache.swift in SteveTests */ = {isa = PBXBuildFile; fileRef = B00000000000000000000006 /* Cache.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -33,6 +35,7 @@
 		B0000000000000000000000B /* SteveTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SteveTests.swift; sourceTree = "<group>"; };
 		B0000000000000000000000C /* Steve.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Steve.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		B0000000000000000000000D /* SteveTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = SteveTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		B0000000000000000000000E /* CacheTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CacheTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -131,6 +134,7 @@
 			isa = PBXGroup;
 			children = (
 				B0000000000000000000000B /* SteveTests.swift */,
+				B0000000000000000000000E /* CacheTests.swift */,
 			);
 			path = SteveTests;
 			sourceTree = "<group>";
@@ -252,6 +256,8 @@
 			buildActionMask = 2147483647;
 			files = (
 				C0000000000000000000000A /* SteveTests.swift in Sources */,
+				C0000000000000000000000B /* CacheTests.swift in Sources */,
+				C0000000000000000000000C /* Cache.swift in SteveTests */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -328,7 +334,6 @@
 		E10000000000000000000004 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				BUNDLE_LOADER = "$(TEST_HOST)";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -338,14 +343,12 @@
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = NO;
 				SWIFT_VERSION = 6.0;
-				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Steve.app/Contents/MacOS/Steve";
 			};
 			name = Debug;
 		};
 		E10000000000000000000005 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				BUNDLE_LOADER = "$(TEST_HOST)";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -355,7 +358,6 @@
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = NO;
 				SWIFT_VERSION = 6.0;
-				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Steve.app/Contents/MacOS/Steve";
 			};
 			name = Release;
 		};
