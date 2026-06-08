@@ -7,6 +7,7 @@ my devices manually and modify the skills to fit my own workflow.
 
 ```
 skills/        # the skills themselves — a drop-in ~/.claude/skills/ directory
+app/           # Steve — macOS menu-bar app that syncs skills onto a device
 scripts/       # tooling (quick_validate.py — advisory strict lint)
 docs/adr/      # architecture decision records
 CONTEXT.md     # domain glossary
@@ -14,8 +15,16 @@ PROVENANCE.md  # registry of sources skills were drawn/derived from (attribution
 ```
 
 `skills/` is structured to be a valid `~/.claude/skills/` directory: each
-subdirectory is one skill containing a `SKILL.md`. Syncing it onto a device
-(copy, symlink, however you like) is a manual step — this repo doesn't automate it.
+subdirectory is one skill containing a `SKILL.md`. Syncing it onto a device is
+handled by **Steve** (`app/`), a macOS menu-bar app that treats this repo as
+**Origin** and installs skills into `~/.claude/skills/` over public HTTPS — no git
+or auth required. See [ADR 0003](docs/adr/0003-sync-devices-via-menu-bar-app-over-public-https.md)
+and [ADR 0004](docs/adr/0004-steve-native-swiftui-agent-with-embedded-web-diff.md).
+
+> **Status / prerequisite:** Steve isn't built yet (`app/` is not yet scaffolded),
+> and the default branch has **not been pushed to GitHub**, so Origin is currently
+> empty. Until it's pushed, any cached skill would read as *Removed on origin* —
+> that's expected, not a bug. Push the default branch before running Steve.
 
 ## Validity bar
 
