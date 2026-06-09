@@ -1,0 +1,485 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		C00000000000000000000001 /* SteveApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000001 /* SteveApp.swift */; };
+		C00000000000000000000002 /* MainView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000002 /* MainView.swift */; };
+		C00000000000000000000003 /* ReviewView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000003 /* ReviewView.swift */; };
+		C00000000000000000000004 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000004 /* SettingsView.swift */; };
+		C00000000000000000000005 /* Cache.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000006 /* Cache.swift */; };
+		C00000000000000000000006 /* OriginClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000007 /* OriginClient.swift */; };
+		C00000000000000000000007 /* StateEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000008 /* StateEngine.swift */; };
+		C00000000000000000000008 /* Installer.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000009 /* Installer.swift */; };
+		C00000000000000000000009 /* Scheduler.swift in Sources */ = {isa = PBXBuildFile; fileRef = B0000000000000000000000A /* Scheduler.swift */; };
+		C0000000000000000000000A /* SteveTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B0000000000000000000000B /* SteveTests.swift */; };
+		C0000000000000000000000B /* CacheTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B0000000000000000000000E /* CacheTests.swift */; };
+		C0000000000000000000000C /* Cache.swift in SteveTests */ = {isa = PBXBuildFile; fileRef = B00000000000000000000006 /* Cache.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		B00000000000000000000001 /* SteveApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SteveApp.swift; sourceTree = "<group>"; };
+		B00000000000000000000002 /* MainView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainView.swift; sourceTree = "<group>"; };
+		B00000000000000000000003 /* ReviewView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReviewView.swift; sourceTree = "<group>"; };
+		B00000000000000000000004 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
+		B00000000000000000000005 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		B00000000000000000000006 /* Cache.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Cache.swift; sourceTree = "<group>"; };
+		B00000000000000000000007 /* OriginClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OriginClient.swift; sourceTree = "<group>"; };
+		B00000000000000000000008 /* StateEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StateEngine.swift; sourceTree = "<group>"; };
+		B00000000000000000000009 /* Installer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Installer.swift; sourceTree = "<group>"; };
+		B0000000000000000000000A /* Scheduler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Scheduler.swift; sourceTree = "<group>"; };
+		B0000000000000000000000B /* SteveTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SteveTests.swift; sourceTree = "<group>"; };
+		B0000000000000000000000C /* Steve.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Steve.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		B0000000000000000000000D /* SteveTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = SteveTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		B0000000000000000000000E /* CacheTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CacheTests.swift; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		E00000000000000000000002 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		E00000000000000000000005 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		D00000000000000000000001 /* = */ = {
+			isa = PBXGroup;
+			children = (
+				D00000000000000000000002 /* Steve */,
+				D00000000000000000000003 /* Sources */,
+				D00000000000000000000009 /* SteveTests */,
+				D0000000000000000000000A /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		D00000000000000000000002 /* Steve */ = {
+			isa = PBXGroup;
+			children = (
+				B00000000000000000000001 /* SteveApp.swift */,
+				B00000000000000000000002 /* MainView.swift */,
+				B00000000000000000000003 /* ReviewView.swift */,
+				B00000000000000000000004 /* SettingsView.swift */,
+				B00000000000000000000005 /* Info.plist */,
+			);
+			path = Steve;
+			sourceTree = "<group>";
+		};
+		D00000000000000000000003 /* Sources */ = {
+			isa = PBXGroup;
+			children = (
+				D00000000000000000000004 /* Cache */,
+				D00000000000000000000005 /* OriginClient */,
+				D00000000000000000000006 /* StateEngine */,
+				D00000000000000000000007 /* Installer */,
+				D00000000000000000000008 /* Scheduler */,
+			);
+			path = Sources;
+			sourceTree = "<group>";
+		};
+		D00000000000000000000004 /* Cache */ = {
+			isa = PBXGroup;
+			children = (
+				B00000000000000000000006 /* Cache.swift */,
+			);
+			path = Cache;
+			sourceTree = "<group>";
+		};
+		D00000000000000000000005 /* OriginClient */ = {
+			isa = PBXGroup;
+			children = (
+				B00000000000000000000007 /* OriginClient.swift */,
+			);
+			path = OriginClient;
+			sourceTree = "<group>";
+		};
+		D00000000000000000000006 /* StateEngine */ = {
+			isa = PBXGroup;
+			children = (
+				B00000000000000000000008 /* StateEngine.swift */,
+			);
+			path = StateEngine;
+			sourceTree = "<group>";
+		};
+		D00000000000000000000007 /* Installer */ = {
+			isa = PBXGroup;
+			children = (
+				B00000000000000000000009 /* Installer.swift */,
+			);
+			path = Installer;
+			sourceTree = "<group>";
+		};
+		D00000000000000000000008 /* Scheduler */ = {
+			isa = PBXGroup;
+			children = (
+				B0000000000000000000000A /* Scheduler.swift */,
+			);
+			path = Scheduler;
+			sourceTree = "<group>";
+		};
+		D00000000000000000000009 /* SteveTests */ = {
+			isa = PBXGroup;
+			children = (
+				B0000000000000000000000B /* SteveTests.swift */,
+				B0000000000000000000000E /* CacheTests.swift */,
+			);
+			path = SteveTests;
+			sourceTree = "<group>";
+		};
+		D0000000000000000000000A /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				B0000000000000000000000C /* Steve.app */,
+				B0000000000000000000000D /* SteveTests.xctest */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		F00000000000000000000001 /* Steve */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = E10000000000000000000003 /* Build configuration list for PBXNativeTarget "Steve" */;
+			buildPhases = (
+				E00000000000000000000001 /* Sources */,
+				E00000000000000000000002 /* Frameworks */,
+				E00000000000000000000003 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = Steve;
+			productName = Steve;
+			productReference = B0000000000000000000000C /* Steve.app */;
+			productType = "com.apple.product-type.application";
+		};
+		F00000000000000000000002 /* SteveTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = E10000000000000000000006 /* Build configuration list for PBXNativeTarget "SteveTests" */;
+			buildPhases = (
+				E00000000000000000000004 /* Sources */,
+				E00000000000000000000005 /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				F00000000000000000000003 /* PBXTargetDependency */,
+			);
+			name = SteveTests;
+			productName = SteveTests;
+			productReference = B0000000000000000000000D /* SteveTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		A00000000000000000000001 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 1600;
+				LastUpgradeCheck = 1600;
+				TargetAttributes = {
+					F00000000000000000000001 = {
+						CreatedOnToolsVersion = 16.0;
+					};
+					F00000000000000000000002 = {
+						CreatedOnToolsVersion = 16.0;
+						TestTargetID = F00000000000000000000001;
+					};
+				};
+			};
+			buildConfigurationList = E10000000000000000000009 /* Build configuration list for PBXProject "Steve" */;
+			compatibilityVersion = "Xcode 14.0";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = D00000000000000000000001;
+			minimizedProjectReferenceProxies = 1;
+			productRefGroup = D0000000000000000000000A /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				F00000000000000000000001 /* Steve */,
+				F00000000000000000000002 /* SteveTests */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		E00000000000000000000003 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		E00000000000000000000001 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				C00000000000000000000001 /* SteveApp.swift in Sources */,
+				C00000000000000000000002 /* MainView.swift in Sources */,
+				C00000000000000000000003 /* ReviewView.swift in Sources */,
+				C00000000000000000000004 /* SettingsView.swift in Sources */,
+				C00000000000000000000005 /* Cache.swift in Sources */,
+				C00000000000000000000006 /* OriginClient.swift in Sources */,
+				C00000000000000000000007 /* StateEngine.swift in Sources */,
+				C00000000000000000000008 /* Installer.swift in Sources */,
+				C00000000000000000000009 /* Scheduler.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		E00000000000000000000004 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				C0000000000000000000000A /* SteveTests.swift in Sources */,
+				C0000000000000000000000B /* CacheTests.swift in Sources */,
+				C0000000000000000000000C /* Cache.swift in SteveTests */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXContainerItemProxy section */
+		F00000000000000000000004 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = A00000000000000000000001 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = F00000000000000000000001;
+			remoteInfo = Steve;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXTargetDependency section */
+		F00000000000000000000003 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = F00000000000000000000001 /* Steve */;
+			targetProxy = F00000000000000000000004 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		E10000000000000000000001 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = Steve/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 15.0;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.pahwaranger.Steve;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 6.0;
+			};
+			name = Debug;
+		};
+		E10000000000000000000002 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = Steve/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 15.0;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.pahwaranger.Steve;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 6.0;
+			};
+			name = Release;
+		};
+		E10000000000000000000003 /* Build configuration list for PBXNativeTarget "Steve" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				E10000000000000000000001 /* Debug */,
+				E10000000000000000000002 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		E10000000000000000000004 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 15.0;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.pahwaranger.SteveTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 6.0;
+			};
+			name = Debug;
+		};
+		E10000000000000000000005 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 15.0;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.pahwaranger.SteveTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 6.0;
+			};
+			name = Release;
+		};
+		E10000000000000000000006 /* Build configuration list for PBXNativeTarget "SteveTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				E10000000000000000000004 /* Debug */,
+				E10000000000000000000005 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		E10000000000000000000007 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_CYCLE = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 15.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = macosx;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+			};
+			name = Debug;
+		};
+		E10000000000000000000008 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_CYCLE = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 15.0;
+				MTL_FAST_MATH = YES;
+				SDKROOT = macosx;
+				SWIFT_COMPILATION_MODE = wholemodule;
+			};
+			name = Release;
+		};
+		E10000000000000000000009 /* Build configuration list for PBXProject "Steve" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				E10000000000000000000007 /* Debug */,
+				E10000000000000000000008 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCBuildConfiguration section */
+
+	};
+	rootObject = A00000000000000000000001 /* Project object */;
+}
