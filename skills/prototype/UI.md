@@ -109,18 +109,32 @@ When the session covers several distinct targets (e.g. the header, the sidebar, 
 
 The Unified entry should be disabled (greyed out) until at least one target has a locked-in variant, so the user knows it becomes meaningful progressively.
 
-### 5. Hand it over
+### 5. Host it and hand over the URL
 
-Surface the URL (and the `?variant=` keys). The user will flip through whenever they get to it. The interesting feedback is usually **"I want the header from B with the sidebar from C"** — that's the actual design they want.
+Don't just describe what you built — serve it. Once the variants are wired up:
+
+1. **Start the dev server** using the project's existing run command (`pnpm dev`, `npm run dev`, `bun dev`, etc.) in the background.
+2. **Share the port** via Claude's built-in port-sharing so the user can open it in their own browser without any extra setup.
+3. **Send the user the shared URL** directly, including the route and a note on which `?variant=` keys are available. Don't wait for them to ask.
+
+The interesting feedback is usually **"I want the header from B with the sidebar from C"** — the user can't give that feedback until they're actually looking at the thing.
+
+For multi-target prototypes, also send the URL for the Unified view once the first target is locked in.
 
 ### 6. Capture the answer and absorb the winner
 
-Once a variant has won, write down which one and why (commit message, ADR, ticket, or a `NOTES.md` in the prototype's `prototypes/<session>/` directory if running AFK and the user hasn't responded yet). Then fold the winner into the real code and un-wire the temporary hooks from production:
+Once a variant has won (or, for multi-target prototypes, once all targets have a locked-in variant), **ask the user for explicit final confirmation** before doing anything destructive. Show them a summary of what was decided, e.g.:
 
-- **Sub-shape A** — fold the winning variant into the existing page, and remove the temporary `?variant=` gate and switcher import from that route. The variant components and switcher stay in `prototypes/<session>/`.
-- **Sub-shape B** — promote the winning variant to a real route, and remove the throwaway route entry point. The variant components and switcher stay in `prototypes/<session>/`.
+> "Ready to wrap up: Header → B (sidebar layout), Sidebar → A (compact), Empty state → C (illustration). Lock these in and stop the server?"
 
-The point is to leave production clean — no `?variant=` gates, throwaway routes, or switcher imports lingering in real code — while keeping the prototype itself under `prototypes/` as a record of how the decision was reached. Don't delete the prototype directory.
+Only after they confirm:
+
+1. **Stop the dev server** and **stop port sharing** — don't leave a forwarded port dangling.
+2. Then fold the winner into the real code and un-wire the temporary hooks from production:
+   - **Sub-shape A** — fold the winning variant into the existing page, and remove the temporary `?variant=` gate and switcher import from that route. The variant components and switcher stay in `prototypes/<session>/`.
+   - **Sub-shape B** — promote the winning variant to a real route, and remove the throwaway route entry point. The variant components and switcher stay in `prototypes/<session>/`.
+
+The point is to leave production clean — no `?variant=` gates, throwaway routes, switcher imports, or forwarded ports lingering — while keeping the prototype itself under `prototypes/` as a record of how the decision was reached. Don't delete the prototype directory.
 
 ## Anti-patterns
 
