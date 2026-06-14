@@ -9,6 +9,20 @@ public protocol SchedulerClock: Sendable {
     func sleep(for duration: TimeInterval) async throws
 }
 
+/// Distinguishes the three kinds of transient (non-destructive) check failures so
+/// that `AppModel.applyCheckResult` can surface the right `CheckError` for the
+/// status-line wording. The scheduler treats all three identically — they are
+/// non-destructive and preserve the current cadence — but the UI needs to know which
+/// one occurred so it can show the right string (network / rate-limit / fetch-failed).
+public enum TransientReason: Sendable, Equatable {
+    /// Unreachable host, transport error, or unexpected 5xx status.
+    case network
+    /// GitHub 403 with an X-RateLimit-Reset header; back off until `resetAt`.
+    case rateLimited(resetAt: Date)
+    /// Tarball corrupt or extraction failed.
+    case fetchFailed
+}
+
 /// The result a `performCheck` closure returns to the scheduler, giving it
 /// enough information to choose the next sleep interval without leaking
 /// domain errors into the scheduling layer.
@@ -20,10 +34,12 @@ public enum CheckResult: Sendable {
     /// The origin returned a 404 / was private — a configuration problem that
     /// warrants slow-retry backoff rather than the normal cadence.
     case originNotFound
-    /// A transient, non-destructive failure (network error, rate limit).
-    /// The scheduler preserves the current cadence (including any 404 slow-retry
-    /// backoff) and keeps `lastDerivedState` unchanged.
-    case transientError
+    /// A transient, non-destructive failure (network error, rate limit, or fetch
+    /// failure). The scheduler preserves the current cadence (including any 404
+    /// slow-retry backoff) and keeps `lastDerivedState` unchanged. The associated
+    /// `TransientReason` lets `AppModel.applyCheckResult` map to the right
+    /// `CheckError` so all status-line wordings are reachable.
+    case transientError(TransientReason)
 }
 
 /// A snapshot of the scheduler's observable state, emitted on the
@@ -119,8 +135,8 @@ public actor CheckScheduler {
         case .originNotFound:
             lastOutcomeWas404 = true
         case .transientError:
-            // Non-destructive: preserve current cadence (including 404 backoff)
-            // and do not overwrite lastDerivedState with a failed result.
+            // Non-destructive regardless of the reason: preserve current cadence
+            // (including 404 backoff) and do not overwrite lastDerivedState.
             break
         }
         isChecking = false

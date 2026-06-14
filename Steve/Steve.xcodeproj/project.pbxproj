@@ -23,6 +23,11 @@
 		C0000000000000000000000E /* TarballExtractor.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000010 /* TarballExtractor.swift */; };
 		C0000000000000000000000F /* URLSessionTransport.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000011 /* URLSessionTransport.swift */; };
 		C00000000000000000000010 /* AppModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000012 /* AppModel.swift */; };
+		C00000000000000000000011 /* DropdownView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000013 /* DropdownView.swift */; };
+		C00000000000000000000012 /* CheckError.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000014 /* CheckError.swift */; };
+		C00000000000000000000013 /* StatusLine.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000015 /* StatusLine.swift */; };
+		C00000000000000000000014 /* DropdownSections.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000016 /* DropdownSections.swift */; };
+		C00000000000000000000015 /* WeakBox.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000017 /* WeakBox.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -44,6 +49,11 @@
 		B00000000000000000000010 /* TarballExtractor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TarballExtractor.swift; sourceTree = "<group>"; };
 		B00000000000000000000011 /* URLSessionTransport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = URLSessionTransport.swift; sourceTree = "<group>"; };
 		B00000000000000000000012 /* AppModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppModel.swift; sourceTree = "<group>"; };
+		B00000000000000000000013 /* DropdownView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DropdownView.swift; sourceTree = "<group>"; };
+		B00000000000000000000014 /* CheckError.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CheckError.swift; sourceTree = "<group>"; };
+		B00000000000000000000015 /* StatusLine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatusLine.swift; sourceTree = "<group>"; };
+		B00000000000000000000016 /* DropdownSections.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DropdownSections.swift; sourceTree = "<group>"; };
+		B00000000000000000000017 /* WeakBox.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeakBox.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -79,6 +89,7 @@
 			children = (
 				B00000000000000000000001 /* SteveApp.swift */,
 				B00000000000000000000002 /* MainView.swift */,
+				B00000000000000000000013 /* DropdownView.swift */,
 				B00000000000000000000003 /* ReviewView.swift */,
 				B00000000000000000000004 /* SettingsView.swift */,
 				B00000000000000000000005 /* Info.plist */,
@@ -103,6 +114,10 @@
 			isa = PBXGroup;
 			children = (
 				B00000000000000000000012 /* AppModel.swift */,
+				B00000000000000000000014 /* CheckError.swift */,
+				B00000000000000000000015 /* StatusLine.swift */,
+				B00000000000000000000016 /* DropdownSections.swift */,
+				B00000000000000000000017 /* WeakBox.swift */,
 			);
 			path = AppCore;
 			sourceTree = "<group>";
@@ -272,6 +287,11 @@
 				C00000000000000000000008 /* Installer.swift in Sources */,
 				C00000000000000000000009 /* Scheduler.swift in Sources */,
 				C00000000000000000000010 /* AppModel.swift in Sources */,
+				C00000000000000000000011 /* DropdownView.swift in Sources */,
+				C00000000000000000000012 /* CheckError.swift in Sources */,
+				C00000000000000000000013 /* StatusLine.swift in Sources */,
+				C00000000000000000000014 /* DropdownSections.swift in Sources */,
+				C00000000000000000000015 /* WeakBox.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

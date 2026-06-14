@@ -31,6 +31,29 @@ public final class AppModel {
     /// successful check that produces an origin snapshot.
     public private(set) var lastDerivedState: DerivedState?
 
+    /// The date the most recent check completed (success or failure). `nil` until the
+    /// first check finishes. Drives "checked X ago" in the status-line wording (#15).
+    public private(set) var lastCheckDate: Date?
+
+    /// The error kind from the most recent failed check, or `nil` if the last check
+    /// succeeded. Drives the 4 error status-line wordings (#15).
+    public private(set) var lastCheckError: CheckError?
+
+    /// The resolved default branch from the GitHub API. Populated after the first
+    /// successful `resolveDefaultBranch()` call; `nil` until then. Used by the skill
+    /// row links so they point to the live default branch rather than a hardcoded value.
+    public private(set) var resolvedDefaultBranch: String?
+
+    // MARK: — Stored owner/repo (used for GitHub links in the view)
+
+    /// The GitHub owner used to construct skill-directory links.
+    public let owner: String
+    /// The GitHub repository used to construct skill-directory links.
+    public let repo: String
+    /// The init-time branch (used as a fallback for GitHub links before
+    /// `resolvedDefaultBranch` is populated by `OriginClient.resolveDefaultBranch()`).
+    public let branch: String
+
     // MARK: — Internal scheduler (accessible for testing + manual trigger)
 
     public let scheduler: CheckScheduler
@@ -41,6 +64,10 @@ public final class AppModel {
     /// main actor (in `start()`), and only read again from `deinit`, which runs after
     /// every other reference is gone — so there is no concurrent access.
     private nonisolated(unsafe) var stateObserver: Task<Void, Never>?
+
+    /// OriginClient instance retained for `resolveDefaultBranch()`. Kept private;
+    /// only the main-actor method below calls it via a Task hop to the actor.
+    private let _originClient: OriginClient
 
     // MARK: — Init
 
@@ -59,14 +86,28 @@ public final class AppModel {
         /// The production default scans the real skills directory.
         installedSkills: @escaping @Sendable () -> [String: String] = AppModel.makeDefaultInstalledSkillsProvider()
     ) {
+        self.owner = owner
+        self.repo = repo
+        self.branch = branch
+        self._originClient = OriginClient(owner: owner, repo: repo, transport: transport)
         let cacheRootResolved = cacheRoot ?? AppModel.makeDefaultCacheRoot()
         let cacheStore = CacheStore(root: cacheRootResolved)
-        let performCheck = AppModel.makePerformCheck(
+        let basePerformCheck = AppModel.makePerformCheck(
             owner: owner, repo: repo, branch: branch,
             transport: transport,
             cacheStore: cacheStore,
             installedSkills: installedSkills
         )
+        // A Sendable weak-ref box set after init so the performCheck wrapper can
+        // call back into self without a strong reference cycle.
+        let selfBox = WeakBox<AppModel>()
+        // Wrap performCheck to intercept the result and update lastCheckDate/lastCheckError
+        // on the main actor after each check (for status-line wording, Slice 6).
+        let performCheck: @Sendable () async -> CheckResult = {
+            let result = await basePerformCheck()
+            await MainActor.run { selfBox.value?.applyCheckResult(result) }
+            return result
+        }
         self.scheduler = CheckScheduler(
             performCheck: performCheck,
             clock: clock,
@@ -74,6 +115,8 @@ public final class AppModel {
             slowRetryInterval: slowRetryInterval,
             automaticChecksEnabled: automaticChecksEnabled
         )
+        // Wire the box to self now that init is complete.
+        selfBox.value = self
     }
 
     deinit {
@@ -83,12 +126,20 @@ public final class AppModel {
     /// Start the scheduler: fires an immediate check then begins periodic checks.
     /// Observable state is then kept live for EVERY check — launch, every timer
     /// tick, and manual triggers — by draining the scheduler's `stateUpdates` stream.
+    /// Also resolves the repository's default branch at launch so GitHub links use the
+    /// live branch rather than the hardcoded init-time value (Slice 6 AC).
     public func start() async {
         // Begin draining the completion stream BEFORE the launch check fires so no
         // emission is missed. The stream buffers (newest-8) if this task hasn't yet
         // suspended on its first iteration, so launch-check emissions are never lost.
         startObservingSchedulerState()
-        await scheduler.start()
+        // Resolve the default branch concurrently with the launch check so it doesn't
+        // add latency to the first status update. Both are awaited before start() returns,
+        // making the result deterministically available to callers (and to tests).
+        await withTaskGroup(of: Void.self) { group in
+            group.addTask { await self.resolveAndStoreDefaultBranch() }
+            group.addTask { await self.scheduler.start() }
+        }
         // Guarantee the observable reflects the launch result *synchronously* on
         // return, so callers asserting immediately after `start()` are deterministic
         // (the stream hop is async). Subsequent checks are covered by the stream.
@@ -100,6 +151,16 @@ public final class AppModel {
     public func triggerCheck() async {
         await scheduler.triggerCheck()
         await syncFromScheduler()
+    }
+
+    /// Resolves the repository's default branch from the GitHub API and stores it in
+    /// `resolvedDefaultBranch`. Called once at launch (from `SteveApp.swift`) so that
+    /// skill-row GitHub links point to the live default branch rather than the hardcoded
+    /// init-time value. Falls back silently to `nil` (which the view handles by using
+    /// the init-time `branch`).
+    public func resolveAndStoreDefaultBranch() async {
+        guard let resolved = try? await _originClient.resolveDefaultBranch() else { return }
+        resolvedDefaultBranch = resolved
     }
 
     // MARK: — Scheduler → observable bridge
@@ -128,6 +189,31 @@ public final class AppModel {
         let state = await scheduler.lastDerivedState
         isChecking = checking
         lastDerivedState = state
+    }
+
+    /// Records the outcome of a completed check as `lastCheckDate` and `lastCheckError`.
+    /// Called on the main actor via a hop in the wrapped `performCheck` closure.
+    /// On success (`.ok`) the error is cleared; on any failure the error is set.
+    @MainActor
+    func applyCheckResult(_ result: CheckResult) {
+        lastCheckDate = Date()
+        switch result {
+        case .ok:
+            lastCheckError = nil
+        case .originNotFound:
+            lastCheckError = .originNotFound
+        case .transientError(let reason):
+            // Map each TransientReason to the matching CheckError so all error
+            // wordings are reachable in StatusLine (network / rate-limited / fetch-failed).
+            switch reason {
+            case .network:
+                lastCheckError = .networkError
+            case .rateLimited(let resetAt):
+                lastCheckError = .rateLimited(resetAt: resetAt)
+            case .fetchFailed:
+                lastCheckError = .fetchFailed
+            }
+        }
     }
 
     // MARK: — Factory: builds the performCheck closure the scheduler calls
@@ -171,11 +257,19 @@ public final class AppModel {
                 )
             } catch OriginError.originNotFound {
                 return .originNotFound
+            } catch OriginError.rateLimited(let retryAt) {
+                // 403 with X-RateLimit-Reset — carry the reset date so the UI can show the
+                // countdown wording ("GitHub rate limit reached · retries H:MM").
+                return .transientError(.rateLimited(resetAt: retryAt))
+            } catch OriginError.fetchFailed {
+                // Tarball corrupt or extraction error — carry the reason so the UI can show
+                // "Origin fetch failed…" instead of the generic network-error wording.
+                return .transientError(.fetchFailed)
             } catch {
-                // networkError, rateLimited, fetchFailed — all transient, non-destructive.
-                // Map to .transientError so the scheduler preserves its current cadence
-                // (including any 404 slow-retry backoff) and last good DerivedState.
-                return .transientError
+                // networkError (unreachable / timeout / 5xx) — all other failures are
+                // network-level; the scheduler treats them identically but the UI shows
+                // "Couldn't reach origin…".
+                return .transientError(.network)
             }
 
             switch outcome {
