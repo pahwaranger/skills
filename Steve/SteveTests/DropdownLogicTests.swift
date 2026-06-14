@@ -99,7 +99,8 @@ struct StatusLineWordingTests {
 
     // 4. Fully clean — up to date, no skipped
     @Test func fullyCleanShowsCheckedTime() {
-        let date = Date(timeIntervalSinceNow: -90) // 1.5 minutes ago
+        // 90 seconds ago is >= 90s threshold → "Xm ago" branch (1 minute → "1m ago")
+        let date = Date(timeIntervalSinceNow: -90)
         let state = DerivedState(
             states: ["alpha": .upToDate],
             attention: false,
@@ -111,8 +112,7 @@ struct StatusLineWordingTests {
             lastError: nil,
             lastCheckDate: date
         )
-        // Should contain "Up to date · checked" and a relative time
-        #expect(wording.hasPrefix("Up to date · checked"))
+        #expect(wording == "Up to date · checked 1m ago")
     }
 
     @Test func fullyCleanWithNoLastCheckDateShowsJustUpToDate() {
@@ -132,26 +132,32 @@ struct StatusLineWordingTests {
 
     // 5. Network/timeout/5xx error
     @Test func networkErrorShowsCantReachOrigin() {
-        let date = Date(timeIntervalSinceNow: -7200) // 2h ago
+        // 7200 seconds = exactly 2 hours → "2h ago"
+        let date = Date(timeIntervalSinceNow: -7200)
         let wording = StatusLine.wording(
             isChecking: false,
             derivedState: nil,
             lastError: .networkError,
             lastCheckDate: date
         )
-        #expect(wording.hasPrefix("Couldn't reach origin · checked"))
+        #expect(wording == "Couldn't reach origin · checked 2h ago")
     }
 
     // 6. GitHub rate limit — shows retry countdown
     @Test func rateLimitedShowsRetryTime() {
-        let resetDate = Date(timeIntervalSinceNow: 3600) // 1 hour from now
+        // 7230 seconds = 2h 30s from now.
+        // Int(7230) / 3600 = 2 hours, Int(7230) % 3600 = 30, 30 / 60 = 0 minutes → "2:00".
+        // The 30-second buffer means up to 30s of test-clock drift cannot push the minutes
+        // digit to 1 (which would require remaining to drop below 7200s = 2h exactly);
+        // unit tests always complete in well under 1 second so the string is stable.
+        let resetDate = Date(timeIntervalSinceNow: 7230)
         let wording = StatusLine.wording(
             isChecking: false,
             derivedState: nil,
             lastError: .rateLimited(resetAt: resetDate),
             lastCheckDate: nil
         )
-        #expect(wording.hasPrefix("GitHub rate limit reached · retries"))
+        #expect(wording == "GitHub rate limit reached · retries 2:00")
     }
 
     // 7. Origin not found (404/private)
@@ -167,14 +173,15 @@ struct StatusLineWordingTests {
 
     // 8. Tarball corrupt / fetch failed
     @Test func fetchFailedShowsOriginFetchFailed() {
-        let date = Date(timeIntervalSinceNow: -3600) // 1h ago
+        // Exactly 3600 seconds = 1 hour ago → "1h ago"
+        let date = Date(timeIntervalSinceNow: -3600)
         let wording = StatusLine.wording(
             isChecking: false,
             derivedState: nil,
             lastError: .fetchFailed,
             lastCheckDate: date
         )
-        #expect(wording.hasPrefix("Origin fetch failed · checked"))
+        #expect(wording == "Origin fetch failed · checked 1h ago")
     }
 }
 

@@ -310,16 +310,17 @@ struct AppModelTests {
             installedSkills: { [:] }
         )()
 
-        guard case .transientError = result else {
-            Issue.record("expected .transientError for networkError, got \(result)")
+        guard case .transientError(.network) = result else {
+            Issue.record("expected .transientError(.network) for 5xx networkError, got \(result)")
             return
         }
     }
 
-    @Test func rateLimitedReturnsTransientError() async throws {
-        // 403 → rateLimited → .transientError
+    @Test func rateLimitedReturnsTransientErrorRateLimited() async throws {
+        // 403 → rateLimited → .transientError(.rateLimited(resetAt:))
+        let resetEpoch: TimeInterval = 9999999999
         let transport = AppCoreStubTransport { _ in
-            HTTPResponse(status: 403, headers: ["X-RateLimit-Reset": "9999999999"], body: Data())
+            HTTPResponse(status: 403, headers: ["X-RateLimit-Reset": "\(Int(resetEpoch))"], body: Data())
         }
 
         let cacheDir = FileManager.default.temporaryDirectory
@@ -334,10 +335,12 @@ struct AppModelTests {
             installedSkills: { [:] }
         )()
 
-        guard case .transientError = result else {
-            Issue.record("expected .transientError for rateLimited, got \(result)")
+        guard case .transientError(.rateLimited(let resetAt)) = result else {
+            Issue.record("expected .transientError(.rateLimited(resetAt:)) for 403, got \(result)")
             return
         }
+        #expect(abs(resetAt.timeIntervalSince1970 - resetEpoch) < 5,
+                "resetAt should match X-RateLimit-Reset epoch \(resetEpoch), got \(resetAt.timeIntervalSince1970)")
     }
 
     // MARK: — Observable state: isChecking and lastDerivedState update
@@ -579,7 +582,7 @@ struct SchedulerTransientErrorTests {
                 callCount.increment()
                 switch callCount.value {
                 case 1: return .originNotFound
-                case 2: return .transientError
+                case 2: return .transientError(.network)
                 default: return .ok(nil)
                 }
             },
@@ -618,7 +621,7 @@ struct SchedulerTransientErrorTests {
         let scheduler = CheckScheduler(
             performCheck: {
                 callCount.increment()
-                return callCount.value == 1 ? .ok(expected) : .transientError
+                return callCount.value == 1 ? .ok(expected) : .transientError(.network)
             },
             clock: InstantClock(),
             automaticChecksEnabled: false
@@ -632,6 +635,187 @@ struct SchedulerTransientErrorTests {
         let stateAfterTransient = await scheduler.lastDerivedState
         #expect(stateAfterTransient == expected,
                 "lastDerivedState must be preserved after transientError, got \(String(describing: stateAfterTransient))")
+    }
+}
+
+// MARK: — End-to-end reachability: all 8 wordings must be reachable via the live pipeline
+
+/// These tests prove that every status-line wording can be produced by the real
+/// makePerformCheck + applyCheckResult pipeline, not just by constructing CheckError
+/// values directly. Before the fix, rateLimited and fetchFailed could NEVER appear
+/// because applyCheckResult collapsed all .transientError to .networkError.
+@Suite("AppModel — end-to-end wording reachability")
+struct AppModelWordingReachabilityTests {
+
+    // MARK: — Rate-limited wording reaches the UI
+
+    /// Drive a stubbed 403-with-reset-header through makePerformCheck → applyCheckResult,
+    /// then confirm StatusLine.wording yields the rate-limit string.
+    ///
+    /// Before the fix: applyCheckResult collapses .transientError → .networkError, so
+    /// lastCheckError == .networkError and the wording is "Couldn't reach origin…" — wrong.
+    @Test @MainActor func rateLimitedErrorProducesRateLimitedWording() async throws {
+        // X-RateLimit-Reset = a timestamp 1 hour in the future
+        let resetEpoch = Int(Date(timeIntervalSinceNow: 3600).timeIntervalSince1970)
+        let transport = AppCoreStubTransport { _ in
+            HTTPResponse(
+                status: 403,
+                headers: ["X-RateLimit-Reset": "\(resetEpoch)"],
+                body: Data()
+            )
+        }
+
+        let cacheDir = FileManager.default.temporaryDirectory
+            .appending(path: "e2e-ratelimit-\(UUID().uuidString)", directoryHint: .isDirectory)
+        try FileManager.default.createDirectory(at: cacheDir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: cacheDir) }
+
+        // Build the performCheck closure (same path the real app takes)
+        let performCheck = AppModel.makePerformCheck(
+            owner: "o", repo: "r", branch: "main",
+            transport: transport,
+            cacheStore: CacheStore(root: cacheDir),
+            installedSkills: { [:] }
+        )
+        let result = await performCheck()
+
+        // Feed the result through applyCheckResult via a minimal AppModel stub
+        let model = AppModel(
+            owner: "o", repo: "r", branch: "main",
+            transport: transport,
+            cacheRoot: cacheDir,
+            automaticChecksEnabled: false,
+            installedSkills: { [:] }
+        )
+        model.applyCheckResult(result)
+
+        // Confirm lastCheckError is .rateLimited (not .networkError)
+        guard case .rateLimited(let resetAt) = model.lastCheckError else {
+            Issue.record("Expected .rateLimited, got \(String(describing: model.lastCheckError)). Before fix: applyCheckResult collapses all transientError to .networkError.")
+            return
+        }
+
+        // Confirm the wording produced by StatusLine is the rate-limit string
+        let wording = StatusLine.wording(
+            isChecking: false,
+            derivedState: model.lastDerivedState,
+            lastError: model.lastCheckError,
+            lastCheckDate: model.lastCheckDate
+        )
+        #expect(wording.hasPrefix("GitHub rate limit reached · retries"),
+                "Expected rate-limit wording, got: \(wording)")
+
+        // The resetAt date from the header should be close to resetEpoch (within 5s)
+        #expect(abs(resetAt.timeIntervalSince1970 - Double(resetEpoch)) < 5,
+                "resetAt date should match X-RateLimit-Reset header")
+    }
+
+    // MARK: — Fetch-failed wording reaches the UI
+
+    /// Drive a stubbed tarball-fetch-failure through makePerformCheck → applyCheckResult,
+    /// then confirm StatusLine.wording yields "Origin fetch failed…".
+    ///
+    /// Before the fix: applyCheckResult collapses .transientError → .networkError, so
+    /// lastCheckError == .networkError and the wording is "Couldn't reach origin…" — wrong.
+    @Test @MainActor func fetchFailedErrorProducesFetchFailedWording() async throws {
+        // Transport: probe returns 200 with a valid SHA, but tarball body is corrupt
+        let sha = "fetchfail-sha"
+        let transport = AppCoreStubTransport { url in
+            let urlString = url.absoluteString
+            if urlString.contains("commits") {
+                return HTTPResponse(
+                    status: 200,
+                    headers: ["ETag": "\"etag-\(sha)\""],
+                    body: Data((sha + "\n").utf8)
+                )
+            } else if urlString.contains("tar.gz") {
+                // Deliberately corrupt tarball body — TarballExtractor will throw
+                return HTTPResponse(status: 200, headers: [:], body: Data("not-a-real-tarball".utf8))
+            }
+            return HTTPResponse(status: 404, headers: [:], body: Data())
+        }
+
+        let cacheDir = FileManager.default.temporaryDirectory
+            .appending(path: "e2e-fetchfailed-\(UUID().uuidString)", directoryHint: .isDirectory)
+        try FileManager.default.createDirectory(at: cacheDir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: cacheDir) }
+
+        let performCheck = AppModel.makePerformCheck(
+            owner: "o", repo: "r", branch: "main",
+            transport: transport,
+            cacheStore: CacheStore(root: cacheDir),
+            installedSkills: { [:] }
+        )
+        let result = await performCheck()
+
+        let model = AppModel(
+            owner: "o", repo: "r", branch: "main",
+            transport: transport,
+            cacheRoot: cacheDir,
+            automaticChecksEnabled: false,
+            installedSkills: { [:] }
+        )
+        model.applyCheckResult(result)
+
+        guard case .fetchFailed = model.lastCheckError else {
+            Issue.record("Expected .fetchFailed, got \(String(describing: model.lastCheckError)). Before fix: applyCheckResult collapses all transientError to .networkError.")
+            return
+        }
+
+        let wording = StatusLine.wording(
+            isChecking: false,
+            derivedState: model.lastDerivedState,
+            lastError: model.lastCheckError,
+            lastCheckDate: model.lastCheckDate
+        )
+        #expect(wording.hasPrefix("Origin fetch failed"),
+                "Expected fetch-failed wording, got: \(wording)")
+    }
+
+    // MARK: — Network error wording still works end-to-end
+
+    /// Confirm the network-error path (5xx) still produces "Couldn't reach origin…"
+    /// after the transientError refactor (regression guard).
+    @Test @MainActor func networkErrorProducesNetworkErrorWording() async throws {
+        let transport = AppCoreStubTransport { _ in
+            HTTPResponse(status: 503, headers: [:], body: Data())
+        }
+
+        let cacheDir = FileManager.default.temporaryDirectory
+            .appending(path: "e2e-network-\(UUID().uuidString)", directoryHint: .isDirectory)
+        try FileManager.default.createDirectory(at: cacheDir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: cacheDir) }
+
+        let performCheck = AppModel.makePerformCheck(
+            owner: "o", repo: "r", branch: "main",
+            transport: transport,
+            cacheStore: CacheStore(root: cacheDir),
+            installedSkills: { [:] }
+        )
+        let result = await performCheck()
+
+        let model = AppModel(
+            owner: "o", repo: "r", branch: "main",
+            transport: transport,
+            cacheRoot: cacheDir,
+            automaticChecksEnabled: false,
+            installedSkills: { [:] }
+        )
+        model.applyCheckResult(result)
+
+        guard case .networkError = model.lastCheckError else {
+            Issue.record("Expected .networkError, got \(String(describing: model.lastCheckError))")
+            return
+        }
+
+        let wording = StatusLine.wording(
+            isChecking: false,
+            derivedState: model.lastDerivedState,
+            lastError: model.lastCheckError,
+            lastCheckDate: model.lastCheckDate
+        )
+        #expect(wording.hasPrefix("Couldn't reach origin"),
+                "Expected network-error wording, got: \(wording)")
     }
 }
 

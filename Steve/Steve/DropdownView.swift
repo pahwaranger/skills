@@ -37,16 +37,23 @@ struct DropdownView: View {
                 Task { await appModel.triggerCheck() }
             }
 
-            // Zone 3 — Skill list (only when a state is available)
-            if let derived = appModel.lastDerivedState {
-                let sections = DropdownSections.build(from: derived)
-                if !sections.isEmpty {
-                    Divider()
-                    SkillListView(sections: sections, appModel: appModel)
+            // Zone 3 — Skill list (only when a state is available and sections are non-empty)
+            let skillSections: [DropdownSection] = {
+                if let derived = appModel.lastDerivedState {
+                    return DropdownSections.build(from: derived)
                 }
+                return []
+            }()
+            if !skillSections.isEmpty {
+                Divider()
+                SkillListView(sections: skillSections, appModel: appModel)
             }
 
-            Divider()
+            // Footer divider only when there is a skill list above it; an empty dropdown
+            // (no derived state yet) must not show a stray divider before the footer.
+            if !skillSections.isEmpty {
+                Divider()
+            }
 
             // Zone 4 — Footer actions
             FooterActionsView(appModel: appModel)
@@ -258,14 +265,13 @@ private struct SkillRowView: View {
         switch state {
         case .upToDate:
             // Open the skill's GitHub directory in the browser.
-            // Resolved default branch is available via AppModel (Slice 4 wires it as `branch`).
-            // The AppModel is initialised with the branch in SteveApp.swift.
-            // TODO(Slice 8–10): If a resolved-default-branch property is exposed publicly,
-            // use it here instead of the hardcoded init-time value.
-            let owner = "pahwaranger"
-            let repoName = "skills"
-            let branch = "master" // TODO(Slice 4): replace with resolved default branch from AppModel
-            let urlString = "https://github.com/\(owner)/\(repoName)/tree/\(branch)/skills/\(skillName)"
+            // Use AppModel's resolved default branch (from OriginClient.resolveDefaultBranch(),
+            // called at launch and stored in `resolvedDefaultBranch`). Fall back to the
+            // init-time `branch` value if resolution hasn't completed yet.
+            // TODO(Slice 8–10): If the resolved branch is still nil (e.g. offline launch),
+            // consider surfacing a toast / disabling the row rather than using the fallback.
+            let resolvedBranch = appModel.resolvedDefaultBranch ?? appModel.branch
+            let urlString = "https://github.com/\(appModel.owner)/\(appModel.repo)/tree/\(resolvedBranch)/skills/\(skillName)"
             if let url = URL(string: urlString) {
                 NSWorkspace.shared.open(url)
             }
