@@ -292,6 +292,37 @@ struct FileDiffBinaryTests {
     }
 }
 
+// MARK: — Extended git header (`diff --git`)
+
+struct FileDiffExtendedHeaderTests {
+
+    /// A diff as produced by `git diff` — includes the `diff --git a/… b/…` extended
+    /// header line that precedes each `---` / `+++` pair. The parser must skip that line
+    /// and produce exactly one clean FileDiff entry with the correct filename, status,
+    /// and line counts.
+    @Test func diffGitExtendedHeaderDoesNotCorruptParsing() throws {
+        let diff = """
+        diff --git a/grill-with-docs/SKILL.md b/grill-with-docs/SKILL.md
+        index 4b2a1c3..9d8e7f1 100644
+        --- a/grill-with-docs/SKILL.md
+        +++ b/grill-with-docs/SKILL.md
+        @@ -1,3 +1,4 @@
+         # grill-with-docs
+        -A disciplined grilling session.
+        +A disciplined grilling session that challenges your plan.
+        +
+        """
+        let files = UnifiedDiffParser.parse(diff)
+        // Must produce exactly one entry — not split by the diff --git line.
+        #expect(files.count == 1)
+        #expect(files[0].filename == "grill-with-docs/SKILL.md")
+        #expect(files[0].status == .modified)
+        #expect(files[0].addedLines == 2)
+        #expect(files[0].removedLines == 1)
+        #expect(files[0].isBinary == false)
+    }
+}
+
 // MARK: — Filename extraction
 
 struct FileDiffFilenameTests {

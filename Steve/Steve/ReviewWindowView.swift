@@ -50,6 +50,8 @@ struct ReviewWindowView: View {
                 selectedSkillState: skillState(for: selectedSkillName),
                 viewMode: $diffViewMode,
                 checkedCount: sidebarModel.selectedCount,
+                selectionMode: sidebarModel.selectionMode,
+                onCycleSelection: { sidebarModel.cycleSelection() },
                 onDismissSelection: { sidebarModel.selectedSkillNames = [] },
                 githubURL: githubURL(for: selectedSkillName),
                 appModel: appModel
@@ -145,6 +147,8 @@ private struct DiffPane: View {
     let selectedSkillState: SkillState?
     @Binding var viewMode: DiffViewMode
     let checkedCount: Int
+    let selectionMode: ReviewSidebarModel.SelectionMode
+    let onCycleSelection: () -> Void
     let onDismissSelection: () -> Void
     let githubURL: URL?
     let appModel: AppModel
@@ -155,6 +159,8 @@ private struct DiffPane: View {
             if checkedCount > 0 {
                 MaterialisingToolbar(
                     checkedCount: checkedCount,
+                    selectionMode: selectionMode,
+                    onCycleSelection: onCycleSelection,
                     onDismiss: onDismissSelection
                 )
                 Divider()
@@ -224,10 +230,24 @@ private struct DiffPane: View {
 private struct MaterialisingToolbar: View {
 
     let checkedCount: Int
+    let selectionMode: ReviewSidebarModel.SelectionMode
+    let onCycleSelection: () -> Void
     let onDismiss: () -> Void
 
     var body: some View {
         HStack(spacing: 10) {
+            // 3-state select toggle: ☐ / ☑ / ⊟ — mirrors SidebarActionHeader.
+            // Forwards the same model action (cycleSelection) so sidebar and toolbar
+            // stay in sync.
+            Button(action: onCycleSelection) {
+                Text(selectIcon)
+                    .font(.system(size: 15))
+                    .foregroundStyle(.white)
+                    .frame(width: 22, height: 22)
+            }
+            .buttonStyle(.plain)
+            .help(selectTooltip)
+
             Text("\(checkedCount) selected")
                 .font(.system(size: 12, weight: .medium))
                 .foregroundStyle(.white)
@@ -262,6 +282,22 @@ private struct MaterialisingToolbar: View {
         .padding(.horizontal, 12)
         .padding(.vertical, 7)
         .background(Color.accentColor)
+    }
+
+    private var selectIcon: String {
+        switch selectionMode {
+        case .none, .partial: return "☐"
+        case .all:            return "☑"
+        case .new:            return "⊟"
+        }
+    }
+
+    private var selectTooltip: String {
+        switch selectionMode {
+        case .none, .partial: return "Select all actionable"
+        case .all:            return "Select new only"
+        case .new:            return "Deselect all"
+        }
     }
 }
 
