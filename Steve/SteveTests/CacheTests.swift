@@ -184,6 +184,18 @@ struct CacheTests {
         }
     }
 
+    @Test func skillFilesMissingSkillsDirThrows() throws {
+        let (store, dir) = try tempStore()
+        defer { try? FileManager.default.removeItem(at: dir) }
+
+        // Create root but intentionally no skills/ subdirectory
+        // Trying to read skill files when skills/ dir doesn't exist
+        // should throw missingSkillsDirectory error
+        #expect(throws: CacheError.missingSkillsDirectory) {
+            try store.skillFiles(named: "any-skill")
+        }
+    }
+
     @Test func contentHashHashCollisionDetection() throws {
         let (store, dir) = try tempStore()
         defer { try? FileManager.default.removeItem(at: dir) }
