@@ -5,6 +5,7 @@ import Cache
 import StateEngine
 import OriginClient
 import Scheduler
+import Installer
 #endif
 
 /// The composition root: wires `OriginClient` → `CacheStore` → `StateEngine`
@@ -49,6 +50,25 @@ public final class AppModel {
     /// `ReviewWindowView` observes this via `onChange` and clears it after consuming.
     public var reviewFocusSkill: String?
 
+    /// The immutable origin snapshot captured when the Review window opens.
+    /// `nil` when no Review window is open or before the first successful check.
+    /// Background scheduler checks update `lastDerivedState` but must NOT replace this.
+    /// Setter is internal (not private) so the `ReviewSession.swift` extension can write it.
+    public internal(set) var reviewSession: ReviewSession?
+
+    /// The commit SHA from the most recent successful origin check (200 response).
+    /// Set by `applyCheckResult` via `applyOriginSHA(_:)` after each update.
+    /// Used by `openReviewSession()` to snapshot the current SHA.
+    /// Setter is internal so the `ReviewSession.swift` extension can write it.
+    public internal(set) var lastKnownOriginSHA: String?
+
+    /// Per-skill file contents from the most recent successful origin check (200 response).
+    /// Populated alongside `lastKnownOriginSHA` by `applyOriginSnapshot(_:_:)`.
+    /// Used by `openReviewSession()` to embed skill files in the immutable session so
+    /// Update/Skip can commit without an extra network round-trip (Slice 10 / ADR 0007).
+    /// Setter is internal so the `ReviewSession.swift` extension can write it.
+    public internal(set) var lastOriginSkillFiles: [String: [String: Data]] = [:]
+
     // MARK: — Stored owner/repo (used for GitHub links in the view)
 
     /// The GitHub owner used to construct skill-directory links.
@@ -74,6 +94,16 @@ public final class AppModel {
     /// only the main-actor method below calls it via a Task hop to the actor.
     private let _originClient: OriginClient
 
+    /// The install engine for committing Update/Skip actions in the Review window.
+    /// Injected at init so tests can supply a fully-configured engine; production
+    /// supplies the real directories. `nil` in unit tests that don't test install.
+    public let installEngine: InstallEngine?
+
+    /// The transport retained for SHA re-validation in `performUpdate`/`performSkip`.
+    /// Same transport used by the OriginClient so no extra connections are opened.
+    /// Internal (not private) so ReviewSession.swift extension can access it.
+    let _transport: HTTPTransport
+
     // MARK: — Init
 
     public init(
@@ -89,12 +119,18 @@ public final class AppModel {
         /// Provider for installed-skills content hashes. Injected so tests can
         /// supply deterministic values without touching `~/.claude/skills`.
         /// The production default scans the real skills directory.
-        installedSkills: @escaping @Sendable () -> [String: String] = AppModel.makeDefaultInstalledSkillsProvider()
+        installedSkills: @escaping @Sendable () -> [String: String] = AppModel.makeDefaultInstalledSkillsProvider(),
+        /// Install engine for Update/Skip actions. Injected so tests can supply
+        /// a configured engine with temp directories. Production supplies the real
+        /// engine via `SteveApp.swift`. `nil` in tests that don't test install.
+        installEngine: InstallEngine? = nil
     ) {
         self.owner = owner
         self.repo = repo
         self.branch = branch
+        self._transport = transport
         self._originClient = OriginClient(owner: owner, repo: repo, transport: transport)
+        self.installEngine = installEngine
         let cacheRootResolved = cacheRoot ?? AppModel.makeDefaultCacheRoot()
         let cacheStore = CacheStore(root: cacheRootResolved)
         let basePerformCheck = AppModel.makePerformCheck(
@@ -108,9 +144,14 @@ public final class AppModel {
         let selfBox = WeakBox<AppModel>()
         // Wrap performCheck to intercept the result and update lastCheckDate/lastCheckError
         // on the main actor after each check (for status-line wording, Slice 6).
+        // Also intercept the origin SHA + per-skill files from each successful update so
+        // `openReviewSession()` can snapshot them without an extra network round-trip (Slice 10).
         let performCheck: @Sendable () async -> CheckResult = {
-            let result = await basePerformCheck()
-            await MainActor.run { selfBox.value?.applyCheckResult(result) }
+            let (result, sha, skillFiles) = await basePerformCheck()
+            await MainActor.run {
+                selfBox.value?.applyCheckResult(result)
+                if let sha { selfBox.value?.applyOriginSnapshot(sha, skillFiles: skillFiles) }
+            }
             return result
         }
         self.scheduler = CheckScheduler(
@@ -221,6 +262,16 @@ public final class AppModel {
         }
     }
 
+    /// Records the origin SHA and per-skill file contents from a successful 200 check response.
+    /// Called on the main actor via a hop in the wrapped `performCheck` closure.
+    /// Both are snapshotted by `openReviewSession()` to produce an immutable `ReviewSession`
+    /// without an extra network round-trip (Slice 10 / ADR 0006 / ADR 0007).
+    @MainActor
+    func applyOriginSnapshot(_ sha: String, skillFiles: [String: [String: Data]]) {
+        lastKnownOriginSHA = sha
+        lastOriginSkillFiles = skillFiles
+    }
+
     // MARK: — Factory: builds the performCheck closure the scheduler calls
 
     /// Builds the `performCheck` closure that wires `OriginClient` → `CacheStore`
@@ -233,6 +284,14 @@ public final class AppModel {
     /// skill directory under `~/.claude/skills/` — the same SHA256 scheme the cache
     /// uses for origin skills, so hashes from S, C, and O are directly comparable.
     /// In tests, a deterministic dictionary is injected instead.
+    ///
+    /// ## Return value
+    /// Returns a closure that produces a `(CheckResult, String?, [String: [String: Data]])` tuple.
+    /// The second element is the origin commit SHA from a successful `.updated` response,
+    /// the third is the per-skill file map from the same snapshot (both `nil`/empty for other outcomes).
+    /// The caller (the wrapped `performCheck` in `AppModel.init`) uses these to keep
+    /// `lastKnownOriginSHA` and `lastOriginSkillFiles` live for `openReviewSession()` without
+    /// an extra network round-trip (Slice 10 / ADR 0006 / ADR 0007).
     public static func makePerformCheck(
         owner: String,
         repo: String,
@@ -240,7 +299,7 @@ public final class AppModel {
         transport: HTTPTransport,
         cacheStore: CacheStore,
         installedSkills: @escaping @Sendable () -> [String: String] = AppModel.makeDefaultInstalledSkillsProvider()
-    ) -> @Sendable () async -> CheckResult {
+    ) -> @Sendable () async -> (CheckResult, String?, [String: [String: Data]]) {
         let client = OriginClient(owner: owner, repo: repo, transport: transport)
         return {
             // Read cached ETag/SHA for conditional request.
@@ -261,29 +320,29 @@ public final class AppModel {
                     knownSHA: knownSHA
                 )
             } catch OriginError.originNotFound {
-                return .originNotFound
+                return (.originNotFound, nil, [:])
             } catch OriginError.rateLimited(let retryAt) {
                 // 403 with X-RateLimit-Reset — carry the reset date so the UI can show the
                 // countdown wording ("GitHub rate limit reached · retries H:MM").
-                return .transientError(.rateLimited(resetAt: retryAt))
+                return (.transientError(.rateLimited(resetAt: retryAt)), nil, [:])
             } catch OriginError.fetchFailed {
                 // Tarball corrupt or extraction error — carry the reason so the UI can show
                 // "Origin fetch failed…" instead of the generic network-error wording.
-                return .transientError(.fetchFailed)
+                return (.transientError(.fetchFailed), nil, [:])
             } catch {
                 // networkError (unreachable / timeout / 5xx) — all other failures are
                 // network-level; the scheduler treats them identically but the UI shows
                 // "Couldn't reach origin…".
-                return .transientError(.network)
+                return (.transientError(.network), nil, [:])
             }
 
             switch outcome {
             case .ignored:
-                return .ok(nil)
+                return (.ok(nil), nil, [:])
 
             case .unchanged:
                 // Nothing moved; no new snapshot → no state derivation possible.
-                return .ok(nil)
+                return (.ok(nil), nil, [:])
 
             case .updated(let snapshot):
                 // Read the CURRENT cache hashes (C) from disk BEFORE any mutation.
@@ -324,7 +383,14 @@ public final class AppModel {
                 // non-mutating keeps "last seen" honest (ADR 0007 cache-after-success).
                 _ = derivedState.selfHealed
 
-                return .ok(derivedState)
+                // Build per-skill file map for ReviewSession: captured at window-open so
+                // Update/Skip can commit without a second network round-trip (Slice 10).
+                var skillFiles: [String: [String: Data]] = [:]
+                for skill in snapshot.skills {
+                    skillFiles[skill.name] = skill.files
+                }
+
+                return (.ok(derivedState), snapshot.commitSHA, skillFiles)
             }
         }
     }

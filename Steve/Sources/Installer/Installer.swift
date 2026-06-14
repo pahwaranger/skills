@@ -1,5 +1,7 @@
 import Foundation
+#if SWIFT_PACKAGE
 import Cache
+#endif
 
 // MARK: — Clock protocol (injectable for deterministic tests)
 
@@ -226,6 +228,28 @@ public struct InstallEngine: Sendable {
         // Remove from cache to record origin's absence; skills dir is left intact.
         let cacheSkillDir = cache.root.appending(path: "skills/\(skillName)", directoryHint: .isDirectory)
         try? FileManager.default.removeItem(at: cacheSkillDir)
+        return .success(())
+    }
+
+    // MARK: — Update Available Skip (copies O → Cache only)
+
+    /// Handles a "Update available — Skip" action: copies the origin content into the
+    /// Cache (acknowledging the origin version as seen) WITHOUT touching the skills directory.
+    ///
+    /// Per ADR 0006: Skip means C ← O. After this call, `C == O`, so the skill reads
+    /// as `.skipped` on the next derive (C == O, S != O). Skills directory is unchanged.
+    ///
+    /// - Parameters:
+    ///   - skillName: The skill directory name.
+    ///   - files: The origin files to write into the Cache (O content).
+    /// - Returns: `.success(())` on success, `.failure(InstallError)` on failure.
+    @discardableResult
+    public func skipUpdate(skillName: String, files: [String: Data]) -> Result<Void, InstallError> {
+        do {
+            try cache.writeSkillFiles(named: skillName, files: files)
+        } catch {
+            return .failure(.fileSystemError(underlying: error.localizedDescription))
+        }
         return .success(())
     }
 

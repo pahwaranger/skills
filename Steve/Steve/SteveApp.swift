@@ -1,16 +1,45 @@
 import SwiftUI
+#if SWIFT_PACKAGE
+import Cache
+import AppCore
+import Installer
+#endif
 
 @main
 struct SteveApp: App {
-    // The composition root: wires OriginClient → Cache → StateEngine → CheckScheduler.
-    // Instantiated once at app launch; AppModel is passed into views so they can
-    // read scheduler state for the menu-bar icon.
-    private let appModel = AppModel(
-        owner: "pahwaranger",
-        repo: "skills",
-        branch: "master",
-        transport: URLSessionTransport()
-    )
+    // The composition root: wires OriginClient → Cache → StateEngine → CheckScheduler
+    // → InstallEngine. Instantiated once at app launch; AppModel is passed into views
+    // so they can read scheduler state for the menu-bar icon.
+
+    /// Skills directory: where Claude Code loads skills from at runtime.
+    private static let skillsDirectory = FileManager.default.homeDirectoryForCurrentUser
+        .appending(path: ".claude/skills", directoryHint: .isDirectory)
+
+    /// Backups directory: where InstallEngine moves aside replaced skills (ADR 0007).
+    private static let backupsDirectory: URL = {
+        let appSupport = FileManager.default.urls(for: .applicationSupportDirectory,
+                                                   in: .userDomainMask).first!
+        return appSupport.appending(path: "Steve/backups", directoryHint: .isDirectory)
+    }()
+
+    /// Cache directory: shared between AppModel and InstallEngine.
+    private static let cacheDirectory = AppModel.makeDefaultCacheRoot()
+
+    private let appModel: AppModel = {
+        let engine = InstallEngine(
+            skillsDirectory: SteveApp.skillsDirectory,
+            backupsDirectory: SteveApp.backupsDirectory,
+            cache: CacheStore(root: SteveApp.cacheDirectory)
+        )
+        return AppModel(
+            owner: "pahwaranger",
+            repo: "skills",
+            branch: "master",
+            transport: URLSessionTransport(),
+            cacheRoot: SteveApp.cacheDirectory,
+            installEngine: engine
+        )
+    }()
 
     var body: some Scene {
         // Dynamic-label form: SwiftUI re-evaluates the label closure whenever any

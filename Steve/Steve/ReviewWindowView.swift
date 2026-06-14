@@ -4,6 +4,7 @@ import SwiftUI
 #if SWIFT_PACKAGE
 import AppCore
 import StateEngine
+import Installer
 #endif
 
 // MARK: — Review window (Slice 8 + 9a + 9b)
@@ -33,6 +34,9 @@ struct ReviewWindowView: View {
     /// Split / Unified toggle state for the diff renderer.
     @State private var diffViewMode: DiffViewMode = .split
 
+    /// Whether to show the "origin has changed" reload-required alert.
+    @State private var showSHAMovedAlert: Bool = false
+
     // MARK: — Body
 
     var body: some View {
@@ -40,7 +44,9 @@ struct ReviewWindowView: View {
             // ── Left: Sidebar ────────────────────────────────────────────
             ReviewSidebarView(
                 model: $sidebarModel,
-                selectedSkillName: $selectedSkillName
+                selectedSkillName: $selectedSkillName,
+                onUpdate: { skillNames in performUpdate(skillNames) },
+                onSkip: { skillNames in performSkip(skillNames) }
             )
             .frame(minWidth: 200, idealWidth: 240, maxWidth: 300)
 
@@ -53,6 +59,8 @@ struct ReviewWindowView: View {
                 selectionMode: sidebarModel.selectionMode,
                 onCycleSelection: { sidebarModel.cycleSelection() },
                 onDismissSelection: { sidebarModel.selectedSkillNames = [] },
+                onBulkUpdate: { performUpdate(Array(sidebarModel.selectedSkillNames)) },
+                onBulkSkip: { performSkip(Array(sidebarModel.selectedSkillNames)) },
                 githubURL: githubURL(for: selectedSkillName),
                 appModel: appModel
             )
@@ -60,6 +68,7 @@ struct ReviewWindowView: View {
         }
         .frame(minWidth: 680, minHeight: 440)
         // Rebuild the sidebar model whenever the derived state updates.
+        // Note: background checks update lastDerivedState but do NOT alter reviewSession.
         .onChange(of: appModel.lastDerivedState) { _, newState in
             rebuildSidebarModel(from: newState)
         }
@@ -72,6 +81,9 @@ struct ReviewWindowView: View {
             appModel.reviewFocusSkill = nil
         }
         .onAppear {
+            // Capture the immutable origin snapshot for this review session (Slice 10 / ADR 0006).
+            // Must be called before any Update/Skip buttons are accessible.
+            appModel.openReviewSession()
             rebuildSidebarModel(from: appModel.lastDerivedState)
             // Consume any focus skill that was set before the view appeared
             // (i.e. first open: the dropdown set reviewFocusSkill before the
@@ -79,6 +91,55 @@ struct ReviewWindowView: View {
             if let skillName = appModel.reviewFocusSkill {
                 applyFocusSkill(skillName)
                 appModel.reviewFocusSkill = nil
+            }
+        }
+        .onDisappear {
+            // Clear the review session when the window closes (Slice 10 / ADR 0006 Fix 1).
+            // This ensures that the NEXT open captures a fresh origin snapshot rather than
+            // seeing a stale SHA from before the window was closed. Without this call,
+            // openReviewSession() would not overwrite an existing session — so after origin
+            // moves and the user reopens, they'd see the old SHA forever.
+            appModel.closeReviewSession()
+        }
+        .alert("Origin Changed", isPresented: $showSHAMovedAlert) {
+            Button("Reload") {
+                // Re-check to refresh the window with the new origin content.
+                Task { await appModel.triggerCheck() }
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("Origin has changed since you opened this window — reload to re-review.")
+        }
+    }
+
+    // MARK: — Update / Skip actions
+
+    /// Performs a bulk Update for the given skill names.
+    /// Validates the origin SHA first; shows the reload alert if origin has moved.
+    private func performUpdate(_ skillNames: [String]) {
+        Task {
+            let outcome = await appModel.performUpdate(skillNames: skillNames)
+            if outcome == .shaMovedReloadRequired {
+                showSHAMovedAlert = true
+            } else {
+                // Clear the selection after a successful commit.
+                sidebarModel.selectedSkillNames = []
+                // Re-derive state to reflect the newly installed skills.
+                await appModel.triggerCheck()
+            }
+        }
+    }
+
+    /// Performs a bulk Skip for the given skill names.
+    /// Validates the origin SHA first; shows the reload alert if origin has moved.
+    private func performSkip(_ skillNames: [String]) {
+        Task {
+            let outcome = await appModel.performSkip(skillNames: skillNames)
+            if outcome == .shaMovedReloadRequired {
+                showSHAMovedAlert = true
+            } else {
+                sidebarModel.selectedSkillNames = []
+                await appModel.triggerCheck()
             }
         }
     }
@@ -150,18 +211,22 @@ private struct DiffPane: View {
     let selectionMode: ReviewSidebarModel.SelectionMode
     let onCycleSelection: () -> Void
     let onDismissSelection: () -> Void
+    let onBulkUpdate: () -> Void
+    let onBulkSkip: () -> Void
     let githubURL: URL?
     let appModel: AppModel
 
     var body: some View {
         VStack(spacing: 0) {
-            // ── Materialising toolbar (Slice 9b) ──────────────────────────
+            // ── Materialising toolbar (Slice 9b / Slice 10) ───────────────
             if checkedCount > 0 {
                 MaterialisingToolbar(
                     checkedCount: checkedCount,
                     selectionMode: selectionMode,
                     onCycleSelection: onCycleSelection,
-                    onDismiss: onDismissSelection
+                    onDismiss: onDismissSelection,
+                    onUpdate: onBulkUpdate,
+                    onSkip: onBulkSkip
                 )
                 Divider()
             }
@@ -222,17 +287,19 @@ private struct DiffPane: View {
     }
 }
 
-// MARK: — Materialising toolbar (Slice 9b)
+// MARK: — Materialising toolbar (Slice 9b / Slice 10)
 
 /// A sticky blue toolbar that materialises when ≥1 skill is checked.
 /// Disappears when selection is cleared.
-/// Update and Skip are non-functional stubs in this slice (Slice 10 wires them).
+/// Update and Skip are wired to the parent's action callbacks (Slice 10).
 private struct MaterialisingToolbar: View {
 
     let checkedCount: Int
     let selectionMode: ReviewSidebarModel.SelectionMode
     let onCycleSelection: () -> Void
     let onDismiss: () -> Void
+    let onUpdate: () -> Void
+    let onSkip: () -> Void
 
     var body: some View {
         HStack(spacing: 10) {
@@ -254,19 +321,13 @@ private struct MaterialisingToolbar: View {
 
             Spacer()
 
-            // Skip — stub (Slice 10)
-            Button("Skip") {
-                // TODO(Slice 10): Trigger bulk skip for selected skills.
-                print("[Steve] Toolbar Skip \(checkedCount) — wired in Slice 10")
-            }
+            // Skip — wired in Slice 10
+            Button("Skip", action: onSkip)
             .buttonStyle(ToolbarSecondaryButtonStyle())
             .controlSize(.small)
 
-            // Update — stub (Slice 10)
-            Button("Update") {
-                // TODO(Slice 10): Trigger bulk update for selected skills.
-                print("[Steve] Toolbar Update \(checkedCount) — wired in Slice 10")
-            }
+            // Update — wired in Slice 10
+            Button("Update", action: onUpdate)
             .buttonStyle(ToolbarPrimaryButtonStyle())
             .controlSize(.small)
 
