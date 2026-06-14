@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8" />
+<meta name="color-scheme" content="light dark" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Steve — Diff Renderer</title>
+
+<!-- Vendored diff2html CSS (offline, no CDN) -->
+<link rel="stylesheet" href="diff2html.min.css" />
+
+<style>
+  /* ── Reset / layout ─────────────────────────────────────── */
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --col-header-bg:  rgba(128, 128, 128, 0.08);
+    --col-header-fg:  rgba(128, 128, 128, 0.8);
+    --pane-bg:        #ffffff;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --pane-bg: #1e1e1e;
+    }
+  }
+
+  html, body {
+    height: 100%;
+    background: var(--pane-bg);
+    font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", sans-serif;
+    font-size: 12px;
+    overflow: auto;
+  }
+
+  #root { min-height: 100%; }
+
+  /* ── Split-view column headers (Installed / Origin) ───── */
+  /*
+   * diff2html's side-by-side output has two <td.d2h-code-side-linenumber>
+   * cells per row. We inject a sticky header row above the first diff table
+   * and label the two sides "Installed" and "Origin" per the Variant D spec.
+   *
+   * The header is drawn entirely in JavaScript (see renderColumnHeaders()).
+   */
+  .steve-col-headers {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    background: var(--col-header-bg);
+    border-bottom: 1px solid rgba(128, 128, 128, 0.15);
+    padding: 3px 0;
+  }
+
+  .steve-col-header {
+    text-align: center;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--col-header-fg);
+    padding: 2px 0;
+  }
+
+  /* ── diff2html style overrides ──────────────────────────── */
+  /*
+   * diff2html adds its own file-header rows; each file-card in Slice 9b
+   * will render its own header.  Hide the diff2html header for now so the
+   * diff body renders cleanly.  (TODO Slice 9b: re-enable and style per design.)
+   */
+  .d2h-file-header { display: none; }
+
+  /* Tighten up the diff body chrome to match macOS native density. */
+  .d2h-wrapper         { padding: 0; }
+  .d2h-file-wrapper    { border: none; border-radius: 0; box-shadow: none; }
+  .d2h-diff-table      { font-size: 11.5px; }
+  .d2h-code-line       { padding: 0 4px; }
+  .d2h-code-side-line  { padding: 0 4px; }
+
+  /* Scrolling in the WKWebView — let the body scroll, not an inner div. */
+  .d2h-wrapper     { overflow: visible !important; }
+  .d2h-file-list-wrapper { display: none; }
+
+  /* ── Empty / loading states ─────────────────────────────── */
+  #placeholder {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100vh;
+    color: rgba(128, 128, 128, 0.6);
+    font-size: 13px;
+    gap: 8px;
+  }
+</style>
+</head>
+<body>
+<div id="root">
+  <div id="placeholder">
+    <span style="font-size: 28px; opacity: 0.4">⬡</span>
+    <span>Loading diff…</span>
+  </div>
+</div>
+
+<!-- Vendored diff2html UI slim bundle (offline, no CDN, no highlight.js) -->
+<script src="diff2html-ui-slim.min.js"></script>
+
+<script>
+"use strict";
+
+// ── State ──────────────────────────────────────────────────────────────────────
+var _currentDiff         = null;
+var _currentViewMode     = "split";
+var _installedLabel      = "Installed";
+var _originLabel         = "Origin";
+
+// ── Post event to Swift ────────────────────────────────────────────────────────
+function postEvent(payload) {
+  if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.bridge) {
+    window.webkit.messageHandlers.bridge.postMessage(JSON.stringify(payload));
+  }
+}
+
+// ── Render diff2html ───────────────────────────────────────────────────────────
+function renderDiff() {
+  var root = document.getElementById("root");
+  if (!_currentDiff) return;
+
+  // Clear placeholder / previous render
+  root.innerHTML = "";
+
+  // Column headers for split view
+  if (_currentViewMode === "split") {
+    var headers = document.createElement("div");
+    headers.className = "steve-col-headers";
+    headers.innerHTML =
+      '<div class="steve-col-header">' + escapeHtml(_installedLabel) + '</div>' +
+      '<div class="steve-col-header">' + escapeHtml(_originLabel)    + '</div>';
+    root.appendChild(headers);
+  }
+
+  // diff2html container
+  var container = document.createElement("div");
+  root.appendChild(container);
+
+  var config = {
+    drawFileList: false,
+    matching: "lines",
+    outputFormat: _currentViewMode === "split" ? "side-by-side" : "line-by-line",
+    colorScheme: "auto",
+  };
+
+  // Diff2HtmlUI is the slim bundle's top-level export (UMD global).
+  var ui = new Diff2HtmlUI(container, _currentDiff, config);
+  ui.draw();
+}
+
+function escapeHtml(str) {
+  return String(str)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
+// ── Bridge: receive commands from Swift ────────────────────────────────────────
+//
+// Swift calls `evaluateJavaScript("handleCommand('" + jsonString + "')")`.
+// The JSON shapes are defined by RenderCommand and ToggleViewModeCommand in
+// the DiffBridge SPM target.
+function handleCommand(jsonString) {
+  var cmd;
+  try {
+    cmd = JSON.parse(jsonString);
+  } catch (e) {
+    postEvent({ type: "error", message: "JSON parse error: " + e.message });
+    return;
+  }
+
+  try {
+    if (cmd.type === "render") {
+      _currentDiff     = cmd.diff;
+      _currentViewMode = cmd.viewMode || "split";
+      _installedLabel  = cmd.installedLabel || "Installed";
+      _originLabel     = cmd.originLabel    || "Origin";
+      renderDiff();
+    } else if (cmd.type === "toggleViewMode") {
+      _currentViewMode = cmd.viewMode || "split";
+      renderDiff();
+      postEvent({ type: "viewModeChanged", viewMode: _currentViewMode });
+    } else {
+      postEvent({ type: "error", message: "Unknown command type: " + cmd.type });
+    }
+  } catch (e) {
+    postEvent({ type: "error", message: "Render error: " + e.message });
+  }
+}
+
+// ── Ready ──────────────────────────────────────────────────────────────────────
+window.addEventListener("load", function () {
+  postEvent({ type: "ready" });
+});
+</script>
+</body>
+</html>
