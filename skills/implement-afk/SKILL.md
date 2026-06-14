@@ -44,13 +44,21 @@ Then **scout each ticket's implementation task**: for every in-scope ticket, run
 
 Present the full ordered list of in-scope tickets to the user — each with its scouted **model + effort** recommendation — and get an explicit go-ahead. This is the one checkpoint — after it, the run proceeds unattended.
 
+On approval, **seed the progress task list**: create one task per in-scope ticket (`TaskCreate`), in dependency order, its subject naming the ticket and its scouted model + effort (e.g. `#12 — auth token refresh (sonnet/med)`). Wire each ticket's **Blocked by** into the list with `addBlockedBy`, so dependencies are visible at a glance. This list is how the user monitors the run live — keep it current at every step below. It is ephemeral (it lives with the session); there is no crash-resume.
+
 ## 5. Implement each ticket, strictly sequential
 
 **Right-sizing subagents (scout-first).** No subagent is spawned without a scout sizing it first. A scout is a single cheap, fast call (the lowest available tier) that reads the task's inputs — the ticket body for an implementation task, the actual branch diff for a review task — plus the slice of code it touches, and returns a **model tier** (the cheapest of the runtime's tiers — e.g. `haiku`, `sonnet`, `opus`, `fable` — that can do the job reliably) and an **effort level** (low / medium / high), with a one-line justification. Each ticket's implementation task is scouted up front in §3 so it appears in the §4 confirmation; review tasks and any re-spawn are scouted just-in-time, immediately before the spawn, since they depend on the diff that exists at that moment. Spawn each subagent with the model + effort its scout returned.
 
+**Tracking progress.** Keep the task list seeded in §4 live so the user can monitor. When a ticket starts, mark its task `in_progress` (`TaskUpdate`); reflect the **current phase** in its `activeForm` as the ticket advances — e.g. `Implementing #12 (sonnet/med)`, `Reviewing #12 (round 2/3)`, `Merging #12`. At a ticket's terminal state, mark its task `completed` regardless of outcome (the coordinator is done with it) and write the outcome into both the subject and task metadata:
+
+- merged → `Merged #12`
+- skipped, needs a human → `⚠ Skipped #12 — draft PR, needs human: <reason>`
+- skipped, blocked by a failed blocker → `Skipped #12 — blocked by #11`
+
 For each ticket in dependency order:
 
-1. **Branch** off the freshly-updated main branch.
+1. **Branch** off the freshly-updated main branch (mark the ticket's task `in_progress`).
 2. **Implement**: trigger a fresh subagent — using the model + effort from this ticket's up-front scout — that picks up the ticket cold and runs `/tdd`. The ticket body is its only context — do not hand it conversation history.
 3. **Review**: scout, then trigger, **two reviewer subagents** with split lenses against the branch diff (size each against the actual diff):
    - **Reviewer A** — correctness + acceptance-criteria coverage: does it build what the ticket specified, with every listed behavior covered by a passing test?
@@ -63,8 +71,8 @@ For each ticket in dependency order:
    - the full test suite green locally,
    - both reviewers approve,
    - CI green, if the remote has it.
-6. **On pass**: merge. Link the PR/MR to the ticket so the merge auto-closes it (`Closes #N`); for GitLab and the local tracker, close explicitly / set `Status: done` and append a merge note. Re-base or update main, then move to the next ticket.
-7. **On fail** (round cap hit, tests won't pass, or the ticket turns out to need a human): **never merge broken code.** Push the branch and open a **draft** PR/MR (or, on local/no-remote, leave the branch named clearly) with the partial work and an explanation. Leave the ticket open — relabel toward `needs-info` / `ready-for-human` when a human is genuinely needed. **Skip every ticket Blocked-by it**, then continue with the next independent ticket.
+6. **On pass**: merge. Link the PR/MR to the ticket so the merge auto-closes it (`Closes #N`); for GitLab and the local tracker, close explicitly / set `Status: done` and append a merge note. Mark the ticket's task `completed` (`Merged #12`). Re-base or update main, then move to the next ticket.
+7. **On fail** (round cap hit, tests won't pass, or the ticket turns out to need a human): **never merge broken code.** Push the branch and open a **draft** PR/MR (or, on local/no-remote, leave the branch named clearly) with the partial work and an explanation. Leave the ticket open — relabel toward `needs-info` / `ready-for-human` when a human is genuinely needed. Mark the ticket's task `completed` with the skip outcome (`⚠ Skipped #12 — draft PR, needs human: <reason>`). **Skip every ticket Blocked-by it** — mark each of those tasks `completed` as `Skipped — blocked by #12` — then continue with the next independent ticket.
 
 ## Provenance
 
@@ -74,4 +82,4 @@ Every agent-authored PR/MR body, review, and ticket comment opens with an AI dis
 
 ## 6. Report
 
-When the run ends, summarize **done** vs **skipped** (with the reason and any draft PR/MR link for each skipped ticket).
+When the run ends, summarize **done** vs **skipped** (with the reason and any draft PR/MR link for each skipped ticket) — this mirrors the final state of the task list.
