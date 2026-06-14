@@ -23,6 +23,11 @@ let package = Package(
             dependencies: ["StateEngine"],
             path: "Sources/Scheduler"
         ),
+        .target(
+            name: "AppCore",
+            dependencies: ["Cache", "StateEngine", "OriginClient", "Scheduler"],
+            path: "Sources/AppCore"
+        ),
         .testTarget(
             name: "CacheTests",
             dependencies: ["Cache"],
@@ -46,6 +51,18 @@ let package = Package(
             dependencies: ["Scheduler"],
             path: "SteveTests",
             sources: ["SchedulerTests.swift"]
+        ),
+        .testTarget(
+            name: "URLSessionTransportTests",
+            dependencies: ["OriginClient"],
+            path: "SteveTests",
+            sources: ["URLSessionTransportTests.swift"]
+        ),
+        .testTarget(
+            name: "AppCoreTests",
+            dependencies: ["AppCore", "Cache", "OriginClient", "StateEngine", "Scheduler"],
+            path: "SteveTests",
+            sources: ["AppCoreTests.swift"]
         ),
     ]
 )
