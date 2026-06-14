@@ -24,6 +24,11 @@ let package = Package(
             path: "Sources/Scheduler"
         ),
         .target(
+            name: "Installer",
+            dependencies: ["Cache"],
+            path: "Sources/Installer"
+        ),
+        .target(
             name: "AppCore",
             dependencies: ["Cache", "StateEngine", "OriginClient", "Scheduler"],
             path: "Sources/AppCore"
@@ -79,6 +84,12 @@ let package = Package(
         .target(
             name: "DiffBridge",
             path: "Sources/DiffBridge"
+        ),
+        .testTarget(
+            name: "InstallerTests",
+            dependencies: ["Installer", "Cache"],
+            path: "SteveTests",
+            sources: ["InstallerTests.swift"]
         ),
         .testTarget(
             name: "DiffBridgeTests",
