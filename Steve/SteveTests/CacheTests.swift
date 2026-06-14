@@ -158,6 +158,11 @@ struct CacheTests {
         try store.writeSkillFiles(named: "test-skill", files: files1)
         let hash1 = try store.contentHash(for: "test-skill")
 
+        // Clear the skill directory to simulate a true rename
+        let skillDir = dir.appending(path: "skills/test-skill", directoryHint: .isDirectory)
+        try FileManager.default.removeItem(at: skillDir)
+        try FileManager.default.createDirectory(at: skillDir, withIntermediateDirectories: true)
+
         let files2: [String: Data] = [
             "file2.txt": Data("content".utf8),
         ]
@@ -177,6 +182,32 @@ struct CacheTests {
         #expect(throws: CacheError.missingSkillsDirectory) {
             try store.contentHash(for: "any-skill")
         }
+    }
+
+    @Test func contentHashHashCollisionDetection() throws {
+        let (store, dir) = try tempStore()
+        defer { try? FileManager.default.removeItem(at: dir) }
+
+        // Test for hash collision vulnerability: without length-prefixing,
+        // these two different directory structures produce the same bytes:
+        // - Dir A: filename "ab" + content "c" → bytes: abc
+        // - Dir B: filename "a" + content "bc" → bytes: abc
+        // With proper length-prefixing, the hashes must differ.
+
+        let filesA: [String: Data] = [
+            "ab": Data("c".utf8),
+        ]
+        try store.writeSkillFiles(named: "skill-a", files: filesA)
+        let hashA = try store.contentHash(for: "skill-a")
+
+        let filesB: [String: Data] = [
+            "a": Data("bc".utf8),
+        ]
+        try store.writeSkillFiles(named: "skill-b", files: filesB)
+        let hashB = try store.contentHash(for: "skill-b")
+
+        // These must be different; collision indicates buggy encoding
+        #expect(hashA != hashB)
     }
 
     // MARK: — Metadata round-trip

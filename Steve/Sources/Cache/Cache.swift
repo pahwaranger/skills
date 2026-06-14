@@ -1,6 +1,13 @@
 import Foundation
 import CryptoKit
 
+extension UInt32 {
+    var data: Data {
+        var value = self
+        return Data(bytes: &value, count: MemoryLayout<UInt32>.size)
+    }
+}
+
 public struct CacheMetadata: Codable, Equatable, Sendable {
     public var commitSHA: String
     public var etag: String
@@ -75,7 +82,12 @@ public struct CacheStore: Sendable {
     }
 
     public func skillFiles(named name: String) throws -> [String: Data] {
-        let skillDir = root.appending(path: "skills/\(name)", directoryHint: .isDirectory)
+        let skillsDir = root.appending(path: "skills", directoryHint: .isDirectory)
+        guard FileManager.default.fileExists(atPath: skillsDir.path(percentEncoded: false)) else {
+            throw CacheError.missingSkillsDirectory
+        }
+
+        let skillDir = skillsDir.appending(path: name, directoryHint: .isDirectory)
         guard FileManager.default.fileExists(atPath: skillDir.path(percentEncoded: false)) else {
             throw CacheError.missing
         }
@@ -117,8 +129,16 @@ public struct CacheStore: Sendable {
         for filename in sortedPaths {
             let fileURL = skillDir.appending(path: filename)
             let fileData = try Data(contentsOf: fileURL)
-            // Hash the filename and its content together to detect name changes
-            hasher.update(data: filename.data(using: .utf8) ?? Data())
+
+            // Hash with length-prefixing to avoid collisions:
+            // Each entry is encoded as: [filename_length: uint32][filename_bytes][content_length: uint32][content_bytes]
+            let filenameBytes = filename.data(using: .utf8) ?? Data()
+            let filenameLengthBytes = UInt32(filenameBytes.count).data
+            hasher.update(data: filenameLengthBytes)
+            hasher.update(data: filenameBytes)
+
+            let contentLengthBytes = UInt32(fileData.count).data
+            hasher.update(data: contentLengthBytes)
             hasher.update(data: fileData)
         }
 
