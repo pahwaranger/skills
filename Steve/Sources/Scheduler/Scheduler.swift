@@ -152,4 +152,21 @@ public struct MenuBarIconState: Equatable, Sendable {
         self.attention = attention
         self.pulsing = pulsing
     }
+
+    /// Derives the icon state from the latest scheduler/app state.
+    ///
+    /// - Parameters:
+    ///   - derivedState: The most recent `DerivedState` from a successful check,
+    ///     or `nil` if no check has completed yet.
+    ///   - isChecking: `true` while a check is in flight.
+    ///
+    /// The two axes are independent:
+    /// - `attention` = `derivedState?.attention ?? false`  (red icon)
+    /// - `pulsing`   = `isChecking`                        (pulse modifier)
+    public static func from(derivedState: DerivedState?, isChecking: Bool) -> MenuBarIconState {
+        MenuBarIconState(
+            attention: derivedState?.attention ?? false,
+            pulsing: isChecking
+        )
+    }
 }
