@@ -6,7 +6,7 @@ import AppCore
 import StateEngine
 #endif
 
-// MARK: — Review window (Slice 8 + 9a)
+// MARK: — Review window (Slice 8 + 9a + 9b)
 
 /// The full Review window content — sidebar + diff pane.
 ///
@@ -16,7 +16,8 @@ import StateEngine
 ///
 /// Slice 9a: The diff pane now hosts a WKWebView diff renderer using diff2html
 /// (vendored/offline). Split/unified toggle is wired through the Swift↔JS bridge.
-/// Slice 9b (file-card affordances, binary placeholders) is a future slice.
+/// Slice 9b: File-card affordances, binary placeholders, up-to-date placeholder,
+/// and a materialising toolbar appear in the diff pane.
 struct ReviewWindowView: View {
 
     let appModel: AppModel
@@ -46,7 +47,12 @@ struct ReviewWindowView: View {
             // ── Right: Diff pane ─────────────────────────────────────────
             DiffPane(
                 selectedSkillName: selectedSkillName,
-                viewMode: $diffViewMode
+                selectedSkillState: skillState(for: selectedSkillName),
+                viewMode: $diffViewMode,
+                checkedCount: sidebarModel.selectedCount,
+                onDismissSelection: { sidebarModel.selectedSkillNames = [] },
+                githubURL: githubURL(for: selectedSkillName),
+                appModel: appModel
             )
             .frame(minWidth: 400, maxWidth: .infinity)
         }
@@ -74,6 +80,8 @@ struct ReviewWindowView: View {
             }
         }
     }
+
+    // MARK: — Private helpers
 
     /// Rebuilds the sidebar model from the current derived state.
     /// Preserves the existing selection and focused skill where possible.
@@ -104,23 +112,54 @@ struct ReviewWindowView: View {
             sidebarModel.selectedSkillNames.insert(skillName)
         }
     }
+
+    /// Looks up the `SkillState` for the currently selected skill.
+    private func skillState(for name: SkillName?) -> SkillState? {
+        guard let name else { return nil }
+        return appModel.lastDerivedState?.states[name]
+    }
+
+    /// Builds the GitHub directory URL for a skill, using the resolved default branch.
+    private func githubURL(for skillName: SkillName?) -> URL? {
+        guard let skillName else { return nil }
+        let branch = appModel.resolvedDefaultBranch ?? appModel.branch
+        let urlString = "https://github.com/\(appModel.owner)/\(appModel.repo)/tree/\(branch)/skills/\(skillName)"
+        return URL(string: urlString)
+    }
 }
 
-// MARK: — Diff pane (Slice 9a)
+// MARK: — Diff pane (Slice 9a + 9b)
 
 /// The right-hand diff pane: pane header (skill label + Split/Unified toggle) above
-/// a WKWebView diff renderer powered by diff2html (vendored offline).
+/// collapsible file cards (Slice 9b) containing WKWebView diff renderers.
 ///
-/// `selectedSkillName` drives which diff is shown.  The actual per-skill diff
-/// data is placeholder until the Installer slice provides it.
+/// `selectedSkillName` drives which diff is shown.
+/// `selectedSkillState` gates the up-to-date placeholder vs. file cards.
+/// `checkedCount` gates the materialising toolbar.
+///
+/// The actual per-skill diff data is placeholder until the Installer slice provides it.
 /// TODO(Slice N): replace `placeholderDiff(for:)` with real diff data from the Installer.
 private struct DiffPane: View {
 
     let selectedSkillName: SkillName?
+    let selectedSkillState: SkillState?
     @Binding var viewMode: DiffViewMode
+    let checkedCount: Int
+    let onDismissSelection: () -> Void
+    let githubURL: URL?
+    let appModel: AppModel
 
     var body: some View {
         VStack(spacing: 0) {
+            // ── Materialising toolbar (Slice 9b) ──────────────────────────
+            if checkedCount > 0 {
+                MaterialisingToolbar(
+                    checkedCount: checkedCount,
+                    onDismiss: onDismissSelection
+                )
+                Divider()
+            }
+
             // ── Pane header ───────────────────────────────────────────────
             HStack(spacing: 8) {
                 if let name = selectedSkillName {
@@ -144,15 +183,22 @@ private struct DiffPane: View {
 
             Divider()
 
-            // ── Diff renderer ─────────────────────────────────────────────
+            // ── Content ───────────────────────────────────────────────────
             if let name = selectedSkillName {
-                DiffRendererView(
-                    diff: placeholderDiff(for: name),
-                    viewMode: $viewMode
-                )
-                // TODO(Slice N): replace placeholderDiff(for:) with real diff
-                // data sourced from the Installer / DerivedState once that
-                // pipeline delivers per-file unified diffs.
+                if selectedSkillState == .upToDate {
+                    // Up-to-date placeholder (Slice 9b)
+                    UpToDatePlaceholder(skillName: name, githubURL: githubURL)
+                } else {
+                    // File cards (Slice 9b) — each file in the diff is collapsible.
+                    FileCardsView(
+                        skillName: name,
+                        rawDiff: placeholderDiff(for: name),
+                        viewMode: $viewMode
+                    )
+                    // TODO(Slice N): replace placeholderDiff(for:) with real diff
+                    // data sourced from the Installer / DerivedState once that
+                    // pipeline delivers per-file unified diffs.
+                }
             } else {
                 // Nothing selected — show a neutral placeholder.
                 VStack(spacing: 12) {
@@ -165,9 +211,307 @@ private struct DiffPane: View {
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .background(.windowBackground)
-                // TODO(Slice 9b): Handle non-text files with "Binary — no preview" card.
             }
         }
+    }
+}
+
+// MARK: — Materialising toolbar (Slice 9b)
+
+/// A sticky blue toolbar that materialises when ≥1 skill is checked.
+/// Disappears when selection is cleared.
+/// Update and Skip are non-functional stubs in this slice (Slice 10 wires them).
+private struct MaterialisingToolbar: View {
+
+    let checkedCount: Int
+    let onDismiss: () -> Void
+
+    var body: some View {
+        HStack(spacing: 10) {
+            Text("\(checkedCount) selected")
+                .font(.system(size: 12, weight: .medium))
+                .foregroundStyle(.white)
+
+            Spacer()
+
+            // Skip — stub (Slice 10)
+            Button("Skip") {
+                // TODO(Slice 10): Trigger bulk skip for selected skills.
+                print("[Steve] Toolbar Skip \(checkedCount) — wired in Slice 10")
+            }
+            .buttonStyle(ToolbarSecondaryButtonStyle())
+            .controlSize(.small)
+
+            // Update — stub (Slice 10)
+            Button("Update") {
+                // TODO(Slice 10): Trigger bulk update for selected skills.
+                print("[Steve] Toolbar Update \(checkedCount) — wired in Slice 10")
+            }
+            .buttonStyle(ToolbarPrimaryButtonStyle())
+            .controlSize(.small)
+
+            // Dismiss selection
+            Button(action: onDismiss) {
+                Image(systemName: "xmark")
+                    .font(.system(size: 11, weight: .medium))
+                    .foregroundStyle(.white)
+            }
+            .buttonStyle(.plain)
+            .help("Clear selection")
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 7)
+        .background(Color.accentColor)
+    }
+}
+
+// MARK: — Toolbar button styles
+
+private struct ToolbarPrimaryButtonStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .font(.system(size: 12, weight: .semibold))
+            .foregroundStyle(Color.accentColor)
+            .padding(.horizontal, 10)
+            .padding(.vertical, 4)
+            .background(.white.opacity(configuration.isPressed ? 0.8 : 1.0))
+            .clipShape(RoundedRectangle(cornerRadius: 5))
+    }
+}
+
+private struct ToolbarSecondaryButtonStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .font(.system(size: 12, weight: .medium))
+            .foregroundStyle(.white)
+            .padding(.horizontal, 10)
+            .padding(.vertical, 4)
+            .background(.white.opacity(configuration.isPressed ? 0.3 : 0.2))
+            .clipShape(RoundedRectangle(cornerRadius: 5))
+    }
+}
+
+// MARK: — Up-to-date placeholder (Slice 9b)
+
+/// Shown when the selected skill is up-to-date: nothing to sync.
+/// Includes a link to the skill's GitHub directory (using the resolved default branch).
+private struct UpToDatePlaceholder: View {
+    let skillName: SkillName
+    let githubURL: URL?
+
+    var body: some View {
+        VStack(spacing: 16) {
+            Image(systemName: "checkmark.circle")
+                .font(.system(size: 40))
+                .foregroundStyle(Color.secondary)
+
+            VStack(spacing: 4) {
+                Text("Up to date — nothing to sync")
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundStyle(.primary)
+
+                Text(skillName)
+                    .font(.system(size: 12))
+                    .foregroundStyle(.secondary)
+            }
+
+            if let url = githubURL {
+                Link("View on GitHub ↗", destination: url)
+                    .font(.system(size: 12))
+            }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(.windowBackground)
+    }
+}
+
+// MARK: — File cards view (Slice 9b)
+
+/// Renders a scrollable list of collapsible file cards for a skill's diff.
+/// Each card shows: filename, status pill, ±N line counts, and the diff renderer.
+/// Binary files get a "Binary — no preview" body instead of the diff renderer.
+/// Cards are open by default; clicking the header collapses/expands.
+private struct FileCardsView: View {
+
+    let skillName: SkillName
+    let rawDiff: String
+    @Binding var viewMode: DiffViewMode
+
+    /// Set of filenames whose cards are collapsed (open by default).
+    @State private var collapsed: Set<String> = []
+
+    /// Parsed per-file metadata from the raw diff string.
+    private var fileDiffs: [FileDiff] {
+        UnifiedDiffParser.parse(rawDiff)
+    }
+
+    var body: some View {
+        ScrollView {
+            LazyVStack(spacing: 0, pinnedViews: []) {
+                ForEach(fileDiffs, id: \.filename) { file in
+                    FileCard(
+                        file: file,
+                        rawDiff: rawDiff,
+                        viewMode: $viewMode,
+                        isCollapsed: collapsed.contains(file.filename),
+                        onToggle: { toggleCollapse(file.filename) }
+                    )
+                    Divider()
+                }
+
+                if fileDiffs.isEmpty {
+                    // Safety net: diff string produced no parseable file headers.
+                    // Render the whole diff as-is via the existing renderer.
+                    DiffRendererView(diff: rawDiff, viewMode: $viewMode)
+                }
+            }
+        }
+        .background(.windowBackground)
+    }
+
+    private func toggleCollapse(_ filename: String) {
+        if collapsed.contains(filename) {
+            collapsed.remove(filename)
+        } else {
+            collapsed.insert(filename)
+        }
+    }
+}
+
+// MARK: — File card (Slice 9b)
+
+/// A single collapsible file section: header + optional body.
+/// The header shows: ▼/▶ chevron, filename, status pill, and ±N line counts.
+/// The body is either a diff renderer (text) or a "Binary — no preview" notice.
+private struct FileCard: View {
+
+    let file: FileDiff
+    /// The full diff string; we pass the whole thing through to the renderer, which
+    /// handles multi-file diffs correctly. In a future slice, this will be the
+    /// per-file slice; for now the renderer ignores the other files or renders all.
+    let rawDiff: String
+    @Binding var viewMode: DiffViewMode
+    let isCollapsed: Bool
+    let onToggle: () -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            // ── Card header ───────────────────────────────────────────────
+            Button(action: onToggle) {
+                HStack(spacing: 6) {
+                    // Collapse/expand chevron
+                    Image(systemName: isCollapsed ? "chevron.right" : "chevron.down")
+                        .font(.system(size: 10, weight: .semibold))
+                        .foregroundStyle(.secondary)
+                        .frame(width: 14)
+
+                    // Filename (just the last path component for display brevity,
+                    // but keep full relative path in the model)
+                    let displayName = file.filename.split(separator: "/").last.map(String.init) ?? file.filename
+                    Text(displayName)
+                        .font(.system(size: 12, weight: .medium))
+                        .foregroundStyle(.primary)
+                        .lineLimit(1)
+                        .truncationMode(.middle)
+
+                    // Status pill
+                    FileStatusPill(status: file.status)
+
+                    Spacer(minLength: 4)
+
+                    // Line count badges
+                    if !file.isBinary {
+                        if file.addedLines > 0 {
+                            Text("+\(file.addedLines)")
+                                .font(.system(size: 11, weight: .medium, design: .monospaced))
+                                .foregroundStyle(Color(red: 0.133, green: 0.545, blue: 0.133))
+                        }
+                        if file.removedLines > 0 {
+                            Text("−\(file.removedLines)")
+                                .font(.system(size: 11, weight: .medium, design: .monospaced))
+                                .foregroundStyle(Color(red: 0.78, green: 0.082, blue: 0.082))
+                        }
+                    }
+                }
+                .padding(.horizontal, 12)
+                .padding(.vertical, 7)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(Color.primary.opacity(0.04))
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+
+            // ── Card body ─────────────────────────────────────────────────
+            if !isCollapsed {
+                if file.isBinary {
+                    BinaryFileNotice(filename: file.filename)
+                } else {
+                    // Per-file diff slice fed to the renderer.
+                    // TODO(Slice N): pass only this file's diff slice once the
+                    // Installer provides per-file slices. For now, the full diff
+                    // is passed so diff2html renders all files. File cards are the
+                    // chrome; diff2html handles multiple files fine.
+                    DiffRendererView(diff: rawDiff, viewMode: $viewMode)
+                        .frame(minHeight: 120)
+                }
+            }
+        }
+    }
+}
+
+// MARK: — File status pill (Slice 9b)
+
+/// A coloured badge showing "Added" / "Modified" / "Deleted".
+private struct FileStatusPill: View {
+    let status: FileDiff.Status
+
+    var body: some View {
+        Text(label)
+            .font(.system(size: 10, weight: .semibold))
+            .foregroundStyle(.white)
+            .padding(.horizontal, 6)
+            .padding(.vertical, 2)
+            .background(color)
+            .clipShape(Capsule())
+    }
+
+    private var label: String {
+        switch status {
+        case .added:    return "Added"
+        case .removed:  return "Deleted"
+        case .modified: return "Modified"
+        }
+    }
+
+    private var color: Color {
+        switch status {
+        case .added:    return Color(red: 0.133, green: 0.545, blue: 0.133)
+        case .removed:  return Color(red: 0.78,  green: 0.082, blue: 0.082)
+        case .modified: return Color(red: 0.0,   green: 0.478, blue: 1.0)
+        }
+    }
+}
+
+// MARK: — Binary file notice (Slice 9b)
+
+/// Shown in the body of a file card when the file is binary.
+/// No crash, no garbage — just a clean notice.
+private struct BinaryFileNotice: View {
+    let filename: String
+
+    var body: some View {
+        HStack(spacing: 8) {
+            Image(systemName: "doc.zipper")
+                .font(.system(size: 14))
+                .foregroundStyle(.secondary)
+            Text("Binary — no preview")
+                .font(.system(size: 12))
+                .foregroundStyle(.secondary)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.horizontal, 16)
+        .padding(.vertical, 12)
+        .background(.windowBackground)
     }
 }
 
