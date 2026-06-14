@@ -89,6 +89,96 @@ struct CacheTests {
         }
     }
 
+    // MARK: — Content hash
+
+    @Test func contentHashDeterministic() throws {
+        let (store, dir) = try tempStore()
+        defer { try? FileManager.default.removeItem(at: dir) }
+
+        let files: [String: Data] = [
+            "file1.txt": Data("content1".utf8),
+            "file2.txt": Data("content2".utf8),
+        ]
+        try store.writeSkillFiles(named: "test-skill", files: files)
+        let hash1 = try store.contentHash(for: "test-skill")
+        let hash2 = try store.contentHash(for: "test-skill")
+        #expect(hash1 == hash2)
+    }
+
+    @Test func contentHashOrderIndependent() throws {
+        let (store, dir) = try tempStore()
+        defer { try? FileManager.default.removeItem(at: dir) }
+
+        // Create two skill directories with identical content written in different orders
+        let filesA: [String: Data] = [
+            "a.txt": Data("aaa".utf8),
+            "b.txt": Data("bbb".utf8),
+            "c.txt": Data("ccc".utf8),
+        ]
+        let filesB: [String: Data] = [
+            "c.txt": Data("ccc".utf8),
+            "a.txt": Data("aaa".utf8),
+            "b.txt": Data("bbb".utf8),
+        ]
+
+        try store.writeSkillFiles(named: "skill-a", files: filesA)
+        try store.writeSkillFiles(named: "skill-b", files: filesB)
+
+        let hashA = try store.contentHash(for: "skill-a")
+        let hashB = try store.contentHash(for: "skill-b")
+        #expect(hashA == hashB)
+    }
+
+    @Test func contentHashChangesWithFileContent() throws {
+        let (store, dir) = try tempStore()
+        defer { try? FileManager.default.removeItem(at: dir) }
+
+        let files1: [String: Data] = [
+            "file.txt": Data("original".utf8),
+        ]
+        try store.writeSkillFiles(named: "test-skill", files: files1)
+        let hash1 = try store.contentHash(for: "test-skill")
+
+        let files2: [String: Data] = [
+            "file.txt": Data("modified".utf8),
+        ]
+        try store.writeSkillFiles(named: "test-skill", files: files2)
+        let hash2 = try store.contentHash(for: "test-skill")
+
+        #expect(hash1 != hash2)
+    }
+
+    @Test func contentHashChangesWithFileName() throws {
+        let (store, dir) = try tempStore()
+        defer { try? FileManager.default.removeItem(at: dir) }
+
+        let files1: [String: Data] = [
+            "file1.txt": Data("content".utf8),
+        ]
+        try store.writeSkillFiles(named: "test-skill", files: files1)
+        let hash1 = try store.contentHash(for: "test-skill")
+
+        let files2: [String: Data] = [
+            "file2.txt": Data("content".utf8),
+        ]
+        try store.writeSkillFiles(named: "test-skill", files: files2)
+        let hash2 = try store.contentHash(for: "test-skill")
+
+        #expect(hash1 != hash2)
+    }
+
+    @Test func missingSkillsDirThrowsDetectableError() throws {
+        let (store, dir) = try tempStore()
+        defer { try? FileManager.default.removeItem(at: dir) }
+
+        // Create root but intentionally no skills/ subdirectory
+        // Trying to compute content hash for a skill when skills/ dir doesn't exist
+        // should throw a distinct error
+        #expect(throws: CacheError.missingSkillsDirectory) {
+            try store.contentHash(for: "any-skill")
+        }
+    }
+
     // MARK: — Metadata round-trip
 
     @Test func metadataRoundTrip() throws {
