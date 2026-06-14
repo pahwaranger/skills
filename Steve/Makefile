@@ -1,0 +1,47 @@
+# Steve — build & install the macOS menu-bar app.
+#
+# Usage (from the Steve/ directory, or `make -C Steve <target>` from the repo root):
+#   make build     Build Steve.app (Release) into ./build
+#   make install   Build, then install Steve.app into /Applications
+#   make run       Install, then launch Steve.app
+#   make test      Run the Swift package test suite
+#   make clean     Remove build artifacts
+#
+# If /Applications is not writable on your machine, run:  sudo make install
+
+SCHEME   := Steve
+PROJECT  := Steve.xcodeproj
+CONFIG   := Release
+DERIVED  := build
+APP      := Steve.app
+APP_PATH := $(DERIVED)/Build/Products/$(CONFIG)/$(APP)
+DEST     := /Applications
+
+.PHONY: help build install run test clean
+
+help:
+	@echo "Steve — make targets:"
+	@echo "  build     Build $(APP) ($(CONFIG)) into ./$(DERIVED)"
+	@echo "  install   Build, then install $(APP) into $(DEST)"
+	@echo "  run       Install, then launch $(APP)"
+	@echo "  test      Run the Swift test suite"
+	@echo "  clean     Remove build artifacts"
+
+build:
+	xcodebuild -project $(PROJECT) -scheme $(SCHEME) -configuration $(CONFIG) \
+	  -destination 'platform=macOS' -derivedDataPath $(DERIVED) build
+
+install: build
+	@echo "→ Installing $(APP) into $(DEST)…"
+	rm -rf "$(DEST)/$(APP)"
+	ditto "$(APP_PATH)" "$(DEST)/$(APP)"
+	@echo "✓ Installed $(DEST)/$(APP) — it runs in the menu bar (no Dock icon)."
+
+run: install
+	open "$(DEST)/$(APP)"
+
+test:
+	swift test --package-path .
+
+clean:
+	rm -rf $(DERIVED)
