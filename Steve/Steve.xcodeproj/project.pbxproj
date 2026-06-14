@@ -37,6 +37,9 @@
 		C00000000000000000000014 /* DropdownSections.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000016 /* DropdownSections.swift */; };
 		C00000000000000000000015 /* WeakBox.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000017 /* WeakBox.swift */; };
 		C00000000000000000000020 /* ReviewSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000020 /* ReviewSession.swift */; };
+		C00000000000000000000021 /* SettingsStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000021 /* SettingsStore.swift */; };
+		C00000000000000000000022 /* LaunchAtLoginManaging.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000022 /* LaunchAtLoginManaging.swift */; };
+		C00000000000000000000023 /* SMAppServiceLaunchManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000023 /* SMAppServiceLaunchManager.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -72,6 +75,9 @@
 		B0000000000000000000001A /* ReviewWindowController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReviewWindowController.swift; sourceTree = "<group>"; };
 		B0000000000000000000001B /* ReviewSidebarModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReviewSidebarModel.swift; sourceTree = "<group>"; };
 		B00000000000000000000020 /* ReviewSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReviewSession.swift; sourceTree = "<group>"; };
+		B00000000000000000000021 /* SettingsStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsStore.swift; sourceTree = "<group>"; };
+		B00000000000000000000022 /* LaunchAtLoginManaging.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LaunchAtLoginManaging.swift; sourceTree = "<group>"; };
+		B00000000000000000000023 /* SMAppServiceLaunchManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SMAppServiceLaunchManager.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -114,6 +120,7 @@
 				B0000000000000000000001A /* ReviewWindowController.swift */,
 				B0000000000000000000001C /* DiffRendererView.swift */,
 				B00000000000000000000004 /* SettingsView.swift */,
+				B00000000000000000000023 /* SMAppServiceLaunchManager.swift */,
 				B00000000000000000000005 /* Info.plist */,
 				B0000000000000000000001E /* DiffRenderer */,
 			);
@@ -144,6 +151,8 @@
 				B00000000000000000000017 /* WeakBox.swift */,
 				B0000000000000000000001B /* ReviewSidebarModel.swift */,
 				B00000000000000000000020 /* ReviewSession.swift */,
+				B00000000000000000000021 /* SettingsStore.swift */,
+				B00000000000000000000022 /* LaunchAtLoginManaging.swift */,
 			);
 			path = AppCore;
 			sourceTree = "<group>";
@@ -330,6 +339,9 @@
 				C00000000000000000000015 /* WeakBox.swift in Sources */,
 				C00000000000000000000019 /* ReviewSidebarModel.swift in Sources */,
 				C00000000000000000000020 /* ReviewSession.swift in Sources */,
+				C00000000000000000000021 /* SettingsStore.swift in Sources */,
+				C00000000000000000000022 /* LaunchAtLoginManaging.swift in Sources */,
+				C00000000000000000000023 /* SMAppServiceLaunchManager.swift in Sources */,
 				C00000000000000000000016 /* ReviewSidebarView.swift in Sources */,
 				C00000000000000000000017 /* ReviewWindowView.swift in Sources */,
 				C00000000000000000000018 /* ReviewWindowController.swift in Sources */,

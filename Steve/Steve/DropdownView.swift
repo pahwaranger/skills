@@ -293,25 +293,24 @@ private struct SkillRowView: View {
 private struct FooterActionsView: View {
     let appModel: AppModel
 
+    @Environment(\.openWindow) private var openWindow
+
     var body: some View {
         VStack(spacing: 0) {
             DropdownActionRow(label: "Settings…") {
-                openSettings()
+                // Open (or raise) the Settings window.
+                // `SettingsLink` is unreliable from `MenuBarExtra` context
+                // (per prototypes/menu-bar-dropdown/NOTES.md / Steipete 2025).
+                // `openWindow(id:)` opens the Window scene on first call and brings
+                // it to the front on subsequent calls — the same pattern used for
+                // the Review window (Slice 8). No AppKit hacks needed.
+                openWindow(id: "settings")
             }
             DropdownActionRow(label: "Quit Steve") {
                 NSApplication.shared.terminate(nil)
             }
         }
         .padding(.vertical, 3)
-    }
-
-    /// Opens the Settings window.
-    /// `SettingsLink` is unreliable from `MenuBarExtra` context (per NOTES.md / Steipete 2025).
-    /// TODO(Slice 11): Implement via a hidden background `Window` scene + NSApp activation policy.
-    /// For now this is a no-op placeholder so the button is present and wired.
-    private func openSettings() {
-        // TODO(Slice 11): NSApp.sendAction(Selector(("showSettingsWindow:")), to: nil, from: nil)
-        print("[Steve] Settings tapped — window activation wired in Slice 11")
     }
 }
 

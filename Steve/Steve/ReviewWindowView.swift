@@ -5,6 +5,7 @@ import SwiftUI
 import AppCore
 import StateEngine
 import Installer
+import DiffBridge
 #endif
 
 // MARK: — Review window (Slice 8 + 9a + 9b)
@@ -32,6 +33,7 @@ struct ReviewWindowView: View {
     @State private var selectedSkillName: SkillName?
 
     /// Split / Unified toggle state for the diff renderer.
+    /// Initialised from the persisted `defaultDiffView` setting on first appear (Slice 11).
     @State private var diffViewMode: DiffViewMode = .split
 
     /// Whether to show the "origin has changed" reload-required alert.
@@ -81,6 +83,11 @@ struct ReviewWindowView: View {
             appModel.reviewFocusSkill = nil
         }
         .onAppear {
+            // Apply the persisted default diff view as the initial mode (Slice 11).
+            // Read directly from SettingsStore(defaults: .standard) so this always
+            // reflects the latest saved preference when the window opens.
+            diffViewMode = SettingsStore().defaultDiffView
+
             // Capture the immutable origin snapshot for this review session (Slice 10 / ADR 0006).
             // Must be called before any Update/Skip buttons are accessible.
             appModel.openReviewSession()
