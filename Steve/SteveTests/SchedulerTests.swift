@@ -201,31 +201,57 @@ final class GatedClock: SchedulerClock, @unchecked Sendable {
     #expect(clock.sleepCount == 0)
 }
 
-// MARK: — MenuBarIconState: all four combinations of the two independent axes
+// MARK: — MenuBarIconState: genuine derivation tests (all four axis combinations)
 
+/// idle (no attention, no check in flight) → monochrome + still
 @Test func iconIdleAndStill() {
-    let state = MenuBarIconState(attention: false, pulsing: false)
-    #expect(state.attention == false)
-    #expect(state.pulsing == false)
+    let derived = DerivedState(states: [:], attention: false, selfHealed: [])
+    let icon = MenuBarIconState.from(derivedState: derived, isChecking: false)
+    #expect(icon.attention == false)
+    #expect(icon.pulsing == false)
 }
 
+/// attention (≥1 update/removed) but no check in flight → red + still
 @Test func iconAttentionAndStill() {
-    let state = MenuBarIconState(attention: true, pulsing: false)
-    #expect(state.attention == true)
-    #expect(state.pulsing == false)
+    let derived = DerivedState(
+        states: ["alpha": .updateAvailable],
+        attention: true,
+        selfHealed: []
+    )
+    let icon = MenuBarIconState.from(derivedState: derived, isChecking: false)
+    #expect(icon.attention == true)
+    #expect(icon.pulsing == false)
 }
 
+/// no attention but a check is in flight → monochrome + pulsing
 @Test func iconIdleAndPulsing() {
-    let state = MenuBarIconState(attention: false, pulsing: true)
-    #expect(state.attention == false)
-    #expect(state.pulsing == true)
+    let derived = DerivedState(states: [:], attention: false, selfHealed: [])
+    let icon = MenuBarIconState.from(derivedState: derived, isChecking: true)
+    #expect(icon.attention == false)
+    #expect(icon.pulsing == true)
 }
 
+/// attention AND a check is in flight → red + pulsing
 @Test func iconAttentionAndPulsing() {
-    // A check running during attention: red + pulsing.
-    let state = MenuBarIconState(attention: true, pulsing: true)
-    #expect(state.attention == true)
-    #expect(state.pulsing == true)
+    let derived = DerivedState(
+        states: ["alpha": .removedOnOrigin],
+        attention: true,
+        selfHealed: []
+    )
+    let icon = MenuBarIconState.from(derivedState: derived, isChecking: true)
+    #expect(icon.attention == true)
+    #expect(icon.pulsing == true)
+}
+
+/// nil derivedState (no check completed yet) → attention=false, pulsing tracks isChecking
+@Test func iconNilDerivedStateDefaultsToNoAttention() {
+    let iconChecking = MenuBarIconState.from(derivedState: nil, isChecking: true)
+    #expect(iconChecking.attention == false)
+    #expect(iconChecking.pulsing == true)
+
+    let iconIdle = MenuBarIconState.from(derivedState: nil, isChecking: false)
+    #expect(iconIdle.attention == false)
+    #expect(iconIdle.pulsing == false)
 }
 
 // MARK: — Timer tick during in-flight manual check is also ignored
