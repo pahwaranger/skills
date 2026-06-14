@@ -203,7 +203,12 @@ extension AppModel {
     }
 
     /// Fetches the current live origin SHA from the transport (probe call only).
-    /// Accepts the session SHA for the 304 case (unchanged → same SHA as snapshot = still valid).
+    ///
+    /// Sends `If-None-Match: "<sessionSHA>"` so that GitHub returns 304 when the
+    /// commit hasn't changed, allowing the validation to short-circuit without
+    /// parsing a body. A 304 genuinely means "origin is still at sessionSHA —
+    /// unchanged → still valid". A 200 returns the new SHA in the body.
+    ///
     /// Returns `nil` if the fetch fails or returns an unexpected status.
     ///
     /// Static and nonisolated so it can be called from async contexts without
@@ -216,9 +221,14 @@ extension AppModel {
         sessionSHA: String
     ) async -> String? {
         let url = URL(string: "https://api.github.com/repos/\(owner)/\(repo)/commits/\(branch)")!
+        // Send If-None-Match with the session SHA so the server can return 304 when
+        // the commit is unchanged — more efficient than always parsing a 200 body.
+        // GitHub's SHA endpoint uses the commit SHA directly as the ETag value
+        // (without the typical "W/" weak prefix), so we quote it per RFC 7232.
         let headers: [String: String] = [
             "Accept": "application/vnd.github.sha",
-            "User-Agent": "Steve"
+            "User-Agent": "Steve",
+            "If-None-Match": "\"\(sessionSHA)\""
         ]
         guard let response = try? await transport.get(url: url, headers: headers) else {
             return nil
@@ -228,8 +238,8 @@ extension AppModel {
             return String(decoding: response.body, as: UTF8.self)
                 .trimmingCharacters(in: .whitespacesAndNewlines)
         case 304:
-            // Unchanged: the live SHA equals whatever the snapshot holds.
-            // Return the session SHA so the equality check always passes for 304.
+            // Unchanged: the server confirmed the live SHA equals the session SHA.
+            // Return the session SHA so the equality check passes — the action is valid.
             return sessionSHA
         default:
             return nil

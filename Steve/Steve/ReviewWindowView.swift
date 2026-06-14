@@ -93,6 +93,14 @@ struct ReviewWindowView: View {
                 appModel.reviewFocusSkill = nil
             }
         }
+        .onDisappear {
+            // Clear the review session when the window closes (Slice 10 / ADR 0006 Fix 1).
+            // This ensures that the NEXT open captures a fresh origin snapshot rather than
+            // seeing a stale SHA from before the window was closed. Without this call,
+            // openReviewSession() would not overwrite an existing session — so after origin
+            // moves and the user reopens, they'd see the old SHA forever.
+            appModel.closeReviewSession()
+        }
         .alert("Origin Changed", isPresented: $showSHAMovedAlert) {
             Button("Reload") {
                 // Re-check to refresh the window with the new origin content.

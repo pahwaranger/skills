@@ -77,7 +77,8 @@ enum ReviewSessionTestHelpers {
 
 /// When the live origin SHA still matches the snapshot SHA captured at window-open time,
 /// calling `appModel.performUpdate(skills:engine:)` must invoke `engine.install(…)` and
-/// return `.committed`. The cache must reflect the installed content.
+/// return `.committed`. The cache must reflect the installed content and the skill file
+/// must exist on disk under the skills directory.
 @Suite("ReviewSession — SHA match → Update commits")
 struct ReviewSessionUpdateTests {
 
@@ -130,6 +131,12 @@ struct ReviewSessionUpdateTests {
         #expect(outcome == .committed, "Update should commit when SHA matches snapshot")
         #expect(installCacheStore.cachedSkillNames().contains("test-skill"),
                 "Cache must contain test-skill after a successful update")
+
+        // Also verify the skill file was written to the skills directory on disk
+        // (not just the cache). A successful Update must deliver the file to the skills dir.
+        let installedFile = skillsDir.appending(path: "test-skill/SKILL.md")
+        #expect(FileManager.default.fileExists(atPath: installedFile.path(percentEncoded: false)),
+                "SKILL.md must exist under skillsDir/test-skill/ after a successful Update")
     }
 }
 
@@ -206,6 +213,9 @@ struct ReviewSessionSHAMovedTests {
         await model.start()
 
         model.openReviewSession()
+        // Intermediate assertion: session captures the original SHA right at window-open.
+        #expect(model.reviewSession?.originSHA == originalSHA,
+                "reviewSession must capture the original SHA immediately after openReviewSession()")
 
         // Origin moves.
         transport.sha = "moved-sha-v2"
@@ -271,5 +281,57 @@ struct ReviewSessionConcurrentCheckTests {
                 "reviewSession SHA must be unchanged after a background scheduler check")
         #expect(model.reviewSession?.originSHA == sha,
                 "reviewSession must still hold the SHA captured at window-open time")
+    }
+}
+
+// MARK: — Scenario 4: Close + reopen captures a fresh snapshot (Fix 1 — bug)
+
+/// After the Review window CLOSES (`closeReviewSession()`), `reviewSession` is `nil`.
+/// If the origin then moves to a new SHA and the window REOPENS (`openReviewSession()`),
+/// the new session must reflect the MOVED sha — not the stale SHA from the first open.
+///
+/// This test FAILS against the pre-fix code (where `closeReviewSession()` is never called
+/// by the view), because `openReviewSession()` won't overwrite a non-nil session — so
+/// the session persists across the close/reopen cycle, yielding the stale SHA.
+@Suite("ReviewSession — close clears session so reopen captures fresh snapshot")
+struct ReviewSessionReopenTests {
+
+    @Test @MainActor func closeAndReopenCapturesFreshSnapshot() async throws {
+        let shaA = "sha-at-first-open"
+        let transport = ReviewSessionStubTransport(sha: shaA)
+
+        let cacheDir = FileManager.default.temporaryDirectory
+            .appending(path: "rs-reopen-\(UUID().uuidString)", directoryHint: .isDirectory)
+        try FileManager.default.createDirectory(at: cacheDir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: cacheDir) }
+
+        let model = AppModel(
+            owner: "o", repo: "r", branch: "main",
+            transport: transport,
+            cacheRoot: cacheDir,
+            automaticChecksEnabled: false,
+            installedSkills: { [:] }
+        )
+        await model.start()
+
+        // ── First open: captures SHA-A ─────────────────────────────────────
+        model.openReviewSession()
+        #expect(model.reviewSession?.originSHA == shaA,
+                "First open must capture SHA-A")
+
+        // ── Window closes: clears the session ─────────────────────────────
+        model.closeReviewSession()
+        #expect(model.reviewSession == nil,
+                "closeReviewSession() must nil out reviewSession")
+
+        // ── Origin moves to SHA-B while window is closed ───────────────────
+        let shaB = "sha-after-origin-moved"
+        transport.sha = shaB
+        await model.triggerCheck()  // updates lastKnownOriginSHA to SHA-B
+
+        // ── Reopen: must capture SHA-B, not the stale SHA-A ───────────────
+        model.openReviewSession()
+        #expect(model.reviewSession?.originSHA == shaB,
+                "Reopen after close must capture the moved SHA-B, not the stale SHA-A")
     }
 }
