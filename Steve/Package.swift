@@ -18,6 +18,11 @@ let package = Package(
             dependencies: ["Cache"],
             path: "Sources/OriginClient"
         ),
+        .target(
+            name: "Scheduler",
+            dependencies: ["StateEngine"],
+            path: "Sources/Scheduler"
+        ),
         .testTarget(
             name: "CacheTests",
             dependencies: ["Cache"],
@@ -35,6 +40,12 @@ let package = Package(
             dependencies: ["OriginClient"],
             path: "SteveTests",
             sources: ["OriginClientTests.swift"]
+        ),
+        .testTarget(
+            name: "SchedulerTests",
+            dependencies: ["Scheduler"],
+            path: "SteveTests",
+            sources: ["SchedulerTests.swift"]
         ),
     ]
 )
