@@ -36,6 +36,7 @@
 		C00000000000000000000013 /* StatusLine.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000015 /* StatusLine.swift */; };
 		C00000000000000000000014 /* DropdownSections.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000016 /* DropdownSections.swift */; };
 		C00000000000000000000015 /* WeakBox.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000017 /* WeakBox.swift */; };
+		C00000000000000000000020 /* ReviewSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000020 /* ReviewSession.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -70,6 +71,7 @@
 		B00000000000000000000019 /* ReviewWindowView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReviewWindowView.swift; sourceTree = "<group>"; };
 		B0000000000000000000001A /* ReviewWindowController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReviewWindowController.swift; sourceTree = "<group>"; };
 		B0000000000000000000001B /* ReviewSidebarModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReviewSidebarModel.swift; sourceTree = "<group>"; };
+		B00000000000000000000020 /* ReviewSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReviewSession.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -141,6 +143,7 @@
 				B00000000000000000000016 /* DropdownSections.swift */,
 				B00000000000000000000017 /* WeakBox.swift */,
 				B0000000000000000000001B /* ReviewSidebarModel.swift */,
+				B00000000000000000000020 /* ReviewSession.swift */,
 			);
 			path = AppCore;
 			sourceTree = "<group>";
@@ -326,6 +329,7 @@
 				C00000000000000000000014 /* DropdownSections.swift in Sources */,
 				C00000000000000000000015 /* WeakBox.swift in Sources */,
 				C00000000000000000000019 /* ReviewSidebarModel.swift in Sources */,
+				C00000000000000000000020 /* ReviewSession.swift in Sources */,
 				C00000000000000000000016 /* ReviewSidebarView.swift in Sources */,
 				C00000000000000000000017 /* ReviewWindowView.swift in Sources */,
 				C00000000000000000000018 /* ReviewWindowController.swift in Sources */,

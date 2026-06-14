@@ -29,12 +29,24 @@ struct ReviewSidebarView: View {
     /// The name of the skill currently displayed in the diff pane (right-hand side).
     @Binding var selectedSkillName: SkillName?
 
+    /// Called when an Update action should be performed for the given skill names.
+    /// Single-skill rows pass `[skillName]`; the bulk header passes all selected names.
+    let onUpdate: ([String]) -> Void
+
+    /// Called when a Skip action should be performed for the given skill names.
+    /// Single-skill rows pass `[skillName]`; the bulk header passes all selected names.
+    let onSkip: ([String]) -> Void
+
     // MARK: — Body
 
     var body: some View {
         VStack(spacing: 0) {
             // ── Sticky action header ──────────────────────────────────────
-            SidebarActionHeader(model: $model)
+            SidebarActionHeader(
+                model: $model,
+                onUpdate: { onUpdate(Array(model.selectedSkillNames)) },
+                onSkip: { onSkip(Array(model.selectedSkillNames)) }
+            )
 
             Divider()
 
@@ -66,12 +78,12 @@ struct ReviewSidebarView: View {
                                         model.toggleSkill(skillName)
                                     },
                                     onUpdate: {
-                                        // TODO(Slice 10): Trigger single-skill update via Installer.
-                                        print("[Steve] Update '\(skillName)' — wired in Slice 10")
+                                        // Single-skill Update: wired in Slice 10.
+                                        onUpdate([skillName])
                                     },
                                     onSkip: {
-                                        // TODO(Slice 10): Trigger single-skill skip via Installer.
-                                        print("[Steve] Skip '\(skillName)' — wired in Slice 10")
+                                        // Single-skill Skip: wired in Slice 10.
+                                        onSkip([skillName])
                                     }
                                 )
                                 .id(skillName)
@@ -111,6 +123,8 @@ struct ReviewSidebarView: View {
 
 private struct SidebarActionHeader: View {
     @Binding var model: ReviewSidebarModel
+    let onUpdate: () -> Void
+    let onSkip: () -> Void
 
     var body: some View {
         HStack(spacing: 8) {
@@ -126,11 +140,8 @@ private struct SidebarActionHeader: View {
 
             Spacer()
 
-            // Update N button
-            Button(action: {
-                // TODO(Slice 10): Trigger bulk update for all selected skills.
-                print("[Steve] Bulk Update \(model.selectedCount) — wired in Slice 10")
-            }) {
+            // Update N button — wired in Slice 10
+            Button(action: onUpdate) {
                 Text(model.selectedCount > 0 ? "Update \(model.selectedCount)" : "Update")
                     .font(.system(size: 12, weight: .medium))
             }
@@ -138,11 +149,8 @@ private struct SidebarActionHeader: View {
             .controlSize(.small)
             .disabled(model.selectedCount == 0)
 
-            // Skip N button
-            Button(action: {
-                // TODO(Slice 10): Trigger bulk skip for all selected skills.
-                print("[Steve] Bulk Skip \(model.selectedCount) — wired in Slice 10")
-            }) {
+            // Skip N button — wired in Slice 10
+            Button(action: onSkip) {
                 Text(model.selectedCount > 0 ? "Skip \(model.selectedCount)" : "Skip")
                     .font(.system(size: 12, weight: .medium))
             }

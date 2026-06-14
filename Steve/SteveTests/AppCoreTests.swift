@@ -103,7 +103,7 @@ struct AppModelTests {
         try FileManager.default.createDirectory(at: cacheDir, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: cacheDir) }
 
-        let result = await AppModel.makePerformCheck(
+        let (result, _, _) = await AppModel.makePerformCheck(
             owner: "o", repo: "r", branch: "main",
             transport: transport,
             cacheStore: CacheStore(root: cacheDir),
@@ -145,7 +145,7 @@ struct AppModelTests {
         defer { try? FileManager.default.removeItem(at: cacheDir) }
 
         let installedHash = "installed-hash-v1-different"
-        let result = await AppModel.makePerformCheck(
+        let (result, _, _) = await AppModel.makePerformCheck(
             owner: "o", repo: "r", branch: "main",
             transport: transport,
             cacheStore: CacheStore(root: cacheDir),
@@ -200,7 +200,7 @@ struct AppModelTests {
 
         // Installed copy differs from origin too (S != O). Reuse the pre-check cache hash
         // as a convenient deterministic value that is known to differ from O.
-        let result = await AppModel.makePerformCheck(
+        let (result, _, _) = await AppModel.makePerformCheck(
             owner: "o", repo: "r", branch: "main",
             transport: transport,
             cacheStore: cacheStore,
@@ -247,7 +247,7 @@ struct AppModelTests {
             commitSHA: sha, etag: "", lastChecked: Date(timeIntervalSinceReferenceDate: 0), skipState: [:]
         ))
 
-        let result = await AppModel.makePerformCheck(
+        let (result, _, _) = await AppModel.makePerformCheck(
             owner: "o", repo: "r", branch: "main",
             transport: transport,
             cacheStore: cacheStore,
@@ -276,7 +276,7 @@ struct AppModelTests {
         try FileManager.default.createDirectory(at: cacheDir, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: cacheDir) }
 
-        let result = await AppModel.makePerformCheck(
+        let (result, _, _) = await AppModel.makePerformCheck(
             owner: "o", repo: "r", branch: "main",
             transport: transport,
             cacheStore: CacheStore(root: cacheDir),
@@ -303,7 +303,7 @@ struct AppModelTests {
         try FileManager.default.createDirectory(at: cacheDir, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: cacheDir) }
 
-        let result = await AppModel.makePerformCheck(
+        let (result, _, _) = await AppModel.makePerformCheck(
             owner: "o", repo: "r", branch: "main",
             transport: transport,
             cacheStore: CacheStore(root: cacheDir),
@@ -328,7 +328,7 @@ struct AppModelTests {
         try FileManager.default.createDirectory(at: cacheDir, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: cacheDir) }
 
-        let result = await AppModel.makePerformCheck(
+        let (result, _, _) = await AppModel.makePerformCheck(
             owner: "o", repo: "r", branch: "main",
             transport: transport,
             cacheStore: CacheStore(root: cacheDir),
@@ -797,7 +797,7 @@ struct AppModelWordingReachabilityTests {
             cacheStore: CacheStore(root: cacheDir),
             installedSkills: { [:] }
         )
-        let result = await performCheck()
+        let (result, _, _) = await performCheck()
 
         // Feed the result through applyCheckResult via a minimal AppModel stub
         let model = AppModel(
@@ -866,7 +866,7 @@ struct AppModelWordingReachabilityTests {
             cacheStore: CacheStore(root: cacheDir),
             installedSkills: { [:] }
         )
-        let result = await performCheck()
+        let (result, _, _) = await performCheck()
 
         let model = AppModel(
             owner: "o", repo: "r", branch: "main",
@@ -912,7 +912,7 @@ struct AppModelWordingReachabilityTests {
             cacheStore: CacheStore(root: cacheDir),
             installedSkills: { [:] }
         )
-        let result = await performCheck()
+        let (result, _, _) = await performCheck()
 
         let model = AppModel(
             owner: "o", repo: "r", branch: "main",
