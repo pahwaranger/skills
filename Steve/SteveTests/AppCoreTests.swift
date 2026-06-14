@@ -527,6 +527,49 @@ struct AppModelTests {
 
         #expect(model.isChecking == false)
     }
+
+    // MARK: — resolvedDefaultBranch is populated after start()
+
+    @Test @MainActor func startResolvesAndStoresDefaultBranch() async throws {
+        // AC: start() must call resolveAndStoreDefaultBranch() so that
+        // resolvedDefaultBranch is populated from the GitHub API, not hardcoded.
+        //
+        // The stub transport routes:
+        //   /repos/o/r           → {"default_branch":"trunk"}  (resolveDefaultBranch)
+        //   /repos/o/r/commits/* → 304 (check — unchanged, keeps test fast)
+        //
+        // After start() returns, model.resolvedDefaultBranch must equal "trunk".
+        // This test FAILS against the current code (no call site for
+        // resolveAndStoreDefaultBranch), confirming the red phase.
+        let transport = AppCoreStubTransport { url in
+            let path = url.path
+            if path == "/repos/o/r" {
+                // repos endpoint — resolveDefaultBranch()
+                let body = Data(#"{"name":"r","default_branch":"trunk"}"#.utf8)
+                return HTTPResponse(status: 200, headers: [:], body: body)
+            }
+            // commits probe — unchanged
+            return HTTPResponse(status: 304, headers: [:], body: Data())
+        }
+
+        let cacheDir = FileManager.default.temporaryDirectory
+            .appending(path: "appcore-resolvedbranch-test-\(UUID().uuidString)", directoryHint: .isDirectory)
+        try FileManager.default.createDirectory(at: cacheDir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: cacheDir) }
+
+        let model = AppModel(
+            owner: "o", repo: "r", branch: "master",
+            transport: transport,
+            cacheRoot: cacheDir,
+            automaticChecksEnabled: false,
+            installedSkills: { [:] }
+        )
+
+        await model.start()
+
+        #expect(model.resolvedDefaultBranch == "trunk",
+                "start() must invoke resolveAndStoreDefaultBranch() so the live default branch replaces the hardcoded init-time branch")
+    }
 }
 
 // MARK: — Scheduler: transientError does not clear slow-retry backoff

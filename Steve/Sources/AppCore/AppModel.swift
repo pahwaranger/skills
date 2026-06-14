@@ -126,12 +126,20 @@ public final class AppModel {
     /// Start the scheduler: fires an immediate check then begins periodic checks.
     /// Observable state is then kept live for EVERY check — launch, every timer
     /// tick, and manual triggers — by draining the scheduler's `stateUpdates` stream.
+    /// Also resolves the repository's default branch at launch so GitHub links use the
+    /// live branch rather than the hardcoded init-time value (Slice 6 AC).
     public func start() async {
         // Begin draining the completion stream BEFORE the launch check fires so no
         // emission is missed. The stream buffers (newest-8) if this task hasn't yet
         // suspended on its first iteration, so launch-check emissions are never lost.
         startObservingSchedulerState()
-        await scheduler.start()
+        // Resolve the default branch concurrently with the launch check so it doesn't
+        // add latency to the first status update. Both are awaited before start() returns,
+        // making the result deterministically available to callers (and to tests).
+        await withTaskGroup(of: Void.self) { group in
+            group.addTask { await self.resolveAndStoreDefaultBranch() }
+            group.addTask { await self.scheduler.start() }
+        }
         // Guarantee the observable reflects the launch result *synchronously* on
         // return, so callers asserting immediately after `start()` are deterministic
         // (the stream hop is async). Subsequent checks are covered by the stream.
