@@ -22,10 +22,22 @@ public struct URLSessionTransport: HTTPTransport {
             throw URLError(.badServerResponse)
         }
 
-        // On Apple platforms allHeaderFields is typed [AnyHashable: Any] but
-        // always contains [String: String] values in practice. The `as? [String: String]`
-        // cast succeeds unconditionally here; the else branch is unreachable and removed.
-        let responseHeaders = (httpResponse.allHeaderFields as? [String: String]) ?? [:]
+        // Build the header dictionary with explicit per-entry string casts rather than
+        // `allHeaderFields as? [String: String]`. A whole-dictionary cast fails — and
+        // silently drops EVERY header, including the ETag and rate-limit headers
+        // OriginClient depends on — if any single key/value doesn't bridge to String.
+        // Per-entry casting keeps every well-formed header even if an odd one slips in.
+        var responseHeaders: [String: String] = [:]
+        for (key, value) in httpResponse.allHeaderFields {
+            guard let name = key as? String else { continue }
+            if let stringValue = value as? String {
+                responseHeaders[name] = stringValue
+            } else {
+                // Fall back to the case-insensitive accessor for non-String values
+                // (e.g. a bridged NSNumber), so the header still survives.
+                responseHeaders[name] = httpResponse.value(forHTTPHeaderField: name)
+            }
+        }
 
         return HTTPResponse(
             status: httpResponse.statusCode,

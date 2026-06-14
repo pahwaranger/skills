@@ -35,6 +35,13 @@ public final class AppModel {
 
     public let scheduler: CheckScheduler
 
+    /// The task draining the scheduler's `stateUpdates` stream onto this main-actor
+    /// object. Retained so it can be cancelled in `deinit`. `nonisolated(unsafe)` is
+    /// safe here: a `Task` handle is `Sendable`, it is written exactly once on the
+    /// main actor (in `start()`), and only read again from `deinit`, which runs after
+    /// every other reference is gone — so there is no concurrent access.
+    private nonisolated(unsafe) var stateObserver: Task<Void, Never>?
+
     // MARK: — Init
 
     public init(
@@ -69,17 +76,53 @@ public final class AppModel {
         )
     }
 
+    deinit {
+        stateObserver?.cancel()
+    }
+
     /// Start the scheduler: fires an immediate check then begins periodic checks.
-    /// After each check propagates scheduler state onto the main-actor observable properties.
+    /// Observable state is then kept live for EVERY check — launch, every timer
+    /// tick, and manual triggers — by draining the scheduler's `stateUpdates` stream.
     public func start() async {
+        // Begin draining the completion stream BEFORE the launch check fires so no
+        // emission is missed. The stream buffers (newest-8) if this task hasn't yet
+        // suspended on its first iteration, so launch-check emissions are never lost.
+        startObservingSchedulerState()
         await scheduler.start()
+        // Guarantee the observable reflects the launch result *synchronously* on
+        // return, so callers asserting immediately after `start()` are deterministic
+        // (the stream hop is async). Subsequent checks are covered by the stream.
+        await syncFromScheduler()
+    }
+
+    /// Manually trigger a check (wired to "Check for updates"). Awaiting this returns
+    /// only after the observable state reflects the check's result.
+    public func triggerCheck() async {
+        await scheduler.triggerCheck()
         await syncFromScheduler()
     }
 
     // MARK: — Scheduler → observable bridge
 
-    /// Copies `isChecking` and `lastDerivedState` from the `CheckScheduler` actor
-    /// onto this `@Observable` main-actor object so SwiftUI can observe them.
+    /// Drains the scheduler's `stateUpdates` stream, copying each emitted snapshot
+    /// onto this `@Observable` main-actor object. This is the mechanism that makes
+    /// `isChecking`/`lastDerivedState` update on EVERY check (timer ticks included),
+    /// not just the one-shot sync after launch. Only `Sendable` value types cross the
+    /// actor → main-actor boundary, so there is no data race.
+    private func startObservingSchedulerState() {
+        guard stateObserver == nil else { return }
+        stateObserver = Task { [weak self] in
+            guard let stream = self?.scheduler.stateUpdates else { return }
+            for await snapshot in stream {
+                guard let self else { return }
+                self.isChecking = snapshot.isChecking
+                self.lastDerivedState = snapshot.lastDerivedState
+            }
+        }
+    }
+
+    /// One-shot copy of `isChecking`/`lastDerivedState` from the actor, used to make
+    /// the observable state deterministic on return from an awaited check.
     private func syncFromScheduler() async {
         let checking = await scheduler.isChecking
         let state = await scheduler.lastDerivedState
@@ -144,25 +187,25 @@ public final class AppModel {
                 return .ok(nil)
 
             case .updated(let snapshot):
-                // Rebuild the cache from the fresh snapshot.
-                try? cacheStore.rebuild(from: snapshot)
-
-                // Derive origin hashes from the snapshot (O).
-                var originHashes: [String: String] = [:]
-                for skill in snapshot.skills {
-                    if let hash = try? cacheStore.contentHash(for: skill.name) {
-                        originHashes[skill.name] = hash
-                    }
-                }
-
-                // Derive cache hashes (C) — now equal to O after rebuild.
-                // We compute them from disk so C and O use the same hash scheme.
+                // Read the CURRENT cache hashes (C) from disk BEFORE any mutation.
+                // C is the last-seen / acknowledged mirror; comparing the fresh origin
+                // against it is what makes `.updateAvailable` reachable (O ≠ C). Walking
+                // the live cache first — never rebuilding it to O here — is the fix for
+                // the bug where a pre-derive rebuild forced C == O and collapsed every
+                // result to `.skipped`. Per ADR 0006/0007 the acknowledged-cache update
+                // (O→Cache) belongs to user Update/Skip actions, NOT this periodic check.
                 var cacheHashes: [String: String] = [:]
-                for skill in snapshot.skills {
-                    if let hash = try? cacheStore.contentHash(for: skill.name) {
-                        cacheHashes[skill.name] = hash
+                for name in cacheStore.cachedSkillNames() {
+                    if let hash = try? cacheStore.contentHash(for: name) {
+                        cacheHashes[name] = hash
                     }
                 }
+
+                // Compute origin hashes (O) from the fresh snapshot WITHOUT touching the
+                // live cache: materialise the snapshot into a throwaway CacheStore and hash
+                // there. This uses the same SHA256 (filename, bytes) scheme as the real
+                // cache, so S, C and O are directly comparable.
+                let originHashes = AppModel.originHashes(from: snapshot)
 
                 // Installed-skills hashes (S) come from the injected provider.
                 let installedHashes = installedSkills()
@@ -173,6 +216,15 @@ public final class AppModel {
                     origin: originHashes
                 )
 
+                // Self-heal persistence is intentionally NOT performed here. ADR 0006's
+                // self-heal (C ← O when S == O) is idempotent and can be persisted by a
+                // later user-action slice; persisting it in the background check is only
+                // ever safe for names in `derivedState.selfHealed` and must never touch a
+                // skill that is `.updateAvailable` (doing so would re-acknowledge O and
+                // destroy the very signal this fix restores). Keeping the periodic check
+                // non-mutating keeps "last seen" honest (ADR 0007 cache-after-success).
+                _ = derivedState.selfHealed
+
                 return .ok(derivedState)
             }
         }
@@ -182,6 +234,26 @@ public final class AppModel {
 // MARK: — Default cache root
 
 extension AppModel {
+    /// Computes per-skill content hashes (O) for an origin snapshot WITHOUT mutating
+    /// any live cache. The snapshot's in-memory files are written into a throwaway
+    /// `CacheStore` and hashed with the same SHA256 (filename, bytes) scheme the cache
+    /// uses, so the resulting O hashes are directly comparable with C and S.
+    nonisolated static func originHashes(from snapshot: OriginSnapshot) -> [String: String] {
+        let tmpRoot = FileManager.default.temporaryDirectory
+            .appending(path: "steve-origin-\(UUID().uuidString)", directoryHint: .isDirectory)
+        defer { try? FileManager.default.removeItem(at: tmpRoot) }
+
+        let tmpStore = CacheStore(root: tmpRoot)
+        var hashes: [String: String] = [:]
+        for skill in snapshot.skills {
+            try? tmpStore.writeSkillFiles(named: skill.name, files: skill.files)
+            if let hash = try? tmpStore.contentHash(for: skill.name) {
+                hashes[skill.name] = hash
+            }
+        }
+        return hashes
+    }
+
     public static func makeDefaultCacheRoot() -> URL {
         let appSupport = FileManager.default.urls(for: .applicationSupportDirectory,
                                                    in: .userDomainMask).first!

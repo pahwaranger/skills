@@ -26,6 +26,35 @@ final class AppCoreStubTransport: HTTPTransport, @unchecked Sendable {
     }
 }
 
+// MARK: — Shared test helpers (thread-safe counter + gated clock)
+
+/// Thread-safe call counter used by the AppCore tests.
+final class CallCounter: @unchecked Sendable {
+    private let lock = NSLock()
+    private var _value = 0
+    var value: Int { lock.withLock { _value } }
+    func increment() { lock.withLock { _value += 1 } }
+}
+
+/// A clock whose `sleep` blocks until `releaseOne()` is called for that sleep,
+/// letting tests drive timer-loop ticks deterministically.
+final class AppCoreGatedClock: SchedulerClock, @unchecked Sendable {
+    private let lock = NSLock()
+    private var _sleepCount = 0
+    private var _releaseCount = 0
+    var sleepCount: Int { lock.withLock { _sleepCount } }
+    func releaseOne() { lock.withLock { _releaseCount += 1 } }
+    func sleep(for duration: TimeInterval) async throws {
+        let myIndex = lock.withLock { () -> Int in
+            _sleepCount += 1
+            return _sleepCount
+        }
+        while lock.withLock({ _releaseCount < myIndex }) && !Task.isCancelled {
+            await Task.yield()
+        }
+    }
+}
+
 // MARK: — Helpers for building a fake tarball origin snapshot
 
 /// Builds a minimal fake tarball HTTPResponse containing one skill directory
@@ -89,25 +118,19 @@ struct AppModelTests {
 
     // MARK: — Successful check returns .ok(DerivedState) with meaningful state
 
-    @Test func successfulCheckWithKnownInputsProducesExpectedDerivedState() async throws {
-        // When a 200+tarball arrives with a known skill, and we inject known installed-skills
-        // and cache state, the resulting DerivedState must reflect the correct per-skill states.
+    @Test func successfulCheckDerivesUpdateAvailableForNewlySeenSkill() async throws {
+        // The periodic check derives state against the PRE-CHECK cache, which it
+        // must NOT wholesale-rebuild (ADR 0006/0007: the acknowledged-cache update
+        // belongs to user Update/Skip actions, not background checks).
         //
         // Setup:
-        //   - Origin has "alpha" with content "v2"
-        //   - Cache is empty (fresh install, no rebuild yet in this path)
-        //   - Installed skills: "alpha" → hash matching "v1" (different from origin)
+        //   - Origin has "alpha" with content "skill content v2" (O = hash of that).
+        //   - Cache is empty for "alpha" (C = nil — never seen / not acknowledged).
+        //   - Installed skills: "alpha" → an arbitrary hash that differs from O (S != O).
         //
-        // Expected: after rebuild, cache["alpha"] == origin["alpha"], so
-        //   StateEngine.derive sees S["alpha"] = installed hash, C["alpha"] = origin hash, O["alpha"] = origin hash
-        //   Since S != O and C == O: state = .skipped (not .updateAvailable)
-        //   Wait — but rebuild sets C == O freshly. And installed is "v1" != "v2".
-        //   So: O = hash("v2 content"), C = hash("v2 content"), S = hash("v1 content")
-        //   C == O and S != O → .skipped. attention = false.
-        //
-        // This test verifies we actually call StateEngine.derive and produce a real DerivedState,
-        // not the stub .ok(nil) from before.
-
+        // Expected (StateEngine.derive): o != nil, s != o, c (nil) != o → .updateAvailable,
+        //   attention == true. This is the bug-fix assertion: if the check rebuilt the
+        //   cache to O before deriving, C would equal O and this would be .skipped.
         let sha = "abc123"
         let skillFileContent = "skill content v2"
         let transport = fakeSnapshotTransport(
@@ -121,9 +144,6 @@ struct AppModelTests {
         try FileManager.default.createDirectory(at: cacheDir, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: cacheDir) }
 
-        // Installed skills: "alpha" has different content than origin → will be "updateAvailable"
-        // or "skipped" depending on cache. Since cache is being rebuilt to match origin,
-        // and installed != origin, we expect: C == O, S != O → .skipped. attention = false.
         let installedHash = "installed-hash-v1-different"
         let result = await AppModel.makePerformCheck(
             owner: "o", repo: "r", branch: "main",
@@ -142,80 +162,105 @@ struct AppModelTests {
             return
         }
 
-        // After rebuild: C["alpha"] == O["alpha"] (cache matches origin), S["alpha"] != O["alpha"]
-        // → state is .skipped, attention = false
-        #expect(state.states["alpha"] == .skipped,
-                "alpha should be .skipped (cache matches origin, installed differs)")
-        #expect(state.attention == false,
-                "attention should be false when the only state is .skipped")
+        // C (nil) != O and S != O → .updateAvailable, attention == true.
+        #expect(state.states["alpha"] == .updateAvailable,
+                "alpha should be .updateAvailable (origin moved vs an empty/unacknowledged cache, installed differs)")
+        #expect(state.attention == true,
+                "attention should be true when a skill is .updateAvailable")
     }
 
-    @Test func successfulCheckWithUninstalledSkillProducesUpdateAvailable() async throws {
-        // When origin has "beta" and installed skills do NOT include "beta",
-        // and the cache is fresh-rebuilt from origin:
-        //   O["beta"] = hash, C["beta"] = hash (rebuilt), S["beta"] = absent
-        //   C == O, S absent (nil != O) → actually: s == nil, c == o → .skipped
-        //   Wait, let's re-read StateEngine logic:
-        //   if o != nil, s == o → upToDate (s is nil, skip)
-        //   else if o == nil → removedOnOrigin (skip, o is not nil)
-        //   else if c == o → skipped
-        //   else → updateAvailable
-        //   So nil S, C == O → .skipped
+    @Test func successfulCheckDerivesUpdateAvailableWhenOriginMovedPastAcknowledgedCache() async throws {
+        // Genuine updateAvailable with a NON-empty cache: the cache holds an older,
+        // previously-acknowledged version of "alpha" (C != O), and the installed copy
+        // also differs from origin (S != O). This is the canonical "Origin moved since
+        // last seen, not installed" case from ADR 0006.
         //
-        // For updateAvailable, we need C != O (e.g. cache is absent but origin exists).
-        // That means: don't pre-rebuild the cache; origin has "gamma", cache has nothing for "gamma".
-        // But makePerformCheck rebuilds cache from origin snapshot before calling derive.
-        // So after rebuild, C always == O. The only way to get updateAvailable is
-        // if C was already set to a different value from a previous run.
-        //
-        // Let's test the "cache absent for the skill, then rebuild happens" path:
-        // After rebuild, C == O. Then installed is absent → .skipped (not updateAvailable).
-        // This is correct domain behavior: seeing a new skill for the first time → skipped (acknowledged via cache).
-        //
-        // For updateAvailable: pre-seed the cache with old content, then origin returns new content.
-        // The rebuild overwrites the cache. Before rebuild, C had old SHA. After rebuild, C == O.
-        // But StateEngine is called AFTER rebuild, so it always sees C == O.
-        // updateAvailable only occurs when C was set previously to old O (skip action).
-        //
-        // The correct test for updateAvailable is actually through the unchanged branch
-        // (304), which doesn't rebuild. Let's test that path instead:
-        // installed["delta"] = "old", cache["delta"] = "even-older" (simulate prior skip),
-        // origin returns 304 (unchanged) → C still holds "even-older" from prior seed.
-        // O is captured from the stored commitSHA in cache. But we don't have O hashes from 304.
-        // On 304, we return .ok(nil) since there's no snapshot to derive from.
-        //
-        // The .ok(nil) for 304/unchanged is the correct behavior — no state derivation without a snapshot.
-        // State derivation only happens on .updated (200).
-        //
-        // This test verifies that when origin reports a fresh skill and installed has it at old hash,
-        // C == O after rebuild, S != O → .skipped.
-        let sha = "newsha"
-        let transport = fakeSnapshotTransport(sha: sha, skillName: "gamma", fileContents: "gamma content")
+        // The check must derive against this PRE-CHECK cache (C = old hash) — NOT rebuild
+        // it to O first. With the bug present, the rebuild makes C == O → .skipped, and
+        // this test fails.
+        let sha = "movedsha"
+        let originContent = "alpha NEW content"          // O
+        let transport = fakeSnapshotTransport(
+            sha: sha, skillName: "alpha", fileContents: originContent
+        )
 
         let cacheDir = FileManager.default.temporaryDirectory
-            .appending(path: "appcore-uninstalled-\(UUID().uuidString)", directoryHint: .isDirectory)
+            .appending(path: "appcore-moved-test-\(UUID().uuidString)", directoryHint: .isDirectory)
         try FileManager.default.createDirectory(at: cacheDir, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: cacheDir) }
 
-        // Not installed at all
+        // Pre-seed the live cache with the OLD acknowledged version of alpha (C != O).
+        // Same filename ("SKILL.md") so C and O hashes are computed over comparable trees.
+        let cacheStore = CacheStore(root: cacheDir)
+        try cacheStore.writeSkillFiles(named: "alpha", files: ["SKILL.md": Data("alpha OLD content".utf8)])
+        try cacheStore.writeMetadata(CacheMetadata(
+            commitSHA: "oldsha", etag: "", lastChecked: Date(timeIntervalSinceReferenceDate: 0), skipState: [:]
+        ))
+        let preCheckCacheHash = try cacheStore.contentHash(for: "alpha")
+
+        // Installed copy differs from origin too (S != O). Reuse the pre-check cache hash
+        // as a convenient deterministic value that is known to differ from O.
         let result = await AppModel.makePerformCheck(
             owner: "o", repo: "r", branch: "main",
             transport: transport,
-            cacheStore: CacheStore(root: cacheDir),
-            installedSkills: { [:] }   // gamma not installed
+            cacheStore: cacheStore,
+            installedSkills: { ["alpha": preCheckCacheHash] }
         )()
 
-        guard case .ok(let derivedState) = result else {
-            Issue.record("expected .ok(derivedState), got \(result)")
+        guard case .ok(let derivedState) = result, let state = derivedState else {
+            Issue.record("expected .ok(non-nil derivedState), got \(result)")
             return
         }
-        guard let state = derivedState else {
-            Issue.record("expected non-nil DerivedState")
+        #expect(state.states["alpha"] == .updateAvailable,
+                "Origin moved past the acknowledged cache (O != C) and is not installed → .updateAvailable")
+        #expect(state.attention == true)
+
+        // Cache-mutation policy: the periodic check must NOT have rebuilt the cache to O.
+        // The acknowledged mirror still holds the OLD content (C unchanged).
+        let postCheckCacheHash = try cacheStore.contentHash(for: "alpha")
+        #expect(postCheckCacheHash == preCheckCacheHash,
+                "periodic check must not wholesale-rebuild the cache to O (ADR 0006/0007)")
+    }
+
+    @Test func successfulCheckDerivesSkippedWhenCacheAlreadyAcknowledgedOrigin() async throws {
+        // The .skipped case, correctly named: the cache already equals origin
+        // (C == O — the user previously acknowledged this exact origin version),
+        // and the installed copy differs (S != O). Per ADR 0006: Skipped == C == O and S != O.
+        //
+        // We seed the cache with the SAME content the origin tarball will return, so
+        // C == O at derive time WITHOUT relying on the check rebuilding the cache.
+        let sha = "ackedsha"
+        let originContent = "alpha acknowledged content"     // C == O
+        let transport = fakeSnapshotTransport(
+            sha: sha, skillName: "alpha", fileContents: originContent
+        )
+
+        let cacheDir = FileManager.default.temporaryDirectory
+            .appending(path: "appcore-skipped-test-\(UUID().uuidString)", directoryHint: .isDirectory)
+        try FileManager.default.createDirectory(at: cacheDir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: cacheDir) }
+
+        // Seed the cache to match origin exactly (same filename + bytes) → C == O.
+        let cacheStore = CacheStore(root: cacheDir)
+        try cacheStore.writeSkillFiles(named: "alpha", files: ["SKILL.md": Data(originContent.utf8)])
+        try cacheStore.writeMetadata(CacheMetadata(
+            commitSHA: sha, etag: "", lastChecked: Date(timeIntervalSinceReferenceDate: 0), skipState: [:]
+        ))
+
+        let result = await AppModel.makePerformCheck(
+            owner: "o", repo: "r", branch: "main",
+            transport: transport,
+            cacheStore: cacheStore,
+            installedSkills: { ["alpha": "installed-differs-from-origin"] }   // S != O
+        )()
+
+        guard case .ok(let derivedState) = result, let state = derivedState else {
+            Issue.record("expected .ok(non-nil derivedState), got \(result)")
             return
         }
-        // gamma: O = hash("gamma content"), C = hash("gamma content") (rebuilt), S = nil
-        // C == O, S != O → .skipped, attention = false
-        #expect(state.states["gamma"] == .skipped)
+        // C == O, S != O → .skipped, attention = false.
+        #expect(state.states["alpha"] == .skipped,
+                "cache already matches origin (acknowledged) and installed differs → .skipped")
         #expect(state.attention == false)
     }
 
@@ -313,7 +358,8 @@ struct AppModelTests {
         try FileManager.default.createDirectory(at: cacheDir, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: cacheDir) }
 
-        // omega not installed → after rebuild: C == O, S nil → .skipped
+        // omega not installed, empty (unacknowledged) cache → O != nil, C nil != O, S nil
+        // → .updateAvailable (the periodic check does not pre-acknowledge via a rebuild).
         let model = AppModel(
             owner: "o", repo: "r", branch: "main",
             transport: transport,
@@ -330,7 +376,129 @@ struct AppModelTests {
             Issue.record("lastDerivedState should be non-nil after a successful update check")
             return
         }
-        #expect(state.states["omega"] == .skipped)
+        #expect(state.states["omega"] == .updateAvailable)
+        #expect(state.attention == true)
+    }
+
+    @Test @MainActor func observableStateUpdatesOnEveryCheckNotJustLaunch() async throws {
+        // BLOCKER 2: the @Observable AppModel must reflect the scheduler's
+        // isChecking / lastDerivedState after EVERY check — not only the launch check.
+        //
+        // We drive a SECOND check via the manual triggerCheck() path (a check that is
+        // NOT the launch check) and require the observable lastDerivedState to update
+        // to the second check's result. With the old "sync once after start()" bridge,
+        // model.lastDerivedState stays at the launch value and this test FAILS.
+        //
+        // Mechanism: the transport returns 304 (unchanged → .ok(nil)) on the FIRST probe
+        // and a 200 + tarball (→ a non-nil DerivedState) on the SECOND probe. So:
+        //   launch check  → lastDerivedState == nil
+        //   manual trigger → lastDerivedState == <derived state for "zeta">
+        let probeCount = CallCounter()
+        let sha = "every-check-sha"
+        let transport = AppCoreStubTransport { url in
+            let urlString = url.absoluteString
+            if urlString.contains("commits") {
+                // Probe: first call 304 (unchanged), second call 200 with a fresh SHA.
+                probeCount.increment()
+                if probeCount.value == 1 {
+                    return HTTPResponse(status: 304, headers: [:], body: Data())
+                }
+                return HTTPResponse(
+                    status: 200,
+                    headers: ["ETag": "\"etag-\(sha)\""],
+                    body: Data((sha + "\n").utf8)
+                )
+            } else if urlString.contains("tar.gz") {
+                let tarData = try makeFakeTarGz(skillName: "zeta", fileContents: "zeta v1")
+                return HTTPResponse(status: 200, headers: [:], body: tarData)
+            }
+            return HTTPResponse(status: 404, headers: [:], body: Data())
+        }
+
+        let cacheDir = FileManager.default.temporaryDirectory
+            .appending(path: "appcore-everycheck-test-\(UUID().uuidString)", directoryHint: .isDirectory)
+        try FileManager.default.createDirectory(at: cacheDir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: cacheDir) }
+
+        let model = AppModel(
+            owner: "o", repo: "r", branch: "main",
+            transport: transport,
+            cacheRoot: cacheDir,
+            automaticChecksEnabled: false,   // no timer loop; we drive checks explicitly
+            installedSkills: { [:] }         // zeta not installed → .updateAvailable
+        )
+
+        // Launch check: 304 → .ok(nil). Observable lastDerivedState must be nil.
+        await model.start()
+        #expect(model.lastDerivedState == nil,
+                "launch check was 304 (unchanged) → lastDerivedState should be nil")
+
+        // Manual trigger (NOT the launch check): 200 → non-nil DerivedState.
+        await model.triggerCheck()
+
+        #expect(model.isChecking == false, "isChecking must be false after the manual check completes")
+        guard let state = model.lastDerivedState else {
+            Issue.record("lastDerivedState must update after a non-launch (manual) check — the bridge synced only once")
+            return
+        }
+        #expect(state.states["zeta"] == .updateAvailable,
+                "the observable state must reflect the SECOND check's derived output")
+        #expect(state.attention == true)
+    }
+
+    @Test @MainActor func observableStateUpdatesOnTimerTick() async throws {
+        // BLOCKER 2 (timer path): a timer-loop tick (driven by the deterministic
+        // GatedClock) is also a non-launch check and must propagate to the @Observable
+        // model. Launch check is 304 (nil); the first timer tick is 200 (non-nil).
+        let clock = AppCoreGatedClock()
+        let probeCount = CallCounter()
+        let sha = "timer-tick-sha"
+        let transport = AppCoreStubTransport { url in
+            let urlString = url.absoluteString
+            if urlString.contains("commits") {
+                probeCount.increment()
+                if probeCount.value == 1 {
+                    return HTTPResponse(status: 304, headers: [:], body: Data())
+                }
+                return HTTPResponse(
+                    status: 200,
+                    headers: ["ETag": "\"etag-\(sha)\""],
+                    body: Data((sha + "\n").utf8)
+                )
+            } else if urlString.contains("tar.gz") {
+                let tarData = try makeFakeTarGz(skillName: "eta", fileContents: "eta v1")
+                return HTTPResponse(status: 200, headers: [:], body: tarData)
+            }
+            return HTTPResponse(status: 404, headers: [:], body: Data())
+        }
+
+        let cacheDir = FileManager.default.temporaryDirectory
+            .appending(path: "appcore-timertick-test-\(UUID().uuidString)", directoryHint: .isDirectory)
+        try FileManager.default.createDirectory(at: cacheDir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: cacheDir) }
+
+        let model = AppModel(
+            owner: "o", repo: "r", branch: "main",
+            transport: transport,
+            cacheRoot: cacheDir,
+            clock: clock,
+            interval: 3600,
+            automaticChecksEnabled: true,    // timer loop runs
+            installedSkills: { [:] }
+        )
+
+        // Launch check: 304 → nil. Timer loop then parks in its first sleep.
+        await model.start()
+        #expect(model.lastDerivedState == nil)
+
+        // Release the timer's first sleep → a non-launch tick fires (200 → non-nil state).
+        while clock.sleepCount < 1 { await Task.yield() }
+        clock.releaseOne()
+
+        // Wait for the observable model to reflect the tick's result.
+        while model.lastDerivedState == nil { await Task.yield() }
+        #expect(model.lastDerivedState?.states["eta"] == .updateAvailable,
+                "a timer-loop tick must propagate its DerivedState to the @Observable model")
     }
 
     @Test @MainActor func observableIsCheckingIsFalseAfterCheckCompletes() async throws {

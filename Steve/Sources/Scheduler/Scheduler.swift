@@ -26,6 +26,21 @@ public enum CheckResult: Sendable {
     case transientError
 }
 
+/// A snapshot of the scheduler's observable state, emitted on the
+/// `stateUpdates` stream at the start and end of EVERY check (launch, timer
+/// tick, and manual trigger). The `@MainActor` `AppModel` consumes these to keep
+/// its `@Observable` properties live without polling — an actor → main-actor hop
+/// that carries only `Sendable` value types, so there is no data race.
+public struct SchedulerState: Equatable, Sendable {
+    public let isChecking: Bool
+    public let lastDerivedState: DerivedState?
+
+    public init(isChecking: Bool, lastDerivedState: DerivedState?) {
+        self.isChecking = isChecking
+        self.lastDerivedState = lastDerivedState
+    }
+}
+
 /// Manages when checks fire and exposes observable state for the menu-bar icon.
 /// Depends on an injected `performCheck` closure so the full pipeline
 /// (OriginClient → CacheStore → StateEngine) is exercised outside this actor.
@@ -38,6 +53,11 @@ public actor CheckScheduler {
     private let interval: TimeInterval
     private let slowRetryInterval: TimeInterval
     private let automaticChecksEnabled: Bool
+
+    /// Emits a `SchedulerState` at the start and end of every check so observers
+    /// (the main-actor `AppModel`) update on EVERY check, not just the launch one.
+    public nonisolated let stateUpdates: AsyncStream<SchedulerState>
+    private let stateContinuation: AsyncStream<SchedulerState>.Continuation
 
     /// When `true` the last check returned `originNotFound`; the timer loop
     /// will sleep for `slowRetryInterval` instead of `interval`.
@@ -55,6 +75,9 @@ public actor CheckScheduler {
         self.interval = interval
         self.slowRetryInterval = slowRetryInterval
         self.automaticChecksEnabled = automaticChecksEnabled
+        (self.stateUpdates, self.stateContinuation) = AsyncStream.makeStream(
+            bufferingPolicy: .bufferingNewest(8)
+        )
     }
 
     /// Fires an immediate check on app launch, then schedules periodic checks.
@@ -87,6 +110,7 @@ public actor CheckScheduler {
 
     private func runCheck() async {
         isChecking = true
+        emitState()                       // isChecking → true (drives the pulsing icon)
         let result = await performCheck()
         switch result {
         case .ok(let derivedState):
@@ -100,6 +124,20 @@ public actor CheckScheduler {
             break
         }
         isChecking = false
+        emitState()                       // isChecking → false + latest lastDerivedState
+    }
+
+    /// Publish the current observable state to the `stateUpdates` stream so the
+    /// main-actor `AppModel` reflects it after every check (and mid-check).
+    private func emitState() {
+        stateContinuation.yield(
+            SchedulerState(isChecking: isChecking, lastDerivedState: lastDerivedState)
+        )
+    }
+
+    /// Finish the `stateUpdates` stream so consuming tasks terminate cleanly.
+    public func finishStateUpdates() {
+        stateContinuation.finish()
     }
 }
 

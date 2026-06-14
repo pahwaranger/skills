@@ -91,6 +91,38 @@ struct URLSessionTransportTests {
         #expect(response.header("etag") == "\"abc\"")
     }
 
+    // MARK: — All OriginClient-needed headers survive extraction together
+
+    @Test func responseHeadersOriginClientNeedsAreAllExtracted() async throws {
+        // Robustness: ETag AND rate-limit headers must BOTH survive header extraction.
+        // The previous `allHeaderFields as? [String:String]` cast would drop ALL headers
+        // wholesale if any single key failed to bridge to String. This asserts the headers
+        // OriginClient actually reads (ETag, X-RateLimit-Reset) come through intact.
+        let url = URL(string: "https://api.github.com/repos/o/r/commits/main")!
+
+        StubHandlerRegistry.shared.set { req in
+            let resp = makeHTTPResponse(url: req.url!, status: 200, headers: [
+                "ETag": "\"sha-etag\"",
+                "X-RateLimit-Reset": "1700000000",
+                "X-RateLimit-Remaining": "0",
+                "Content-Type": "application/vnd.github.sha",
+            ])
+            return .success((Data("sha-body".utf8), resp))
+        }
+        defer { StubHandlerRegistry.shared.clear() }
+
+        let transport = URLSessionTransport(session: makeStubSession())
+        let response = try await transport.get(url: url, headers: [:])
+
+        #expect(response.status == 200)
+        // ETag is needed for conditional requests; rate-limit for backoff. Both required.
+        #expect(response.header("ETag") == "\"sha-etag\"")
+        #expect(response.header("X-RateLimit-Reset") == "1700000000")
+        // Case-insensitive access still works after extraction.
+        #expect(response.header("etag") == "\"sha-etag\"")
+        #expect(response.header("x-ratelimit-reset") == "1700000000")
+    }
+
     // MARK: — 304 Not Modified passes through (no body expected)
 
     @Test func status304ReturnedWithNoBody() async throws {

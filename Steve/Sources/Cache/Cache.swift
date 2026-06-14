@@ -81,6 +81,20 @@ public struct CacheStore: Sendable {
         try data.write(to: file, options: .atomic)
     }
 
+    /// The names of every skill directory currently in the cache mirror.
+    /// Returns an empty array when the `skills/` subdirectory does not yet exist
+    /// (a fresh cache), so callers can treat "no cache" as "nothing acknowledged".
+    public func cachedSkillNames() -> [String] {
+        let skillsDir = root.appending(path: "skills", directoryHint: .isDirectory)
+        guard let entries = try? FileManager.default.contentsOfDirectory(
+            at: skillsDir, includingPropertiesForKeys: [.isDirectoryKey]
+        ) else { return [] }
+        return entries.compactMap { url in
+            let isDir = (try? url.resourceValues(forKeys: [.isDirectoryKey]))?.isDirectory ?? false
+            return isDir ? url.lastPathComponent : nil
+        }
+    }
+
     public func skillFiles(named name: String) throws -> [String: Data] {
         let skillsDir = root.appending(path: "skills", directoryHint: .isDirectory)
         guard FileManager.default.fileExists(atPath: skillsDir.path(percentEncoded: false)) else {
