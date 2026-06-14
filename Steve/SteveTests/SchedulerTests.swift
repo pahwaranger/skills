@@ -62,7 +62,7 @@ final class GatedClock: SchedulerClock, @unchecked Sendable {
         performCheck: {
             gate.markStarted()
             while !gate.isReleased && !Task.isCancelled { await Task.yield() }
-            return nil
+            return .ok(nil)
         },
         clock: InstantClock(),
         automaticChecksEnabled: false
@@ -93,7 +93,7 @@ final class GatedClock: SchedulerClock, @unchecked Sendable {
         selfHealed: []
     )
     let scheduler = CheckScheduler(
-        performCheck: { expected },
+        performCheck: { .ok(expected) },
         clock: InstantClock()
     )
 
@@ -123,7 +123,7 @@ final class GatedClock: SchedulerClock, @unchecked Sendable {
             counter.increment()
             gate.markStarted()
             while !gate.isReleased && !Task.isCancelled { await Task.yield() }
-            return nil
+            return .ok(nil)
         },
         clock: InstantClock()
     )
@@ -151,7 +151,7 @@ final class GatedClock: SchedulerClock, @unchecked Sendable {
     let scheduler = CheckScheduler(
         performCheck: {
             counter.increment()
-            return nil
+            return .ok(nil)
         },
         clock: clock
     )
@@ -182,7 +182,7 @@ final class GatedClock: SchedulerClock, @unchecked Sendable {
     let scheduler = CheckScheduler(
         performCheck: {
             counter.increment()
-            return nil
+            return .ok(nil)
         },
         clock: clock,
         automaticChecksEnabled: false
@@ -259,7 +259,7 @@ final class GatedClock: SchedulerClock, @unchecked Sendable {
         performCheck: {
             counter.increment()
             await gate.waitForRelease()
-            return nil
+            return .ok(nil)
         },
         clock: clock
     )
@@ -297,7 +297,7 @@ final class GatedClock: SchedulerClock, @unchecked Sendable {
     let scheduler = CheckScheduler(
         performCheck: {
             counter.increment()
-            return nil
+            return .ok(nil)
         },
         clock: InstantClock()
     )
@@ -305,4 +305,187 @@ final class GatedClock: SchedulerClock, @unchecked Sendable {
     await scheduler.start()
 
     #expect(counter.value == 1)
+}
+
+// MARK: — 404 slow-retry backoff helpers
+
+/// A GatedClock that also captures the duration passed to each sleep call.
+final class CapturingGatedClock: SchedulerClock, @unchecked Sendable {
+    private let lock = NSLock()
+    private var _sleepCount = 0
+    private var _releaseCount = 0
+    private var _durations: [TimeInterval] = []
+
+    var sleepCount: Int { lock.withLock { _sleepCount } }
+    var durations: [TimeInterval] { lock.withLock { _durations } }
+
+    func releaseOne() { lock.withLock { _releaseCount += 1 } }
+
+    func sleep(for duration: TimeInterval) async throws {
+        let myIndex = lock.withLock { () -> Int in
+            _sleepCount += 1
+            _durations.append(duration)
+            return _sleepCount
+        }
+        while lock.withLock({ _releaseCount < myIndex }) && !Task.isCancelled {
+            await Task.yield()
+        }
+    }
+}
+
+// MARK: — After originNotFound, timer loop sleeps for slowRetryInterval
+
+@Test func afterOriginNotFoundTimerUsesSlowRetryInterval() async {
+    let clock = CapturingGatedClock()
+    let counter = Counter()
+    let normalInterval: TimeInterval = 3600
+    let slowInterval: TimeInterval = 21600  // 6h
+
+    // First check returns originNotFound; subsequent checks succeed.
+    let callCount = Counter()
+    let scheduler = CheckScheduler(
+        performCheck: {
+            callCount.increment()
+            counter.increment()
+            return callCount.value == 1 ? .originNotFound : .ok(nil)
+        },
+        clock: clock,
+        interval: normalInterval,
+        slowRetryInterval: slowInterval
+    )
+
+    // Launch check fires (call #1 → originNotFound). Timer loop starts, parked in first sleep.
+    await scheduler.start()
+    while clock.sleepCount < 1 { await Task.yield() }
+
+    // The first sleep after a 404 must use the slow retry interval.
+    let firstSleepDuration = clock.durations[0]
+    #expect(firstSleepDuration == slowInterval, "Expected slow interval after 404, got \(firstSleepDuration)")
+
+    // Release that sleep → timer loop wakes and fires second check (success).
+    clock.releaseOne()
+    while counter.value < 2 { await Task.yield() }
+    while clock.sleepCount < 2 { await Task.yield() }
+
+    // After a successful check, the interval must revert to normal.
+    let secondSleepDuration = clock.durations[1]
+    #expect(secondSleepDuration == normalInterval, "Expected normal interval after success, got \(secondSleepDuration)")
+}
+
+// MARK: — After success following 404, normal cadence is restored
+
+@Test func successAfter404RestoresNormalCadence() async {
+    let clock = CapturingGatedClock()
+    let callCount = Counter()
+    let normalInterval: TimeInterval = 3600
+    let slowInterval: TimeInterval = 21600
+
+    // Sequence: 404, success, success
+    let scheduler = CheckScheduler(
+        performCheck: {
+            callCount.increment()
+            switch callCount.value {
+            case 1: return .originNotFound
+            default: return .ok(nil)
+            }
+        },
+        clock: clock,
+        interval: normalInterval,
+        slowRetryInterval: slowInterval
+    )
+
+    await scheduler.start()
+    while clock.sleepCount < 1 { await Task.yield() }
+    // Slow retry after 404
+    #expect(clock.durations[0] == slowInterval)
+
+    // Release → second check (success) runs
+    clock.releaseOne()
+    while clock.sleepCount < 2 { await Task.yield() }
+    // Normal interval restored
+    #expect(clock.durations[1] == normalInterval)
+
+    clock.releaseOne()
+}
+
+// MARK: — Manual triggerCheck still works during slow-retry backoff
+
+@Test func manualTriggerWorksDuringSlowRetryBackoff() async {
+    let clock = CapturingGatedClock()
+    let callCount = Counter()
+    let normalInterval: TimeInterval = 3600
+    let slowInterval: TimeInterval = 21600
+
+    // First check → 404, so timer backs off to slowInterval.
+    let scheduler = CheckScheduler(
+        performCheck: {
+            callCount.increment()
+            return callCount.value == 1 ? .originNotFound : .ok(nil)
+        },
+        clock: clock,
+        interval: normalInterval,
+        slowRetryInterval: slowInterval
+    )
+
+    // Launch check (404) runs, timer loop parks in slow-retry sleep.
+    await scheduler.start()
+    while clock.sleepCount < 1 { await Task.yield() }
+    #expect(clock.durations[0] == slowInterval)
+
+    // Manual trigger fires while the timer is sleeping (not in-flight).
+    await scheduler.triggerCheck()
+    #expect(callCount.value == 2)
+
+    // Clean up: release the pending slow-retry sleep.
+    clock.releaseOne()
+}
+
+// MARK: — Manual trigger during backoff preserves single-flight
+
+@Test func manualTriggerDuringBackoffPreservesSingleFlight() async {
+    let clock = CapturingGatedClock()
+    let callCount = Counter()
+
+    final class CheckGate: @unchecked Sendable {
+        private let lock = NSLock()
+        private var _started = false
+        private var _released = false
+        var started: Bool { lock.withLock { _started } }
+        func markStarted() { lock.withLock { _started = true } }
+        func release() { lock.withLock { _released = true } }
+        var isReleased: Bool { lock.withLock { _released } }
+    }
+    let gate = CheckGate()
+
+    let scheduler = CheckScheduler(
+        performCheck: {
+            callCount.increment()
+            if callCount.value == 2 {
+                gate.markStarted()
+                while !gate.isReleased && !Task.isCancelled { await Task.yield() }
+            }
+            return callCount.value == 1 ? .originNotFound : .ok(nil)
+        },
+        clock: clock,
+        interval: 3600,
+        slowRetryInterval: 21600
+    )
+
+    // Launch check → 404, timer parks in slow-retry sleep.
+    await scheduler.start()
+    while clock.sleepCount < 1 { await Task.yield() }
+
+    // Manual trigger fires (check #2 in-flight, gated).
+    async let manualTask: Void = scheduler.triggerCheck()
+    while !gate.started { await Task.yield() }
+
+    // A second manual trigger while #2 is in-flight must be ignored.
+    await scheduler.triggerCheck()
+    #expect(callCount.value == 2)
+
+    gate.release()
+    await manualTask
+
+    // Clean up.
+    clock.releaseOne()
 }
