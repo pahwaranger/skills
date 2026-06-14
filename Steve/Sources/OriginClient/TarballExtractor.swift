@@ -1,5 +1,7 @@
 import Foundation
+#if SWIFT_PACKAGE
 import Cache
+#endif
 
 /// Extracts the `skills/` subtree from a GitHub codeload `.tar.gz`. Uses the
 /// system `tar`, whose nonzero exit on a torn/truncated archive becomes our

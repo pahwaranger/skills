@@ -1,5 +1,7 @@
 import Foundation
+#if SWIFT_PACKAGE
 import Cache
+#endif
 
 /// The result of a single check against Origin.
 public enum CheckOutcome: Sendable {

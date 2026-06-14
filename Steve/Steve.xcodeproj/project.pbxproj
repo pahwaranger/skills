@@ -19,6 +19,10 @@
 		C0000000000000000000000A /* SteveTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B0000000000000000000000B /* SteveTests.swift */; };
 		C0000000000000000000000B /* CacheTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B0000000000000000000000E /* CacheTests.swift */; };
 		C0000000000000000000000C /* Cache.swift in SteveTests */ = {isa = PBXBuildFile; fileRef = B00000000000000000000006 /* Cache.swift */; };
+		C0000000000000000000000D /* HTTPTransport.swift in Sources */ = {isa = PBXBuildFile; fileRef = B0000000000000000000000F /* HTTPTransport.swift */; };
+		C0000000000000000000000E /* TarballExtractor.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000010 /* TarballExtractor.swift */; };
+		C0000000000000000000000F /* URLSessionTransport.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000011 /* URLSessionTransport.swift */; };
+		C00000000000000000000010 /* AppModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000012 /* AppModel.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -36,6 +40,10 @@
 		B0000000000000000000000C /* Steve.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Steve.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		B0000000000000000000000D /* SteveTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = SteveTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		B0000000000000000000000E /* CacheTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CacheTests.swift; sourceTree = "<group>"; };
+		B0000000000000000000000F /* HTTPTransport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HTTPTransport.swift; sourceTree = "<group>"; };
+		B00000000000000000000010 /* TarballExtractor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TarballExtractor.swift; sourceTree = "<group>"; };
+		B00000000000000000000011 /* URLSessionTransport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = URLSessionTransport.swift; sourceTree = "<group>"; };
+		B00000000000000000000012 /* AppModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppModel.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -81,6 +89,7 @@
 		D00000000000000000000003 /* Sources */ = {
 			isa = PBXGroup;
 			children = (
+				D0000000000000000000000B /* AppCore */,
 				D00000000000000000000004 /* Cache */,
 				D00000000000000000000005 /* OriginClient */,
 				D00000000000000000000006 /* StateEngine */,
@@ -88,6 +97,14 @@
 				D00000000000000000000008 /* Scheduler */,
 			);
 			path = Sources;
+			sourceTree = "<group>";
+		};
+		D0000000000000000000000B /* AppCore */ = {
+			isa = PBXGroup;
+			children = (
+				B00000000000000000000012 /* AppModel.swift */,
+			);
+			path = AppCore;
 			sourceTree = "<group>";
 		};
 		D00000000000000000000004 /* Cache */ = {
@@ -101,7 +118,10 @@
 		D00000000000000000000005 /* OriginClient */ = {
 			isa = PBXGroup;
 			children = (
+				B0000000000000000000000F /* HTTPTransport.swift */,
 				B00000000000000000000007 /* OriginClient.swift */,
+				B00000000000000000000010 /* TarballExtractor.swift */,
+				B00000000000000000000011 /* URLSessionTransport.swift */,
 			);
 			path = OriginClient;
 			sourceTree = "<group>";
@@ -244,10 +264,14 @@
 				C00000000000000000000003 /* ReviewView.swift in Sources */,
 				C00000000000000000000004 /* SettingsView.swift in Sources */,
 				C00000000000000000000005 /* Cache.swift in Sources */,
+				C0000000000000000000000D /* HTTPTransport.swift in Sources */,
 				C00000000000000000000006 /* OriginClient.swift in Sources */,
+				C0000000000000000000000E /* TarballExtractor.swift in Sources */,
+				C0000000000000000000000F /* URLSessionTransport.swift in Sources */,
 				C00000000000000000000007 /* StateEngine.swift in Sources */,
 				C00000000000000000000008 /* Installer.swift in Sources */,
 				C00000000000000000000009 /* Scheduler.swift in Sources */,
+				C00000000000000000000010 /* AppModel.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

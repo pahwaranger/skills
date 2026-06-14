@@ -1,5 +1,7 @@
 import Foundation
+#if SWIFT_PACKAGE
 import StateEngine
+#endif
 // SMAppService wired in Slice 11
 
 /// Injectable clock so tests can drive time without wall-clock waits.

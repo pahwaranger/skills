@@ -1,6 +1,8 @@
 import SwiftUI
 
 struct MainView: View {
+    let appModel: AppModel
+
     var body: some View {
         TabView {
             ReviewView()
