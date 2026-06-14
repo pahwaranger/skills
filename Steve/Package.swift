@@ -30,7 +30,7 @@ let package = Package(
         ),
         .target(
             name: "AppCore",
-            dependencies: ["Cache", "StateEngine", "OriginClient", "Scheduler", "Installer"],
+            dependencies: ["Cache", "StateEngine", "OriginClient", "Scheduler", "Installer", "DiffBridge"],
             path: "Sources/AppCore"
         ),
         .testTarget(
@@ -108,6 +108,12 @@ let package = Package(
             dependencies: ["AppCore", "Cache", "OriginClient", "StateEngine", "Installer"],
             path: "SteveTests",
             sources: ["ReviewSessionTests.swift"]
+        ),
+        .testTarget(
+            name: "SettingsTests",
+            dependencies: ["AppCore", "DiffBridge"],
+            path: "SteveTests",
+            sources: ["SettingsTests.swift"]
         ),
     ]
 )

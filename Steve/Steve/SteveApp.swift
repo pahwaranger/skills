@@ -3,6 +3,7 @@ import SwiftUI
 import Cache
 import AppCore
 import Installer
+import DiffBridge
 #endif
 
 @main
@@ -26,6 +27,7 @@ struct SteveApp: App {
     private static let cacheDirectory = AppModel.makeDefaultCacheRoot()
 
     private let appModel: AppModel = {
+        let settings = SettingsStore()
         let engine = InstallEngine(
             skillsDirectory: SteveApp.skillsDirectory,
             backupsDirectory: SteveApp.backupsDirectory,
@@ -37,6 +39,8 @@ struct SteveApp: App {
             branch: "master",
             transport: URLSessionTransport(),
             cacheRoot: SteveApp.cacheDirectory,
+            interval: TimeInterval(settings.minutesBetweenChecks) * 60,
+            automaticChecksEnabled: settings.automaticChecksEnabled,
             installEngine: engine
         )
     }()
@@ -76,6 +80,18 @@ struct SteveApp: App {
         }
         .defaultSize(width: 900, height: 600)
         .defaultPosition(.center)
+
+        // Settings window scene (Slice 11).
+        // `SettingsLink` is unreliable from `MenuBarExtra` context (per
+        // prototypes/menu-bar-dropdown/NOTES.md / Steipete 2025). Instead we use
+        // a plain `Window` scene and open it via `openWindow(id: "settings")` from
+        // the dropdown footer — the same pattern used for the Review window.
+        Window("Steve Settings", id: "settings") {
+            SettingsView()
+        }
+        .defaultSize(width: 400, height: 300)
+        .defaultPosition(.center)
+        .windowResizability(.contentSize)
     }
 }
 
