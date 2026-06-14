@@ -76,5 +76,15 @@ let package = Package(
             path: "SteveTests",
             sources: ["ReviewSidebarTests.swift"]
         ),
+        .target(
+            name: "DiffBridge",
+            path: "Sources/DiffBridge"
+        ),
+        .testTarget(
+            name: "DiffBridgeTests",
+            dependencies: ["DiffBridge"],
+            path: "SteveTests",
+            sources: ["DiffBridgeTests.swift"]
+        ),
     ]
 )
