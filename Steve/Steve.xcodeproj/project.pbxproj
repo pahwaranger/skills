@@ -18,6 +18,7 @@
 		C0000000000000000000001C /* DiffRendererView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B0000000000000000000001C /* DiffRendererView.swift */; };
 		C0000000000000000000001D /* DiffBridge.swift in Sources */ = {isa = PBXBuildFile; fileRef = B0000000000000000000001D /* DiffBridge.swift */; };
 		C0000000000000000000001F /* UnifiedDiffParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = B0000000000000000000001F /* UnifiedDiffParser.swift */; };
+		C00000000000000000000024 /* UnifiedDiffGenerator.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000024 /* UnifiedDiffGenerator.swift */; };
 		C0000000000000000000001E /* DiffRenderer in Resources */ = {isa = PBXBuildFile; fileRef = B0000000000000000000001E /* DiffRenderer */; };
 		C00000000000000000000005 /* Cache.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000006 /* Cache.swift */; };
 		C00000000000000000000006 /* OriginClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000007 /* OriginClient.swift */; };
@@ -50,6 +51,7 @@
 		B0000000000000000000001C /* DiffRendererView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DiffRendererView.swift; sourceTree = "<group>"; };
 		B0000000000000000000001D /* DiffBridge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DiffBridge.swift; sourceTree = "<group>"; };
 		B0000000000000000000001F /* UnifiedDiffParser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UnifiedDiffParser.swift; sourceTree = "<group>"; };
+		B00000000000000000000024 /* UnifiedDiffGenerator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UnifiedDiffGenerator.swift; sourceTree = "<group>"; };
 		B0000000000000000000001E /* DiffRenderer */ = {isa = PBXFileReference; lastKnownFileType = folder; path = DiffRenderer; sourceTree = "<group>"; };
 		B00000000000000000000005 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		B00000000000000000000006 /* Cache.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Cache.swift; sourceTree = "<group>"; };
@@ -162,6 +164,7 @@
 			children = (
 				B0000000000000000000001D /* DiffBridge.swift */,
 				B0000000000000000000001F /* UnifiedDiffParser.swift */,
+				B00000000000000000000024 /* UnifiedDiffGenerator.swift */,
 			);
 			path = DiffBridge;
 			sourceTree = "<group>";
@@ -348,6 +351,7 @@
 				C0000000000000000000001C /* DiffRendererView.swift in Sources */,
 				C0000000000000000000001D /* DiffBridge.swift in Sources */,
 				C0000000000000000000001F /* UnifiedDiffParser.swift in Sources */,
+				C00000000000000000000024 /* UnifiedDiffGenerator.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
