@@ -198,7 +198,7 @@ struct ReviewWindowView: View {
     }
 }
 
-// MARK: — Diff pane (Slice 9a + 9b)
+// MARK: — Diff pane (Slice 9a + 9b + 41)
 
 /// The right-hand diff pane: pane header (skill label + Split/Unified toggle) above
 /// collapsible file cards (Slice 9b) containing WKWebView diff renderers.
@@ -207,8 +207,8 @@ struct ReviewWindowView: View {
 /// `selectedSkillState` gates the up-to-date placeholder vs. file cards.
 /// `checkedCount` gates the materialising toolbar.
 ///
-/// The actual per-skill diff data is placeholder until the Installer slice provides it.
-/// TODO(Slice N): replace `placeholderDiff(for:)` with real diff data from the Installer.
+/// Real per-skill diff is computed from the installed files (via `installedFilesProvider`)
+/// vs. the origin snapshot in `appModel.reviewSession?.skillFiles`.
 private struct DiffPane: View {
 
     let selectedSkillName: SkillName?
@@ -222,6 +222,10 @@ private struct DiffPane: View {
     let onBulkSkip: () -> Void
     let githubURL: URL?
     let appModel: AppModel
+
+    /// Reads the installed files for a given skill name.
+    /// Defaults to reading from `~/.claude/skills/<name>/`; injectable for tests.
+    var installedFilesProvider: (String) -> [String: Data] = Self.defaultInstalledFilesProvider
 
     var body: some View {
         VStack(spacing: 0) {
@@ -268,14 +272,18 @@ private struct DiffPane: View {
                     UpToDatePlaceholder(skillName: name, githubURL: githubURL)
                 } else {
                     // File cards (Slice 9b) — each file in the diff is collapsible.
-                    FileCardsView(
-                        skillName: name,
-                        rawDiff: placeholderDiff(for: name),
-                        viewMode: $viewMode
-                    )
-                    // TODO(Slice N): replace placeholderDiff(for:) with real diff
-                    // data sourced from the Installer / DerivedState once that
-                    // pipeline delivers per-file unified diffs.
+                    // Real installed-vs-origin diff (Slice 41).
+                    let rawDiff = realDiff(for: name)
+                    if rawDiff.isEmpty {
+                        // No differences detected — show the up-to-date placeholder.
+                        UpToDatePlaceholder(skillName: name, githubURL: githubURL)
+                    } else {
+                        FileCardsView(
+                            skillName: name,
+                            rawDiff: rawDiff,
+                            viewMode: $viewMode
+                        )
+                    }
                 }
             } else {
                 // Nothing selected — show a neutral placeholder.
@@ -291,6 +299,37 @@ private struct DiffPane: View {
                 .background(.windowBackground)
             }
         }
+    }
+
+    // MARK: — Real diff computation (Slice 41)
+
+    /// Computes the real installed-vs-origin unified diff for `skillName`.
+    ///
+    /// - Installed files: read via `installedFilesProvider` (defaults to `~/.claude/skills/<name>/`).
+    /// - Origin files: from `appModel.reviewSession?.skillFiles[skillName]` — the same
+    ///   immutable snapshot that `performUpdate`/`performSkip` commit (ADR 0006/0007).
+    ///
+    /// Returns an empty string when there are no differences (skill is up-to-date).
+    private func realDiff(for skillName: String) -> String {
+        let installed = installedFilesProvider(skillName)
+        let origin    = appModel.reviewSession?.skillFiles[skillName] ?? [:]
+        return UnifiedDiffGenerator.generate(installed: installed, origin: origin, skillName: skillName)
+    }
+
+    /// Default production provider: reads files directly from `~/.claude/skills/<name>/`.
+    nonisolated static func defaultInstalledFilesProvider(_ skillName: String) -> [String: Data] {
+        let skillsDir = FileManager.default.homeDirectoryForCurrentUser
+            .appending(path: ".claude/skills/\(skillName)", directoryHint: .isDirectory)
+        guard let entries = try? FileManager.default.contentsOfDirectory(
+            at: skillsDir, includingPropertiesForKeys: nil
+        ) else { return [:] }
+        var result: [String: Data] = [:]
+        for url in entries {
+            if let data = try? Data(contentsOf: url) {
+                result[url.lastPathComponent] = data
+            }
+        }
+        return result
     }
 }
 
@@ -550,11 +589,8 @@ private struct FileCard: View {
                 if file.isBinary {
                     BinaryFileNotice(filename: file.filename)
                 } else {
-                    // Per-file diff slice fed to the renderer.
-                    // TODO(Slice N): pass only this file's diff slice once the
-                    // Installer provides per-file slices. For now, the full diff
-                    // is passed so diff2html renders all files. File cards are the
-                    // chrome; diff2html handles multiple files fine.
+                    // Full diff string passed to the renderer — diff2html handles
+                    // multi-file diffs and renders them all correctly.
                     DiffRendererView(diff: rawDiff, viewMode: $viewMode)
                         .frame(minHeight: 120)
                 }
@@ -619,98 +655,3 @@ private struct BinaryFileNotice: View {
     }
 }
 
-// MARK: — Placeholder diff data (Slice 9a sample)
-//
-// A representative multi-file unified diff for the `grill-with-docs` skill,
-// matching the fake data described in the prototype spec (PROMPT.md).
-// This is replaced by real diff data once the Installer pipeline delivers it.
-// TODO(Slice N): remove once real diff data is wired from DerivedState / Installer.
-
-private func placeholderDiff(for skillName: SkillName) -> String {
-    switch skillName {
-    case "grill-with-docs":
-        return grillWithDocsSampleDiff
-    default:
-        // Generic single-file modified diff for any other skill.
-        return genericSampleDiff(skillName: skillName)
-    }
-}
-
-private let grillWithDocsSampleDiff = """
---- a/grill-with-docs/SKILL.md
-+++ b/grill-with-docs/SKILL.md
-@@ -1,12 +1,14 @@
- # grill-with-docs
-
--A disciplined grilling session that stress-tests a plan against the existing domain model.
-+A disciplined grilling session that challenges your plan against the existing
-+domain model, sharpens terminology, and updates documentation inline as decisions
-+crystallise.
-
- ## When to use
-
--Use when you want to stress-test a plan before committing to it.
-+Use when you want to challenge a plan, tighten its vocabulary, or record
-+decisions into CONTEXT.md / ADRs before committing.
-
- ## Steps
-
- 1. Load the domain model (CONTEXT.md + ADRs).
- 2. Identify terminology mismatches.
- 3. Surface contradictions with prior decisions.
--4. Propose a fix.
-+4. Propose a fix and update the docs inline.
-+5. Confirm the updated wording with the user before saving.
---- a/grill-with-docs/CONTEXT-FORMAT.md
-+++ b/grill-with-docs/CONTEXT-FORMAT.md
-@@ -8,6 +8,10 @@
- - Every concept should have exactly one canonical term.
- - ADR titles must be imperative sentences.
- - Decisions must reference the forces they balance.
-+- Terms introduced in one ADR must be used consistently in all subsequent ADRs.
-+- If a term is redefined, the old ADR must be superseded, not silently amended.
-
- ## Format rules
-
- - Sections: `# Title`, `## Section`, `### Subsection`.
---- /dev/null
-+++ b/grill-with-docs/EXAMPLES.md
-@@ -0,0 +1,18 @@
-+# Examples — grill-with-docs
-+
-+## Example 1: Mismatched terminology
-+
-+**Plan says:** "update the skill manifest"
-+**CONTEXT.md says:** skills have no manifest — they are directories.
-+**Grill output:** rename to "update the skill directory" and amend ADR 0001.
-+
-+## Example 2: Contradicting a prior decision
-+
-+**Plan says:** "store the diff in the Cache"
-+**ADR 0002 says:** the Cache only stores Origin snapshots, never computed artefacts.
-+**Grill output:** move the diff to a transient in-memory store; update ADR 0002 to
-+clarify the boundary.
-+
-+## Example 3: Missing force documentation
-+
-+**Plan says:** "use WKWebView for the diff renderer" with no forces recorded.
-+**Grill output:** write ADR 0004 recording the forces (offline, native macOS, diff2html).
-"""
-
-private func genericSampleDiff(skillName: String) -> String {
-    return """
-    --- a/\(skillName)/SKILL.md
-    +++ b/\(skillName)/SKILL.md
-    @@ -1,5 +1,7 @@
-     # \(skillName)
-
-    -Original description of this skill.
-    +Updated description of this skill with new wording that clarifies the
-    +intended use and scope.
-
-     ## When to use
-
-    -Use when you need this skill.
-    +Use when you need this skill — especially in multi-agent or AFK contexts.
-    """
-}

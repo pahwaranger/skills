@@ -104,6 +104,12 @@ let package = Package(
             sources: ["UnifiedDiffParserTests.swift"]
         ),
         .testTarget(
+            name: "UnifiedDiffGeneratorTests",
+            dependencies: ["DiffBridge"],
+            path: "SteveTests",
+            sources: ["UnifiedDiffGeneratorTests.swift"]
+        ),
+        .testTarget(
             name: "ReviewSessionTests",
             dependencies: ["AppCore", "Cache", "OriginClient", "StateEngine", "Installer"],
             path: "SteveTests",
