@@ -1,4 +1,12 @@
 import Foundation
+import CryptoKit
+
+extension UInt32 {
+    var data: Data {
+        var value = self
+        return Data(bytes: &value, count: MemoryLayout<UInt32>.size)
+    }
+}
 
 public struct CacheMetadata: Codable, Equatable, Sendable {
     public var commitSHA: String
@@ -15,8 +23,9 @@ public struct CacheMetadata: Codable, Equatable, Sendable {
 }
 
 public enum CacheError: Error, Equatable {
-    case missing   // dir or required file not found
-    case corrupt   // metadata.json exists but is malformed
+    case missing                    // dir or required file not found
+    case corrupt                    // metadata.json exists but is malformed
+    case missingSkillsDirectory     // skills/ subdirectory absent
 }
 
 public struct OriginSnapshot: Sendable {
@@ -73,7 +82,12 @@ public struct CacheStore: Sendable {
     }
 
     public func skillFiles(named name: String) throws -> [String: Data] {
-        let skillDir = root.appending(path: "skills/\(name)", directoryHint: .isDirectory)
+        let skillsDir = root.appending(path: "skills", directoryHint: .isDirectory)
+        guard FileManager.default.fileExists(atPath: skillsDir.path(percentEncoded: false)) else {
+            throw CacheError.missingSkillsDirectory
+        }
+
+        let skillDir = skillsDir.appending(path: name, directoryHint: .isDirectory)
         guard FileManager.default.fileExists(atPath: skillDir.path(percentEncoded: false)) else {
             throw CacheError.missing
         }
@@ -85,6 +99,51 @@ public struct CacheStore: Sendable {
             result[url.lastPathComponent] = try Data(contentsOf: url)
         }
         return result
+    }
+
+    /// Computes a deterministic, order-independent content hash for a skill directory.
+    /// The hash is computed over the canonical set of (relative path, file bytes) pairs.
+    /// - Parameter name: The name of the skill directory (e.g., "my-skill")
+    /// - Returns: A hexadecimal string representing the SHA256 hash of the content
+    /// - Throws: `CacheError.missingSkillsDirectory` if the `skills/` subdirectory does not exist,
+    ///           or `CacheError.missing` if the specific skill directory does not exist.
+    public func contentHash(for name: String) throws -> String {
+        let skillsDir = root.appending(path: "skills", directoryHint: .isDirectory)
+        guard FileManager.default.fileExists(atPath: skillsDir.path(percentEncoded: false)) else {
+            throw CacheError.missingSkillsDirectory
+        }
+
+        let skillDir = skillsDir.appending(path: name, directoryHint: .isDirectory)
+        guard FileManager.default.fileExists(atPath: skillDir.path(percentEncoded: false)) else {
+            throw CacheError.missing
+        }
+
+        let urls = try FileManager.default.contentsOfDirectory(
+            at: skillDir, includingPropertiesForKeys: nil
+        )
+
+        // Sort paths to ensure order-independence
+        let sortedPaths = urls.map { $0.lastPathComponent }.sorted()
+
+        var hasher = SHA256()
+        for filename in sortedPaths {
+            let fileURL = skillDir.appending(path: filename)
+            let fileData = try Data(contentsOf: fileURL)
+
+            // Hash with length-prefixing to avoid collisions:
+            // Each entry is encoded as: [filename_length: uint32][filename_bytes][content_length: uint32][content_bytes]
+            let filenameBytes = filename.data(using: .utf8) ?? Data()
+            let filenameLengthBytes = UInt32(filenameBytes.count).data
+            hasher.update(data: filenameLengthBytes)
+            hasher.update(data: filenameBytes)
+
+            let contentLengthBytes = UInt32(fileData.count).data
+            hasher.update(data: contentLengthBytes)
+            hasher.update(data: fileData)
+        }
+
+        let digest = hasher.finalize()
+        return digest.map { String(format: "%02x", $0) }.joined()
     }
 
     public func writeSkillFiles(named name: String, files: [String: Data]) throws {
