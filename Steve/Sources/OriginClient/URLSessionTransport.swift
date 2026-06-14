@@ -22,20 +22,10 @@ public struct URLSessionTransport: HTTPTransport {
             throw URLError(.badServerResponse)
         }
 
-        // Convert the header fields dictionary (which may use [String: String]
-        // from NSDictionary) to [String: String], defaulting to empty.
-        let responseHeaders: [String: String]
-        if let allFields = httpResponse.allHeaderFields as? [String: String] {
-            responseHeaders = allFields
-        } else {
-            var converted: [String: String] = [:]
-            for (key, value) in httpResponse.allHeaderFields {
-                if let k = key as? String, let v = value as? String {
-                    converted[k] = v
-                }
-            }
-            responseHeaders = converted
-        }
+        // On Apple platforms allHeaderFields is typed [AnyHashable: Any] but
+        // always contains [String: String] values in practice. The `as? [String: String]`
+        // cast succeeds unconditionally here; the else branch is unreachable and removed.
+        let responseHeaders = (httpResponse.allHeaderFields as? [String: String]) ?? [:]
 
         return HTTPResponse(
             status: httpResponse.statusCode,

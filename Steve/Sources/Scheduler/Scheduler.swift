@@ -20,6 +20,10 @@ public enum CheckResult: Sendable {
     /// The origin returned a 404 / was private — a configuration problem that
     /// warrants slow-retry backoff rather than the normal cadence.
     case originNotFound
+    /// A transient, non-destructive failure (network error, rate limit).
+    /// The scheduler preserves the current cadence (including any 404 slow-retry
+    /// backoff) and keeps `lastDerivedState` unchanged.
+    case transientError
 }
 
 /// Manages when checks fire and exposes observable state for the menu-bar icon.
@@ -90,6 +94,10 @@ public actor CheckScheduler {
             lastOutcomeWas404 = false
         case .originNotFound:
             lastOutcomeWas404 = true
+        case .transientError:
+            // Non-destructive: preserve current cadence (including 404 backoff)
+            // and do not overwrite lastDerivedState with a failed result.
+            break
         }
         isChecking = false
     }
