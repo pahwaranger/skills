@@ -27,6 +27,19 @@ for the work-item concept.
 _Avoid_: issue — except when naming a platform's native feature (GitHub/GitLab
 "issues", the `gh issue` / `glab issue` CLI), which keep their real names.
 
+**AFK** (away-from-keyboard):
+A ticket that can be implemented and merged with no human in the loop. Designated
+on a slice by `to-tickets`, then published to the tracker carrying the
+`ready-for-agent` triage role — the form an AFK ticket takes once it's live. The
+unit `implement-afk` consumes.
+_Avoid_: autonomous, unattended (as the ticket label).
+
+**HITL** (human-in-the-loop):
+A ticket that requires a human at some point — an architectural decision, a design
+review — and so cannot be merged unattended. The complement of AFK; never picked up
+by `implement-afk`.
+_Avoid_: manual, blocked (as the ticket label).
+
 ### Syncing
 
 **Origin**:
