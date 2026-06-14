@@ -44,6 +44,11 @@ public final class AppModel {
     /// row links so they point to the live default branch rather than a hardcoded value.
     public private(set) var resolvedDefaultBranch: String?
 
+    /// The skill name that the Review window should scroll to / pre-select when it opens.
+    /// Set by the dropdown row action before calling `openWindow(id: "review")`.
+    /// `ReviewWindowView` observes this via `onChange` and clears it after consuming.
+    public var reviewFocusSkill: String?
+
     // MARK: — Stored owner/repo (used for GitHub links in the view)
 
     /// The GitHub owner used to construct skill-directory links.

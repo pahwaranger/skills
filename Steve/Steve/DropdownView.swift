@@ -223,6 +223,7 @@ private struct SkillRowView: View {
     let state: SkillState
     let appModel: AppModel
 
+    @Environment(\.openWindow) private var openWindow
     @State private var isHovered = false
 
     var body: some View {
@@ -277,8 +278,12 @@ private struct SkillRowView: View {
             }
 
         case .removedOnOrigin, .updateAvailable, .skipped:
-            // Open the Review window and focus it on this skill (Slice 8).
-            ReviewWindowController.open(focusedOn: skillName)
+            // Set the focus skill on the shared AppModel channel, then open (or
+            // raise) the Review window via the SwiftUI environment action.
+            // `openWindow(id:)` opens the Window scene on first call and brings it
+            // to the front on subsequent calls — no AppKit hacks needed.
+            appModel.reviewFocusSkill = skillName
+            openWindow(id: "review")
         }
     }
 }

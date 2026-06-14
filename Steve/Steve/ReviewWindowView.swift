@@ -46,8 +46,23 @@ struct ReviewWindowView: View {
         .onChange(of: appModel.lastDerivedState) { _, newState in
             rebuildSidebarModel(from: newState)
         }
+        // Consume the focus-skill handoff set by the dropdown row action.
+        // The property is cleared immediately after reading so a second open
+        // of the same window does not re-select a stale skill.
+        .onChange(of: appModel.reviewFocusSkill) { _, skillName in
+            guard let skillName else { return }
+            applyFocusSkill(skillName)
+            appModel.reviewFocusSkill = nil
+        }
         .onAppear {
             rebuildSidebarModel(from: appModel.lastDerivedState)
+            // Consume any focus skill that was set before the view appeared
+            // (i.e. first open: the dropdown set reviewFocusSkill before the
+            // window existed, so onChange fired into the void).
+            if let skillName = appModel.reviewFocusSkill {
+                applyFocusSkill(skillName)
+                appModel.reviewFocusSkill = nil
+            }
         }
     }
 
@@ -70,54 +85,14 @@ struct ReviewWindowView: View {
             selectedSkillName = firstActionable ?? sidebarModel.sections.first?.skills.first
         }
     }
-}
 
-// MARK: — Review window: entry with focused skill
-
-/// Convenience entry point used when opening the Review window from a dropdown
-/// skill row. Passes a pre-selected skill so the sidebar scrolls to it.
-struct ReviewWindowViewFocused: View {
-    let appModel: AppModel
-    let focusSkillName: SkillName
-
-    @State private var sidebarModel: ReviewSidebarModel = ReviewSidebarModel(skills: [])
-    @State private var selectedSkillName: SkillName?
-
-    var body: some View {
-        HSplitView {
-            ReviewSidebarView(
-                model: $sidebarModel,
-                selectedSkillName: $selectedSkillName
-            )
-            .frame(minWidth: 200, idealWidth: 240, maxWidth: 300)
-
-            DiffPanePlaceholder(selectedSkillName: selectedSkillName)
-                .frame(minWidth: 400, maxWidth: .infinity)
-        }
-        .frame(minWidth: 680, minHeight: 440)
-        .onChange(of: appModel.lastDerivedState) { _, newState in
-            rebuildSidebarModel(from: newState)
-        }
-        .onAppear {
-            rebuildSidebarModel(from: appModel.lastDerivedState)
-        }
-    }
-
-    private func rebuildSidebarModel(from derivedState: DerivedState?) {
-        guard let derivedState else {
-            sidebarModel = ReviewSidebarModel(skills: [])
-            return
-        }
-        var newModel = ReviewSidebarModel(from: derivedState)
-        newModel.selectedSkillNames = sidebarModel.selectedSkillNames
-        sidebarModel = newModel
-        // Use the focused skill if nothing is selected yet.
-        if selectedSkillName == nil {
-            selectedSkillName = focusSkillName
-            // Also pre-check the focused skill if actionable.
-            if derivedState.states[focusSkillName] != .upToDate {
-                sidebarModel.selectedSkillNames.insert(focusSkillName)
-            }
+    /// Navigates the sidebar to `skillName`: updates the diff-pane selection and,
+    /// if the skill is actionable, pre-checks it in the sidebar multi-select.
+    private func applyFocusSkill(_ skillName: SkillName) {
+        selectedSkillName = skillName
+        // Pre-check actionable skills so the bulk Update/Skip controls are pre-armed.
+        if let state = appModel.lastDerivedState?.states[skillName], state != .upToDate {
+            sidebarModel.selectedSkillNames.insert(skillName)
         }
     }
 }

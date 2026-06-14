@@ -38,7 +38,9 @@ struct SteveApp: App {
         .menuBarExtraStyle(.window)
 
         // Review window scene (Slice 8).
-        // Opened programmatically via `ReviewWindowController.open(focusedOn:appModel:)`.
+        // Opened via `openWindow(id: "review")` from the MenuBarExtra dropdown view.
+        // The triggering skill is passed through `appModel.reviewFocusSkill` and
+        // consumed by `ReviewWindowView.onAppear` / `onChange`.
         // Slices 9a/9b add the diff pane; Slice 10 wires Update/Skip.
         Window("Review Skills", id: "review") {
             ReviewWindowView(appModel: appModel)
