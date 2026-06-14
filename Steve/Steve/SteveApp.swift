@@ -16,7 +16,7 @@ struct SteveApp: App {
         // Dynamic-label form: SwiftUI re-evaluates the label closure whenever any
         // @Observable property accessed inside it changes (isChecking, lastDerivedState).
         MenuBarExtra {
-            MainView(appModel: appModel)
+            DropdownView(appModel: appModel)
                 .task {
                     await appModel.start()
                 }

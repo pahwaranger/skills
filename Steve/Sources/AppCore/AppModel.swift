@@ -31,6 +31,14 @@ public final class AppModel {
     /// successful check that produces an origin snapshot.
     public private(set) var lastDerivedState: DerivedState?
 
+    /// The date the most recent check completed (success or failure). `nil` until the
+    /// first check finishes. Drives "checked X ago" in the status-line wording (#15).
+    public private(set) var lastCheckDate: Date?
+
+    /// The error kind from the most recent failed check, or `nil` if the last check
+    /// succeeded. Drives the 4 error status-line wordings (#15).
+    public private(set) var lastCheckError: CheckError?
+
     // MARK: — Internal scheduler (accessible for testing + manual trigger)
 
     public let scheduler: CheckScheduler
@@ -61,12 +69,22 @@ public final class AppModel {
     ) {
         let cacheRootResolved = cacheRoot ?? AppModel.makeDefaultCacheRoot()
         let cacheStore = CacheStore(root: cacheRootResolved)
-        let performCheck = AppModel.makePerformCheck(
+        let basePerformCheck = AppModel.makePerformCheck(
             owner: owner, repo: repo, branch: branch,
             transport: transport,
             cacheStore: cacheStore,
             installedSkills: installedSkills
         )
+        // A Sendable weak-ref box set after init so the performCheck wrapper can
+        // call back into self without a strong reference cycle.
+        let selfBox = WeakBox<AppModel>()
+        // Wrap performCheck to intercept the result and update lastCheckDate/lastCheckError
+        // on the main actor after each check (for status-line wording, Slice 6).
+        let performCheck: @Sendable () async -> CheckResult = {
+            let result = await basePerformCheck()
+            await MainActor.run { selfBox.value?.applyCheckResult(result) }
+            return result
+        }
         self.scheduler = CheckScheduler(
             performCheck: performCheck,
             clock: clock,
@@ -74,6 +92,8 @@ public final class AppModel {
             slowRetryInterval: slowRetryInterval,
             automaticChecksEnabled: automaticChecksEnabled
         )
+        // Wire the box to self now that init is complete.
+        selfBox.value = self
     }
 
     deinit {
@@ -128,6 +148,26 @@ public final class AppModel {
         let state = await scheduler.lastDerivedState
         isChecking = checking
         lastDerivedState = state
+    }
+
+    /// Records the outcome of a completed check as `lastCheckDate` and `lastCheckError`.
+    /// Called on the main actor via a hop in the wrapped `performCheck` closure.
+    /// On success (`.ok`) the error is cleared; on any failure the error is set.
+    @MainActor
+    fileprivate func applyCheckResult(_ result: CheckResult) {
+        lastCheckDate = Date()
+        switch result {
+        case .ok:
+            lastCheckError = nil
+        case .originNotFound:
+            lastCheckError = .originNotFound
+        case .transientError:
+            // transientError covers network errors, rate limits, and fetch failures.
+            // We map all three to .networkError here; a richer mapping (rate-limit
+            // header → .rateLimited(resetAt:)) requires Scheduler to expose the raw
+            // CheckResult or carry extra context — left as a future improvement.
+            lastCheckError = .networkError
+        }
     }
 
     // MARK: — Factory: builds the performCheck closure the scheduler calls

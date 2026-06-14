@@ -64,5 +64,11 @@ let package = Package(
             path: "SteveTests",
             sources: ["AppCoreTests.swift"]
         ),
+        .testTarget(
+            name: "DropdownLogicTests",
+            dependencies: ["AppCore", "StateEngine"],
+            path: "SteveTests",
+            sources: ["DropdownLogicTests.swift"]
+        ),
     ]
 )
