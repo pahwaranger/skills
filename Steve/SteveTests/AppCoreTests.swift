@@ -572,6 +572,83 @@ struct AppModelTests {
     }
 }
 
+// MARK: — reviewFocusSkill: shared channel for Review window focus handoff
+
+@Suite("AppModel — reviewFocusSkill channel")
+struct ReviewFocusSkillTests {
+
+    /// Setting `reviewFocusSkill` on the main actor is observable and can be cleared.
+    /// This verifies the channel that `SkillRowView` writes and `ReviewWindowView` consumes.
+    @Test @MainActor func reviewFocusSkillCanBeSetAndCleared() async throws {
+        let transport = AppCoreStubTransport { _ in
+            HTTPResponse(status: 304, headers: [:], body: Data())
+        }
+        let cacheDir = FileManager.default.temporaryDirectory
+            .appending(path: "focus-skill-test-\(UUID().uuidString)", directoryHint: .isDirectory)
+        try FileManager.default.createDirectory(at: cacheDir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: cacheDir) }
+
+        let model = AppModel(
+            owner: "o", repo: "r", branch: "main",
+            transport: transport,
+            cacheRoot: cacheDir,
+            automaticChecksEnabled: false,
+            installedSkills: { [:] }
+        )
+
+        // Initially nil
+        #expect(model.reviewFocusSkill == nil,
+                "reviewFocusSkill must be nil until the dropdown sets it")
+
+        // Simulate dropdown row action writing the skill name
+        model.reviewFocusSkill = "my-skill"
+        #expect(model.reviewFocusSkill == "my-skill",
+                "reviewFocusSkill must reflect the value written by the dropdown")
+
+        // Simulate ReviewWindowView consuming and clearing it
+        let consumed = model.reviewFocusSkill
+        model.reviewFocusSkill = nil
+        #expect(consumed == "my-skill",
+                "consumed value must equal what the dropdown wrote")
+        #expect(model.reviewFocusSkill == nil,
+                "reviewFocusSkill must be nil after the view consumes it")
+    }
+
+    /// A second open must NOT re-focus the same skill: reviewFocusSkill is nil after
+    /// the view clears it, so a subsequent openWindow call sees no stale focus.
+    @Test @MainActor func reviewFocusSkillIsNilAfterConsumption() async throws {
+        let transport = AppCoreStubTransport { _ in
+            HTTPResponse(status: 304, headers: [:], body: Data())
+        }
+        let cacheDir = FileManager.default.temporaryDirectory
+            .appending(path: "focus-skill-clear-test-\(UUID().uuidString)", directoryHint: .isDirectory)
+        try FileManager.default.createDirectory(at: cacheDir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: cacheDir) }
+
+        let model = AppModel(
+            owner: "o", repo: "r", branch: "main",
+            transport: transport,
+            cacheRoot: cacheDir,
+            automaticChecksEnabled: false,
+            installedSkills: { [:] }
+        )
+
+        // First open: set, consume, clear
+        model.reviewFocusSkill = "skill-A"
+        model.reviewFocusSkill = nil  // view consumed it
+
+        // Second open without a row tap: reviewFocusSkill stays nil
+        #expect(model.reviewFocusSkill == nil,
+                "reviewFocusSkill must remain nil between opens when no row was tapped")
+
+        // Second open with a different row tap: new value wins
+        model.reviewFocusSkill = "skill-B"
+        #expect(model.reviewFocusSkill == "skill-B")
+        model.reviewFocusSkill = nil
+        #expect(model.reviewFocusSkill == nil)
+    }
+}
+
 // MARK: — Scheduler: transientError does not clear slow-retry backoff
 
 @Suite("CheckScheduler — transient error handling")

@@ -36,6 +36,17 @@ struct SteveApp: App {
                 .if(iconState.pulsing) { $0.symbolEffect(.pulse) }
         }
         .menuBarExtraStyle(.window)
+
+        // Review window scene (Slice 8).
+        // Opened via `openWindow(id: "review")` from the MenuBarExtra dropdown view.
+        // The triggering skill is passed through `appModel.reviewFocusSkill` and
+        // consumed by `ReviewWindowView.onAppear` / `onChange`.
+        // Slices 9a/9b add the diff pane; Slice 10 wires Update/Skip.
+        Window("Review Skills", id: "review") {
+            ReviewWindowView(appModel: appModel)
+        }
+        .defaultSize(width: 900, height: 600)
+        .defaultPosition(.center)
     }
 }
 
