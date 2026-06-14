@@ -36,6 +36,15 @@ struct SteveApp: App {
                 .if(iconState.pulsing) { $0.symbolEffect(.pulse) }
         }
         .menuBarExtraStyle(.window)
+
+        // Review window scene (Slice 8).
+        // Opened programmatically via `ReviewWindowController.open(focusedOn:appModel:)`.
+        // Slices 9a/9b add the diff pane; Slice 10 wires Update/Skip.
+        Window("Review Skills", id: "review") {
+            ReviewWindowView(appModel: appModel)
+        }
+        .defaultSize(width: 900, height: 600)
+        .defaultPosition(.center)
     }
 }
 

@@ -277,10 +277,8 @@ private struct SkillRowView: View {
             }
 
         case .removedOnOrigin, .updateAvailable, .skipped:
-            // TODO(Slice 8–10): Open the Review window focused on this skill.
-            // The Review window scene and NSWindow activation are handled in a later slice.
-            // For now: no-op with a log so developers can see it wired.
-            print("[Steve] Review row tapped for '\(skillName)' — Review window (Slice 8–10)")
+            // Open the Review window and focus it on this skill (Slice 8).
+            ReviewWindowController.open(focusedOn: skillName)
         }
     }
 }
