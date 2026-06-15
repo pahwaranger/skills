@@ -36,18 +36,27 @@ public struct FileDiff: Equatable, Sendable {
     /// When `true`, `addedLines` and `removedLines` are both `0`.
     public let isBinary: Bool
 
+    /// The substring of the original unified diff that belongs exclusively to this file.
+    ///
+    /// Starts at the `--- ` header for this file and ends just before the `--- ` header of
+    /// the next file (or at the end of the input). Passing this to `DiffRendererView` ensures
+    /// each file card renders only its own hunk (Issue #44).
+    public let rawSlice: String
+
     public init(
         filename: String,
         status: Status,
         addedLines: Int,
         removedLines: Int,
-        isBinary: Bool
+        isBinary: Bool,
+        rawSlice: String = ""
     ) {
         self.filename     = filename
         self.status       = status
         self.addedLines   = addedLines
         self.removedLines = removedLines
         self.isBinary     = isBinary
+        self.rawSlice     = rawSlice
     }
 }
 
@@ -71,9 +80,30 @@ public enum UnifiedDiffParser {
     ///
     /// Files appear in the order they occur in `rawDiff`.
     /// An empty or non-diff string returns `[]`.
+    ///
+    /// Each returned `FileDiff` carries a `rawSlice` property containing only the
+    /// portion of `rawDiff` that belongs to that file (from its `--- ` header up to,
+    /// but not including, the next file's `--- ` header). This lets file cards
+    /// render only their own hunk (Issue #44).
     public static func parse(_ rawDiff: String) -> [FileDiff] {
         let lines = rawDiff.components(separatedBy: "\n")
         var results: [FileDiff] = []
+
+        // Track per-file slice boundaries using line indices.
+        // sliceStart[k] = the index of the `---` line for the k-th file found.
+        // After the loop we know sliceEnd[k] = sliceStart[k+1] (or EOF).
+
+        // We collect (startLineIndex, FileDiff-without-slice) pairs, then
+        // assemble slices in a second pass.
+        struct Pending {
+            let startLineIndex: Int  // index of the `---` header in `lines`
+            let filename: String
+            let status: FileDiff.Status
+            let addedLines: Int
+            let removedLines: Int
+            let isBinary: Bool
+        }
+        var pending: [Pending] = []
 
         var i = 0
         while i < lines.count {
@@ -106,6 +136,9 @@ public enum UnifiedDiffParser {
             // Canonical filename: prefer the non-null side, stripping the `a/` / `b/` prefix.
             let filename = isAdded ? toPath : fromPath
 
+            // Record where this file's slice starts.
+            let sliceStartIndex = i
+
             // Scan forward for the body lines of this file section.
             // Body ends when we hit the next `--- ` header or EOF.
             var addedCount   = 0
@@ -128,7 +161,7 @@ public enum UnifiedDiffParser {
                     continue
                 }
 
-                // Count `+` / `-` hunk lines (exclude `+++` / `---` headers which start with `+++ ` / `--- `).
+                // Count `+` / `-` hunk lines (exclude `+++` / `---` headers).
                 if bodyLine.hasPrefix("+") && !bodyLine.hasPrefix("+++ ") {
                     addedCount += 1
                 } else if bodyLine.hasPrefix("-") && !bodyLine.hasPrefix("--- ") {
@@ -144,16 +177,38 @@ public enum UnifiedDiffParser {
                 removedCount = 0
             }
 
-            results.append(FileDiff(
-                filename:     filename,
-                status:       status,
-                addedLines:   addedCount,
-                removedLines: removedCount,
-                isBinary:     isBinary
+            pending.append(Pending(
+                startLineIndex: sliceStartIndex,
+                filename:       filename,
+                status:         status,
+                addedLines:     addedCount,
+                removedLines:   removedCount,
+                isBinary:       isBinary
             ))
 
             // Continue from where the inner scan stopped.
             i = j
+        }
+
+        // Second pass: build raw slices by joining lines[start..<end].
+        for (idx, p) in pending.enumerated() {
+            let endLineIndex = idx + 1 < pending.count ? pending[idx + 1].startLineIndex : lines.count
+            // Join this file's lines back into a string, preserving the original "\n" separators.
+            // We drop a trailing empty element that results from a trailing newline so the slice
+            // mirrors the original structure faithfully.
+            let sliceLines = Array(lines[p.startLineIndex ..< endLineIndex])
+            // If the last line is an empty string caused by a trailing "\n" separator in the
+            // original input, preserve it as-is (joined with "\n" it becomes a trailing newline).
+            let rawSlice = sliceLines.joined(separator: "\n")
+
+            results.append(FileDiff(
+                filename:     p.filename,
+                status:       p.status,
+                addedLines:   p.addedLines,
+                removedLines: p.removedLines,
+                isBinary:     p.isBinary,
+                rawSlice:     rawSlice
+            ))
         }
 
         return results
