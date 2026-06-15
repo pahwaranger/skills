@@ -90,7 +90,6 @@ private struct StatusBannerView: View {
         }
         .padding(.horizontal, 14)
         .padding(.vertical, 9)
-        .background(bannerBackground)
     }
 
     private var bannerTitle: String {
@@ -99,15 +98,6 @@ private struct StatusBannerView: View {
         case .checking:  return "Checking…"
         case .error:     return "Check failed"
         case .neutral:   return "All skills up to date"
-        }
-    }
-
-    private var bannerBackground: Color {
-        switch bannerType {
-        case .attention: return Color(red: 1.0, green: 0.231, blue: 0.188).opacity(0.08) // #FF3B30
-        case .error:     return Color(red: 1.0, green: 0.584, blue: 0).opacity(0.08)     // #FF9500
-        case .checking:  return .clear
-        case .neutral:   return .clear
         }
     }
 }
@@ -169,7 +159,7 @@ private struct CheckForUpdatesButton: View {
                         .controlSize(.mini)
                         .scaleEffect(0.8)
                 }
-                Text("↺  Check for updates")
+                Text("↺ Check for updates")
                     .font(.system(size: 12.5))
             }
             .frame(maxWidth: .infinity)
@@ -203,7 +193,7 @@ private struct SkillListView: View {
                 // Uppercase section label (Variant B)
                 Text(DropdownSections.label(for: section.state))
                     .font(.system(size: 10.5, weight: .semibold))
-                    .foregroundStyle(Color.secondary.opacity(0.7))
+                    .foregroundStyle(Color(Palette.Dropdown.sectionLabel))
                     .kerning(0.6)
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(.horizontal, 14)
