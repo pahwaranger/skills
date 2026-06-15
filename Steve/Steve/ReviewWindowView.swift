@@ -494,7 +494,6 @@ private struct FileCardsView: View {
                 ForEach(fileDiffs, id: \.filename) { file in
                     FileCard(
                         file: file,
-                        rawDiff: rawDiff,
                         viewMode: $viewMode,
                         isCollapsed: collapsed.contains(file.filename),
                         onToggle: { toggleCollapse(file.filename) }
@@ -526,13 +525,12 @@ private struct FileCardsView: View {
 /// A single collapsible file section: header + optional body.
 /// The header shows: ▼/▶ chevron, filename, status pill, and ±N line counts.
 /// The body is either a diff renderer (text) or a "Binary — no preview" notice.
+///
+/// The renderer receives `file.rawSlice` — only the portion of the unified diff
+/// that belongs to this file — so each card shows only its own hunk (Issue #44).
 private struct FileCard: View {
 
     let file: FileDiff
-    /// The full diff string; we pass the whole thing through to the renderer, which
-    /// handles multi-file diffs correctly. In a future slice, this will be the
-    /// per-file slice; for now the renderer ignores the other files or renders all.
-    let rawDiff: String
     @Binding var viewMode: DiffViewMode
     let isCollapsed: Bool
     let onToggle: () -> Void
@@ -589,9 +587,8 @@ private struct FileCard: View {
                 if file.isBinary {
                     BinaryFileNotice(filename: file.filename)
                 } else {
-                    // Full diff string passed to the renderer — diff2html handles
-                    // multi-file diffs and renders them all correctly.
-                    DiffRendererView(diff: rawDiff, viewMode: $viewMode)
+                    // Per-file slice: each card renders only its own hunk (Issue #44).
+                    DiffRendererView(diff: file.rawSlice, viewMode: $viewMode)
                         .frame(minHeight: 120)
                 }
             }

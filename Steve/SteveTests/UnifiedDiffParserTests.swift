@@ -350,3 +350,121 @@ struct FileDiffFilenameTests {
         #expect(files.isEmpty)
     }
 }
+
+// MARK: — Per-file raw slice (Issue #44)
+//
+// Each FileDiff must carry rawSlice — the portion of the unified diff
+// that belongs exclusively to that file. This is the tracer bullet that
+// allows each FileCard to render only its own file's hunk.
+
+struct FileDiffRawSliceTests {
+
+    // MARK: — Tracer: multi-file diff yields per-file slices
+
+    @Test func multiFileDiffYieldsOneSlicePerFile() throws {
+        let files = UnifiedDiffParser.parse(multiFileDiff)
+        #expect(files.count == 3)
+
+        // Slice 0 should contain the SKILL.md header but NOT the other files.
+        let slice0 = files[0].rawSlice
+        #expect(slice0.contains("--- a/grill-with-docs/SKILL.md"))
+        #expect(slice0.contains("+++ b/grill-with-docs/SKILL.md"))
+        #expect(!slice0.contains("CONTEXT-FORMAT.md"))
+        #expect(!slice0.contains("EXAMPLES.md"))
+
+        // Slice 1 should contain CONTEXT-FORMAT.md header only.
+        let slice1 = files[1].rawSlice
+        #expect(slice1.contains("--- a/grill-with-docs/CONTEXT-FORMAT.md"))
+        #expect(slice1.contains("+++ b/grill-with-docs/CONTEXT-FORMAT.md"))
+        #expect(!slice1.contains("SKILL.md"))
+        #expect(!slice1.contains("EXAMPLES.md"))
+
+        // Slice 2 should contain the EXAMPLES.md (added file) header only.
+        let slice2 = files[2].rawSlice
+        #expect(slice2.contains("+++ b/grill-with-docs/EXAMPLES.md"))
+        #expect(!slice2.contains("SKILL.md"))
+        #expect(!slice2.contains("CONTEXT-FORMAT.md"))
+    }
+
+    @Test func eachSliceContainsOnlyItsHunkLines() throws {
+        let files = UnifiedDiffParser.parse(multiFileDiff)
+        #expect(files.count == 3)
+
+        // SKILL.md has the "stress-test" / "challenge a plan" hunk
+        #expect(files[0].rawSlice.contains("stress-test"))
+        #expect(!files[1].rawSlice.contains("stress-test"))
+        #expect(!files[2].rawSlice.contains("stress-test"))
+
+        // CONTEXT-FORMAT.md has the ADR consistency lines
+        #expect(files[1].rawSlice.contains("Terms introduced in one ADR"))
+        #expect(!files[0].rawSlice.contains("Terms introduced in one ADR"))
+        #expect(!files[2].rawSlice.contains("Terms introduced in one ADR"))
+
+        // EXAMPLES.md has the Examples content
+        #expect(files[2].rawSlice.contains("Some example content"))
+        #expect(!files[0].rawSlice.contains("Some example content"))
+        #expect(!files[1].rawSlice.contains("Some example content"))
+    }
+
+    // MARK: — Single-file diff: slice equals the whole input
+
+    @Test func singleFileDiffSliceEqualsWholeInput() throws {
+        let diff = """
+        --- a/zoom-out/SKILL.md
+        +++ /dev/null
+        @@ -1,3 +0,0 @@
+        -# Zoom Out
+        -
+        -Step back.
+        """
+        let files = UnifiedDiffParser.parse(diff)
+        #expect(files.count == 1)
+        #expect(files[0].rawSlice == diff)
+    }
+
+    // MARK: — Binary file: entry is present with its full section text
+
+    @Test func binaryFileDiffSliceContainsHeaders() throws {
+        let files = UnifiedDiffParser.parse(binaryDiff)
+        #expect(files.count == 1)
+        let slice = files[0].rawSlice
+        #expect(slice.contains("--- a/assets/logo.png"))
+        #expect(slice.contains("+++ b/assets/logo.png"))
+        #expect(slice.contains("Binary files"))
+    }
+
+    @Test func binarySliceDoesNotContainOtherFiles() throws {
+        let mixed = """
+        --- a/foo/SKILL.md
+        +++ b/foo/SKILL.md
+        @@ -1,3 +1,3 @@
+         # foo
+        -old
+        +new
+        --- a/assets/logo.png
+        +++ b/assets/logo.png
+        Binary files a/assets/logo.png and b/assets/logo.png differ
+        """
+        let files = UnifiedDiffParser.parse(mixed)
+        #expect(files.count == 2)
+        #expect(!files[0].rawSlice.contains("Binary files"))
+        #expect(!files[1].rawSlice.contains("SKILL.md"))
+        #expect(files[1].rawSlice.contains("Binary files"))
+    }
+
+    // MARK: — Slice round-trip: each slice re-parses as a single-file diff
+
+    @Test func sliceIsParsableAsSingleFileDiff() throws {
+        let files = UnifiedDiffParser.parse(multiFileDiff)
+        #expect(files.count == 3)
+        for file in files {
+            let reparsed = UnifiedDiffParser.parse(file.rawSlice)
+            #expect(reparsed.count == 1,
+                    "Slice for \(file.filename) should re-parse as 1 file, got \(reparsed.count)")
+            #expect(reparsed[0].filename == file.filename)
+            #expect(reparsed[0].status == file.status)
+            #expect(reparsed[0].addedLines == file.addedLines)
+            #expect(reparsed[0].removedLines == file.removedLines)
+        }
+    }
+}
