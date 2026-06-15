@@ -85,6 +85,10 @@ let package = Package(
             name: "DiffBridge",
             path: "Sources/DiffBridge"
         ),
+        .target(
+            name: "Theme",
+            path: "Sources/Theme"
+        ),
         .testTarget(
             name: "InstallerTests",
             dependencies: ["Installer", "Cache"],
@@ -120,6 +124,12 @@ let package = Package(
             dependencies: ["AppCore", "DiffBridge"],
             path: "SteveTests",
             sources: ["SettingsTests.swift"]
+        ),
+        .testTarget(
+            name: "ThemeTests",
+            dependencies: ["Theme"],
+            path: "SteveTests",
+            sources: ["ThemeTests.swift"]
         ),
     ]
 )
