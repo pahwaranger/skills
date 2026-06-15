@@ -199,11 +199,11 @@ struct ReviewSidebarGroupingTests {
     }
 
     @Test func sectionLabelMatchesVariantD() {
-        // Variant D sidebar labels are title-cased (not ALL-CAPS like Variant B dropdown)
-        #expect(ReviewSidebarModel.label(for: .removedOnOrigin) == "Removed on Origin")
-        #expect(ReviewSidebarModel.label(for: .updateAvailable) == "Update Available")
+        // Variant D sidebar labels are short strings (Removed / Updates / Skipped / Up to date)
+        #expect(ReviewSidebarModel.label(for: .removedOnOrigin) == "Removed")
+        #expect(ReviewSidebarModel.label(for: .updateAvailable) == "Updates")
         #expect(ReviewSidebarModel.label(for: .skipped)         == "Skipped")
-        #expect(ReviewSidebarModel.label(for: .upToDate)        == "Up to Date")
+        #expect(ReviewSidebarModel.label(for: .upToDate)        == "Up to date")
     }
 
     @Test func allUpToDateProducesOneSectionAlphaSorted() {

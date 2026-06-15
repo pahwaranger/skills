@@ -2,6 +2,7 @@ import SwiftUI
 #if SWIFT_PACKAGE
 import AppCore
 import StateEngine
+import Theme
 #endif
 
 // MARK: — Review window sidebar (Slice 8, Variant D)
@@ -13,8 +14,8 @@ import StateEngine
 ///   1. **Sticky action header**: tri-state select toggle + Update N + Skip N
 ///      Always visible, does not scroll.
 ///   2. **Scrollable skill list**: skills grouped by state in order
-///      Removed → Update Available → Skipped → Up to Date, alpha within each group.
-///      Non–up-to-date rows have individual Update + Skip buttons.
+///      Removed → Updates → Skipped → Up to date, alpha within each group.
+///      Rows are checkbox (actionable only) + skill name.
 ///
 /// The sidebar scrolls to and pre-selects the `focusedSkillName` when the
 /// Review window opens from a dropdown skill row.
@@ -30,11 +31,11 @@ struct ReviewSidebarView: View {
     @Binding var selectedSkillName: SkillName?
 
     /// Called when an Update action should be performed for the given skill names.
-    /// Single-skill rows pass `[skillName]`; the bulk header passes all selected names.
+    /// The bulk header passes all selected names.
     let onUpdate: ([String]) -> Void
 
     /// Called when a Skip action should be performed for the given skill names.
-    /// Single-skill rows pass `[skillName]`; the bulk header passes all selected names.
+    /// The bulk header passes all selected names.
     let onSkip: ([String]) -> Void
 
     // MARK: — Body
@@ -76,14 +77,6 @@ struct ReviewSidebarView: View {
                                     },
                                     onToggle: {
                                         model.toggleSkill(skillName)
-                                    },
-                                    onUpdate: {
-                                        // Single-skill Update: wired in Slice 10.
-                                        onUpdate([skillName])
-                                    },
-                                    onSkip: {
-                                        // Single-skill Skip: wired in Slice 10.
-                                        onSkip([skillName])
                                     }
                                 )
                                 .id(skillName)
@@ -188,8 +181,10 @@ private struct SidebarGroupHeader: View {
 
     var body: some View {
         Text(label)
-            .font(.system(size: 11, weight: .semibold))
+            .font(.system(size: 10, weight: .bold))
             .foregroundStyle(stateColor)
+            .textCase(.uppercase)
+            .tracking(0.4)
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(.horizontal, 12)
             .padding(.top, 8)
@@ -198,10 +193,10 @@ private struct SidebarGroupHeader: View {
 
     private var stateColor: Color {
         switch state {
-        case .removedOnOrigin: return Color(red: 1.0, green: 0.231, blue: 0.188)  // #FF3B30
-        case .updateAvailable: return Color(red: 0.0,  green: 0.478, blue: 1.0)    // #007AFF
-        case .skipped:         return Color(red: 1.0, green: 0.584, blue: 0)       // #FF9500
-        case .upToDate:        return .secondary
+        case .removedOnOrigin: return Color(Palette.Review.removed)
+        case .updateAvailable: return Color(Palette.Review.update)
+        case .skipped:         return Color(Palette.Review.skipped)
+        case .upToDate:        return Color(Palette.Review.upToDate)
         }
     }
 }
@@ -216,10 +211,6 @@ private struct SidebarSkillRow: View {
     let isChecked: Bool
     let onSelect: () -> Void
     let onToggle: () -> Void
-    let onUpdate: () -> Void
-    let onSkip: () -> Void
-
-    @State private var isHovered = false
 
     var body: some View {
         HStack(spacing: 6) {
@@ -245,29 +236,14 @@ private struct SidebarSkillRow: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .contentShape(Rectangle())
                 .onTapGesture { onSelect() }
-
-            // Per-row Update / Skip — only on non–up-to-date skills, shown on hover
-            if isActionable && (isHovered || isSelected) {
-                HStack(spacing: 4) {
-                    Button("Update", action: onUpdate)
-                        .buttonStyle(.bordered)
-                        .controlSize(.mini)
-                    Button("Skip", action: onSkip)
-                        .buttonStyle(.bordered)
-                        .controlSize(.mini)
-                }
-                .transition(.opacity)
-            }
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 4)
         .background(rowBackground)
-        .onHover { isHovered = $0 }
     }
 
     private var rowBackground: Color {
         if isSelected { return Color.accentColor.opacity(0.12) }
-        if isHovered  { return Color.primary.opacity(0.05) }
         return .clear
     }
 }
