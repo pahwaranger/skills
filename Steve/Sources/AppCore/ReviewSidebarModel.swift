@@ -99,14 +99,14 @@ public struct ReviewSidebarModel: Equatable, Sendable {
         }
     }
 
-    /// Title-cased section label for Variant D sidebar (distinct from the ALL-CAPS
+    /// Short section label for Variant D sidebar (distinct from the ALL-CAPS
     /// labels used in the Variant B dropdown).
     public static func label(for state: SkillState) -> String {
         switch state {
-        case .removedOnOrigin: return "Removed on Origin"
-        case .updateAvailable: return "Update Available"
+        case .removedOnOrigin: return "Removed"
+        case .updateAvailable: return "Updates"
         case .skipped:         return "Skipped"
-        case .upToDate:        return "Up to Date"
+        case .upToDate:        return "Up to date"
         }
     }
 
