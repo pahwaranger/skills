@@ -41,6 +41,8 @@
 		C00000000000000000000021 /* SettingsStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000021 /* SettingsStore.swift */; };
 		C00000000000000000000022 /* LaunchAtLoginManaging.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000022 /* LaunchAtLoginManaging.swift */; };
 		C00000000000000000000023 /* SMAppServiceLaunchManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000023 /* SMAppServiceLaunchManager.swift */; };
+		C00000000000000000000025 /* Color+Theme.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000025 /* Color+Theme.swift */; };
+		C00000000000000000000026 /* Theme.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000026 /* Theme.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -48,6 +50,8 @@
 		B00000000000000000000002 /* MainView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainView.swift; sourceTree = "<group>"; };
 		B00000000000000000000003 /* ReviewView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReviewView.swift; sourceTree = "<group>"; };
 		B00000000000000000000004 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
+		B00000000000000000000025 /* Color+Theme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Color+Theme.swift"; sourceTree = "<group>"; };
+		B00000000000000000000026 /* Theme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Theme.swift; sourceTree = "<group>"; };
 		B0000000000000000000001C /* DiffRendererView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DiffRendererView.swift; sourceTree = "<group>"; };
 		B0000000000000000000001D /* DiffBridge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DiffBridge.swift; sourceTree = "<group>"; };
 		B0000000000000000000001F /* UnifiedDiffParser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UnifiedDiffParser.swift; sourceTree = "<group>"; };
@@ -123,6 +127,7 @@
 				B0000000000000000000001C /* DiffRendererView.swift */,
 				B00000000000000000000004 /* SettingsView.swift */,
 				B00000000000000000000023 /* SMAppServiceLaunchManager.swift */,
+				B00000000000000000000025 /* Color+Theme.swift */,
 				B00000000000000000000005 /* Info.plist */,
 				B0000000000000000000001E /* DiffRenderer */,
 			);
@@ -139,8 +144,17 @@
 				D00000000000000000000006 /* StateEngine */,
 				D00000000000000000000007 /* Installer */,
 				D00000000000000000000008 /* Scheduler */,
+				D0000000000000000000000D /* Theme */,
 			);
 			path = Sources;
+			sourceTree = "<group>";
+		};
+		D0000000000000000000000D /* Theme */ = {
+			isa = PBXGroup;
+			children = (
+				B00000000000000000000026 /* Theme.swift */,
+			);
+			path = Theme;
 			sourceTree = "<group>";
 		};
 		D0000000000000000000000B /* AppCore */ = {
@@ -352,6 +366,8 @@
 				C0000000000000000000001D /* DiffBridge.swift in Sources */,
 				C0000000000000000000001F /* UnifiedDiffParser.swift in Sources */,
 				C00000000000000000000024 /* UnifiedDiffGenerator.swift in Sources */,
+				C00000000000000000000026 /* Theme.swift in Sources */,
+				C00000000000000000000025 /* Color+Theme.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
