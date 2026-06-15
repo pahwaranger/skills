@@ -13,7 +13,8 @@ import DiffBridge
 //
 // Design locked to Variant C (prototypes/settings/NOTES.md):
 //   • Minutes between checks stays VISIBLE but DISABLED when Automatic checks is off.
-//   • Section caption switches to explain on-demand-only mode when checks are off.
+//   • Section footer caption switches between on/off states (via SettingsStore.syncingCaption).
+//   • Section header is always the constant word "Syncing".
 
 struct SettingsView: View {
 
@@ -27,7 +28,7 @@ struct SettingsView: View {
 
     var body: some View {
         Form {
-            // ── Syncing section ──────────────────────────────────────────────
+            // ── Syncing section ─────────────────────────────────────────────────────────────────
             Section {
                 // Automatic checks toggle
                 Toggle("Automatic checks", isOn: Binding(
@@ -42,40 +43,43 @@ struct SettingsView: View {
                     Spacer()
                         .frame(width: 18)
 
-                    // Stepper with numeric text field
+                    // Stepper with numeric text field; step=1 per Variant C spec (ticket #46).
                     Stepper(value: Binding(
                         get: { settings.minutesBetweenChecks },
                         set: { settings.minutesBetweenChecks = $0 }
-                    ), in: 1...1440, step: 5) {
-                        HStack(spacing: 4) {
-                            Text("Every")
-                                .foregroundStyle(settings.isIntervalEnabled ? .primary : .secondary)
+                    ), in: 1...1440, step: 1) {
+                        VStack(alignment: .leading, spacing: 2) {
+                            HStack(spacing: 4) {
+                                TextField("60", value: Binding(
+                                    get: { settings.minutesBetweenChecks },
+                                    set: { settings.minutesBetweenChecks = $0 }
+                                ), format: .number)
+                                .frame(width: 52)
+                                .multilineTextAlignment(.trailing)
+                                .disabled(!settings.isIntervalEnabled)
 
-                            TextField("60", value: Binding(
-                                get: { settings.minutesBetweenChecks },
-                                set: { settings.minutesBetweenChecks = $0 }
-                            ), format: .number)
-                            .frame(width: 52)
-                            .multilineTextAlignment(.trailing)
-                            .disabled(!settings.isIntervalEnabled)
-
-                            Text("minutes")
+                                Text("min")
+                                    .foregroundStyle(settings.isIntervalEnabled ? .primary : .secondary)
+                            }
+                            Text("Minutes between checks")
                                 .foregroundStyle(settings.isIntervalEnabled ? .primary : .secondary)
+                            Text("How often Steve looks at Origin for changes.")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
                         }
                     }
                     .disabled(!settings.isIntervalEnabled)
                 }
             } header: {
-                // Caption switches to explain on-demand mode (Variant C)
-                if settings.automaticChecksEnabled {
-                    Text("Syncing")
-                } else {
-                    Text("Syncing — checking on demand only")
-                }
+                // Header is the CONSTANT word "Syncing" in both on/off states (Variant C).
+                Text("Syncing")
+            } footer: {
+                // Caption text switches via SettingsStore.syncingCaption (pure, unit-tested).
+                Text(settings.syncingCaption)
             }
 
-            // ── General section ──────────────────────────────────────────────
-            Section("General") {
+            // ── General section ────────────────────────────────────────────────────────────────
+            Section {
                 // Launch at login
                 Toggle("Launch at login", isOn: Binding(
                     get: { settings.launchAtLogin },
@@ -94,6 +98,10 @@ struct SettingsView: View {
                     Text("Unified").tag(DiffViewMode.unified)
                 }
                 .pickerStyle(.segmented)
+            } header: {
+                Text("General")
+            } footer: {
+                Text("How diffs open in the Review tab. You can still switch per-review.")
             }
         }
         .formStyle(.grouped)

@@ -195,3 +195,30 @@ struct SettingsIntervalDisabledTests {
                 "interval must be disabled (greyed out) when automaticChecksEnabled is false")
     }
 }
+
+// MARK: — Syncing caption tests (Variant C, ticket #46)
+
+@Suite("SettingsStore — syncingCaption")
+struct SettingsSyncingCaptionTests {
+
+    private func makeStore(automaticChecks: Bool) -> SettingsStore {
+        let suiteName = "com.steve.tests.settings.\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suiteName)!
+        defaults.removePersistentDomain(forName: suiteName)
+        var store = SettingsStore(defaults: defaults)
+        store.automaticChecksEnabled = automaticChecks
+        return store
+    }
+
+    @Test func syncingCaptionWhenAutoChecksOn() {
+        let store = makeStore(automaticChecks: true)
+        #expect(store.syncingCaption == "Steve checks Origin on this interval and flags changes in the menu bar.",
+                "syncingCaption must return the ON string when automaticChecksEnabled is true")
+    }
+
+    @Test func syncingCaptionWhenAutoChecksOff() {
+        let store = makeStore(automaticChecks: false)
+        #expect(store.syncingCaption == "Off — Steve only checks when you choose “Check for updates” from the menu.",
+                "syncingCaption must return the OFF string when automaticChecksEnabled is false")
+    }
+}
