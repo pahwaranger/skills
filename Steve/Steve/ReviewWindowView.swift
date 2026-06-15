@@ -6,6 +6,7 @@ import AppCore
 import StateEngine
 import Installer
 import DiffBridge
+import Theme
 #endif
 
 // MARK: — Review window (Slice 8 + 9a + 9b)
@@ -59,6 +60,7 @@ struct ReviewWindowView: View {
                 viewMode: $diffViewMode,
                 checkedCount: sidebarModel.selectedCount,
                 selectionMode: sidebarModel.selectionMode,
+                actionableCount: actionableCount,
                 onCycleSelection: { sidebarModel.cycleSelection() },
                 onDismissSelection: { sidebarModel.selectedSkillNames = [] },
                 onBulkUpdate: { performUpdate(Array(sidebarModel.selectedSkillNames)) },
@@ -187,6 +189,13 @@ struct ReviewWindowView: View {
         return appModel.lastDerivedState?.states[name]
     }
 
+    /// Number of actionable (non-up-to-date) skills in the current derived state.
+    /// Threaded into `DiffPane` to gate the "All caught up!" empty state.
+    private var actionableCount: Int {
+        guard let states = appModel.lastDerivedState?.states else { return 0 }
+        return states.values.filter { $0 != .upToDate }.count
+    }
+
     /// Builds the GitHub directory URL for a skill, using the resolved default branch.
     private func githubURL(for skillName: SkillName?) -> URL? {
         guard let skillName else { return nil }
@@ -214,6 +223,9 @@ private struct DiffPane: View {
     @Binding var viewMode: DiffViewMode
     let checkedCount: Int
     let selectionMode: ReviewSidebarModel.SelectionMode
+    /// Number of actionable (non-up-to-date) skills across all sections.
+    /// Used to gate the "All caught up!" empty state.
+    let actionableCount: Int
     let onCycleSelection: () -> Void
     let onDismissSelection: () -> Void
     let onBulkUpdate: () -> Void
@@ -246,6 +258,10 @@ private struct DiffPane: View {
                     Text(name)
                         .font(.system(size: 13, weight: .semibold))
                         .lineLimit(1)
+                    // State chip: shown for actionable skills only (hidden when up-to-date)
+                    if let chipText = selectedSkillState.flatMap({ ReviewSidebarModel.chipLabel(for: $0) }) {
+                        SkillStateChip(label: chipText, state: selectedSkillState ?? .upToDate)
+                    }
                 }
                 Spacer()
                 // Split / Unified segmented control
@@ -264,17 +280,20 @@ private struct DiffPane: View {
             Divider()
 
             // ── Content ───────────────────────────────────────────────────
-            if let name = selectedSkillName {
+            if actionableCount == 0 {
+                // "All caught up!" — zero actionable skills across all sections
+                AllCaughtUpPlaceholder()
+            } else if let name = selectedSkillName {
                 if selectedSkillState == .upToDate {
-                    // Up-to-date placeholder (Slice 9b)
-                    UpToDatePlaceholder(skillName: name, githubURL: githubURL)
+                    // Up-to-date placeholder (per-skill; there are still other actionable skills)
+                    UpToDatePlaceholder(githubURL: githubURL)
                 } else {
                     // File cards (Slice 9b) — each file in the diff is collapsible.
                     // Real installed-vs-origin diff (Slice 41).
                     let rawDiff = realDiff(for: name)
                     if rawDiff.isEmpty {
                         // No differences detected — show the up-to-date placeholder.
-                        UpToDatePlaceholder(skillName: name, githubURL: githubURL)
+                        UpToDatePlaceholder(githubURL: githubURL)
                     } else {
                         FileCardsView(
                             skillName: name,
@@ -386,15 +405,17 @@ private struct MaterialisingToolbar: View {
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 7)
-        .background(Color.accentColor)
+        .background {
+            // Translucent blue: locked #0a84ff @ 0.92 over ultraThinMaterial.
+            ZStack {
+                Rectangle().fill(.ultraThinMaterial)
+                Color(Palette.Review.update).opacity(0.92)
+            }
+        }
     }
 
     private var selectIcon: String {
-        switch selectionMode {
-        case .none, .partial: return "☐"
-        case .all:            return "☑"
-        case .new:            return "⊟"
-        }
+        ReviewSidebarModel.toolbarToggleGlyph(for: selectionMode)
     }
 
     private var selectTooltip: String {
@@ -412,11 +433,15 @@ private struct ToolbarPrimaryButtonStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
             .font(.system(size: 12, weight: .semibold))
-            .foregroundStyle(Color.accentColor)
+            .foregroundStyle(.white)
             .padding(.horizontal, 10)
             .padding(.vertical, 4)
-            .background(.white.opacity(configuration.isPressed ? 0.8 : 1.0))
+            .background(.white.opacity(configuration.isPressed ? 0.12 : 0.20))
             .clipShape(RoundedRectangle(cornerRadius: 5))
+            .overlay(
+                RoundedRectangle(cornerRadius: 5)
+                    .strokeBorder(.white.opacity(0.6), lineWidth: 1.5)
+            )
     }
 }
 
@@ -427,8 +452,12 @@ private struct ToolbarSecondaryButtonStyle: ButtonStyle {
             .foregroundStyle(.white)
             .padding(.horizontal, 10)
             .padding(.vertical, 4)
-            .background(.white.opacity(configuration.isPressed ? 0.3 : 0.2))
+            .background(.clear)
             .clipShape(RoundedRectangle(cornerRadius: 5))
+            .overlay(
+                RoundedRectangle(cornerRadius: 5)
+                    .strokeBorder(.white.opacity(configuration.isPressed ? 0.55 : 0.35), lineWidth: 1.5)
+            )
     }
 }
 
@@ -437,7 +466,6 @@ private struct ToolbarSecondaryButtonStyle: ButtonStyle {
 /// Shown when the selected skill is up-to-date: nothing to sync.
 /// Includes a link to the skill's GitHub directory (using the resolved default branch).
 private struct UpToDatePlaceholder: View {
-    let skillName: SkillName
     let githubURL: URL?
 
     var body: some View {
@@ -447,11 +475,11 @@ private struct UpToDatePlaceholder: View {
                 .foregroundStyle(Color.secondary)
 
             VStack(spacing: 4) {
-                Text("Up to date — nothing to sync")
+                Text("Up to date")
                     .font(.system(size: 14, weight: .semibold))
                     .foregroundStyle(.primary)
 
-                Text(skillName)
+                Text("Nothing to sync for this skill.")
                     .font(.system(size: 12))
                     .foregroundStyle(.secondary)
             }
@@ -463,6 +491,63 @@ private struct UpToDatePlaceholder: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(.windowBackground)
+    }
+}
+
+// MARK: — All caught up empty state (Issue #49)
+
+/// Shown when there are ZERO actionable skills — everything is up to date.
+/// Distinct from UpToDatePlaceholder (which is per-skill while other skills
+/// are still actionable). Gated on actionableCount == 0 in DiffPane.
+private struct AllCaughtUpPlaceholder: View {
+    var body: some View {
+        VStack(spacing: 16) {
+            Image(systemName: "checkmark.circle.fill")
+                .font(.system(size: 40))
+                .foregroundStyle(.green)
+
+            VStack(spacing: 4) {
+                Text("All caught up!")
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundStyle(.primary)
+
+                Text("Nothing left to review.")
+                    .font(.system(size: 12))
+                    .foregroundStyle(.secondary)
+            }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(.windowBackground)
+    }
+}
+
+// MARK: — Pane-header state chip (Issue #49)
+
+/// A colored capsule chip shown in the pane header next to the skill name.
+/// Displays "Removed" / "Update" / "Skipped" using the locked palette colors.
+/// Hidden for up-to-date skills (the parent view only renders this for actionable skills).
+private struct SkillStateChip: View {
+    let label: String
+    let state: SkillState
+
+    var body: some View {
+        Text(label)
+            .font(.system(size: 10, weight: .bold))
+            .tracking(0.03 * 10)   // ~0.03em at 10pt
+            .foregroundStyle(.white)
+            .padding(.horizontal, 7)
+            .padding(.vertical, 3)
+            .background(chipColor)
+            .clipShape(Capsule())
+    }
+
+    private var chipColor: Color {
+        switch state {
+        case .removedOnOrigin: return Color(Palette.Review.removed)
+        case .updateAvailable: return Color(Palette.Review.update)
+        case .skipped:         return Color(Palette.Review.skipped)
+        case .upToDate:        return Color(Palette.Review.upToDate)
+        }
     }
 }
 

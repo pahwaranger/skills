@@ -110,6 +110,38 @@ public struct ReviewSidebarModel: Equatable, Sendable {
         }
     }
 
+    /// Toggle glyph used in the TOOLBAR (materialising blue bar).
+    ///
+    /// The toolbar only appears when ≥1 skill is checked, so it must never
+    /// show the empty ☐.  All modes except  return the filled ☑.
+    ///    /  /  → ☑
+    ///                            → ⊟
+    ///
+    /// This is intentionally distinct from the sidebar-header glyph, which
+    /// keeps ☐ for  / .
+    public static func toolbarToggleGlyph(for mode: SelectionMode) -> String {
+        switch mode {
+        case .none, .partial, .all: return "☑"
+        case .new:                  return "⊟"
+        }
+    }
+
+    /// Label for the pane-header state chip shown next to the skill name.
+    ///
+    /// Returns  for  — the chip is hidden when the skill is up-to-date.
+    ///    → "Removed"
+    ///    → "Update"
+    ///            → "Skipped"
+    ///           → nil
+    public static func chipLabel(for state: SkillState) -> String? {
+        switch state {
+        case .removedOnOrigin: return "Removed"
+        case .updateAvailable: return "Update"
+        case .skipped:         return "Skipped"
+        case .upToDate:        return nil
+        }
+    }
+
     // MARK: — Computed: selection
 
     /// All skills that can be selected (i.e. non–up-to-date).
