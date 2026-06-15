@@ -278,12 +278,13 @@ private struct SkillRowView: View {
             }
 
         case .removedOnOrigin, .updateAvailable, .skipped:
-            // Set the focus skill on the shared AppModel channel, then open (or
-            // raise) the Review window via the SwiftUI environment action.
+            // Set the focus skill and select the Review tab on the shared AppModel
+            // channels, then open (or raise) the unified "Steve" window.
             // `openWindow(id:)` opens the Window scene on first call and brings it
             // to the front on subsequent calls — no AppKit hacks needed.
             appModel.reviewFocusSkill = skillName
-            openWindow(id: "review")
+            appModel.selectedTab = .review
+            openWindow(id: "main")
         }
     }
 }
@@ -298,13 +299,13 @@ private struct FooterActionsView: View {
     var body: some View {
         VStack(spacing: 0) {
             DropdownActionRow(label: "Settings…") {
-                // Open (or raise) the Settings window.
+                // Select the Settings tab then open (or raise) the unified "Steve" window.
                 // `SettingsLink` is unreliable from `MenuBarExtra` context
                 // (per prototypes/menu-bar-dropdown/NOTES.md / Steipete 2025).
                 // `openWindow(id:)` opens the Window scene on first call and brings
-                // it to the front on subsequent calls — the same pattern used for
-                // the Review window (Slice 8). No AppKit hacks needed.
-                openWindow(id: "settings")
+                // it to the front on subsequent calls. No AppKit hacks needed.
+                appModel.selectedTab = .settings
+                openWindow(id: "main")
             }
             DropdownActionRow(label: "Quit Steve") {
                 NSApplication.shared.terminate(nil)
