@@ -8,6 +8,16 @@ import Scheduler
 import Installer
 #endif
 
+/// The two tabs hosted in the unified "Steve" window (Issue #45).
+/// The dropdown sets `AppModel.selectedTab` before calling `openWindow(id: "main")`
+/// so the window opens on the correct tab without any AppKit hacks.
+public enum WindowTab: Equatable, Sendable {
+    /// The Review tab — sidebar + diff pane (ReviewWindowView).
+    case review
+    /// The Settings tab — preferences form (SettingsView).
+    case settings
+}
+
 /// The composition root: wires `OriginClient` → `CacheStore` → `StateEngine`
 /// into a `performCheck` closure that the `CheckScheduler` drives.
 ///
@@ -46,9 +56,14 @@ public final class AppModel {
     public private(set) var resolvedDefaultBranch: String?
 
     /// The skill name that the Review window should scroll to / pre-select when it opens.
-    /// Set by the dropdown row action before calling `openWindow(id: "review")`.
+    /// Set by the dropdown row action before calling `openWindow(id: "main")`.
     /// `ReviewWindowView` observes this via `onChange` and clears it after consuming.
     public var reviewFocusSkill: String?
+
+    /// Which tab is currently selected in the unified "Steve" window (Issue #45).
+    /// Defaults to `.review`. The dropdown sets this before calling `openWindow(id: "main")`
+    /// so the window opens on the correct tab — mirroring the `reviewFocusSkill` channel.
+    public var selectedTab: WindowTab = .review
 
     /// The immutable origin snapshot captured when the Review window opens.
     /// `nil` when no Review window is open or before the first successful check.

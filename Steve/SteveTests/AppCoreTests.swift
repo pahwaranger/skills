@@ -939,6 +939,79 @@ struct AppModelWordingReachabilityTests {
     }
 }
 
+// MARK: — WindowTab: selected-tab routing for the unified "Steve" window (Issue #45)
+
+@Suite("AppModel — WindowTab routing")
+struct WindowTabTests {
+
+    /// A minimal stub transport — always returns 304 (unchanged).
+    private func stubTransport() -> AppCoreStubTransport {
+        AppCoreStubTransport { _ in HTTPResponse(status: 304, headers: [:], body: Data()) }
+    }
+
+    @MainActor
+    private func makeModel() throws -> AppModel {
+        let cacheDir = FileManager.default.temporaryDirectory
+            .appending(path: "windowtab-test-\(UUID().uuidString)", directoryHint: .isDirectory)
+        try FileManager.default.createDirectory(at: cacheDir, withIntermediateDirectories: true)
+        return AppModel(
+            owner: "o", repo: "r", branch: "main",
+            transport: stubTransport(),
+            cacheRoot: cacheDir,
+            automaticChecksEnabled: false,
+            installedSkills: { [:] }
+        )
+    }
+
+    /// The selected tab defaults to `.review` on a fresh model.
+    @Test @MainActor func selectedTabDefaultsToReview() throws {
+        let model = try makeModel()
+        #expect(model.selectedTab == .review,
+                "selectedTab must default to .review so the window opens on the Review tab")
+    }
+
+    /// Switching to `.settings` persists.
+    @Test @MainActor func selectedTabCanBeSetToSettings() throws {
+        let model = try makeModel()
+        model.selectedTab = .settings
+        #expect(model.selectedTab == .settings,
+                "selectedTab must update to .settings after assignment")
+    }
+
+    /// Round-tripping: .settings → .review works.
+    @Test @MainActor func selectedTabCanBeRoundTripped() throws {
+        let model = try makeModel()
+        model.selectedTab = .settings
+        model.selectedTab = .review
+        #expect(model.selectedTab == .review,
+                "selectedTab must round-trip back to .review")
+    }
+
+    /// Skill-row tap: sets focus skill AND switches to .review.
+    /// This verifies the model-level intent of the dropdown routing (Issue #45).
+    @Test @MainActor func skillRowTapSetsReviewTabAndFocusSkill() throws {
+        let model = try makeModel()
+        // Simulate being on Settings, then tapping a skill row
+        model.selectedTab = .settings
+        // Simulate the dropdown skill-row action (view calls these two assignments)
+        model.reviewFocusSkill = "cool-skill"
+        model.selectedTab = .review
+        #expect(model.selectedTab == .review,
+                "after skill-row tap the selected tab must be .review")
+        #expect(model.reviewFocusSkill == "cool-skill",
+                "focus skill must be set to the tapped skill name")
+    }
+
+    /// Settings-footer tap: switches to .settings tab.
+    @Test @MainActor func settingsFooterTapSetsSettingsTab() throws {
+        let model = try makeModel()
+        // Simulate the dropdown "Settings…" action
+        model.selectedTab = .settings
+        #expect(model.selectedTab == .settings,
+                "after Settings… tap the selected tab must be .settings")
+    }
+}
+
 // MARK: — Minimal fake tar.gz builder for tests
 
 /// Builds a minimal POSIX tar.gz containing one skill directory with one file.

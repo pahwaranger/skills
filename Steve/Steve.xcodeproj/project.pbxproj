@@ -8,9 +8,8 @@
 
 /* Begin PBXBuildFile section */
 		C00000000000000000000001 /* SteveApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000001 /* SteveApp.swift */; };
-		C00000000000000000000002 /* MainView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000002 /* MainView.swift */; };
-		C00000000000000000000003 /* ReviewView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000003 /* ReviewView.swift */; };
 		C00000000000000000000004 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000004 /* SettingsView.swift */; };
+		C00000000000000000000027 /* MainWindowView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000027 /* MainWindowView.swift */; };
 		C00000000000000000000016 /* ReviewSidebarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000018 /* ReviewSidebarView.swift */; };
 		C00000000000000000000017 /* ReviewWindowView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000019 /* ReviewWindowView.swift */; };
 		C00000000000000000000018 /* ReviewWindowController.swift in Sources */ = {isa = PBXBuildFile; fileRef = B0000000000000000000001A /* ReviewWindowController.swift */; };
@@ -47,9 +46,8 @@
 
 /* Begin PBXFileReference section */
 		B00000000000000000000001 /* SteveApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SteveApp.swift; sourceTree = "<group>"; };
-		B00000000000000000000002 /* MainView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainView.swift; sourceTree = "<group>"; };
-		B00000000000000000000003 /* ReviewView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReviewView.swift; sourceTree = "<group>"; };
 		B00000000000000000000004 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
+		B00000000000000000000027 /* MainWindowView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainWindowView.swift; sourceTree = "<group>"; };
 		B00000000000000000000025 /* Color+Theme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Color+Theme.swift"; sourceTree = "<group>"; };
 		B00000000000000000000026 /* Theme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Theme.swift; sourceTree = "<group>"; };
 		B0000000000000000000001C /* DiffRendererView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DiffRendererView.swift; sourceTree = "<group>"; };
@@ -118,9 +116,8 @@
 			isa = PBXGroup;
 			children = (
 				B00000000000000000000001 /* SteveApp.swift */,
-				B00000000000000000000002 /* MainView.swift */,
+				B00000000000000000000027 /* MainWindowView.swift */,
 				B00000000000000000000013 /* DropdownView.swift */,
-				B00000000000000000000003 /* ReviewView.swift */,
 				B00000000000000000000018 /* ReviewSidebarView.swift */,
 				B00000000000000000000019 /* ReviewWindowView.swift */,
 				B0000000000000000000001A /* ReviewWindowController.swift */,
@@ -337,8 +334,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				C00000000000000000000001 /* SteveApp.swift in Sources */,
-				C00000000000000000000002 /* MainView.swift in Sources */,
-				C00000000000000000000003 /* ReviewView.swift in Sources */,
+				C00000000000000000000027 /* MainWindowView.swift in Sources */,
 				C00000000000000000000004 /* SettingsView.swift in Sources */,
 				C00000000000000000000005 /* Cache.swift in Sources */,
 				C0000000000000000000000D /* HTTPTransport.swift in Sources */,

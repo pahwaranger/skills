@@ -70,28 +70,20 @@ struct SteveApp: App {
         }
         .menuBarExtraStyle(.window)
 
-        // Review window scene (Slice 8).
-        // Opened via `openWindow(id: "review")` from the MenuBarExtra dropdown view.
-        // The triggering skill is passed through `appModel.reviewFocusSkill` and
-        // consumed by `ReviewWindowView.onAppear` / `onChange`.
-        // Slices 9a/9b add the diff pane; Slice 10 wires Update/Skip.
-        Window("Review Skills", id: "review") {
-            ReviewWindowView(appModel: appModel)
+        // Unified "Steve" window (Issue #45): a single window hosting both Review
+        // and Settings as two tabs. Opened via `openWindow(id: "main")` from the
+        // dropdown. The dropdown sets `appModel.selectedTab` (and `reviewFocusSkill`
+        // for skill-row taps) before calling openWindow so the correct tab is shown.
+        //
+        // `.windowStyle(.hiddenTitleBar)`: the OS still draws the traffic-light buttons
+        // but hides the default title bar text so `MainWindowView` can render its own
+        // centered "Steve" label + two-tab chrome.
+        Window("Steve", id: "main") {
+            MainWindowView(appModel: appModel)
         }
-        .defaultSize(width: 900, height: 600)
+        .defaultSize(width: 900, height: 640)
         .defaultPosition(.center)
-
-        // Settings window scene (Slice 11).
-        // `SettingsLink` is unreliable from `MenuBarExtra` context (per
-        // prototypes/menu-bar-dropdown/NOTES.md / Steipete 2025). Instead we use
-        // a plain `Window` scene and open it via `openWindow(id: "settings")` from
-        // the dropdown footer — the same pattern used for the Review window.
-        Window("Steve Settings", id: "settings") {
-            SettingsView()
-        }
-        .defaultSize(width: 400, height: 300)
-        .defaultPosition(.center)
-        .windowResizability(.contentSize)
+        .windowStyle(.hiddenTitleBar)
     }
 }
 
