@@ -109,4 +109,19 @@ public struct SettingsStore: @unchecked Sendable {
     public var isIntervalEnabled: Bool {
         automaticChecksEnabled
     }
+
+    // MARK: — Syncing caption (Variant C, ticket #46)
+
+    /// Returns the below-card Syncing section caption for the current `automaticChecksEnabled` state.
+    ///
+    /// Pure computed property — no side-effects, fully unit-testable.
+    /// - ON:  explains the interval-based check cadence.
+    /// - OFF: explains on-demand-only mode, with the exact menu item name in curly quotes.
+    public var syncingCaption: String {
+        if automaticChecksEnabled {
+            return "Steve checks Origin on this interval and flags changes in the menu bar."
+        } else {
+            return "Off \u{2014} Steve only checks when you choose \u{201C}Check for updates\u{201D} from the menu."
+        }
+    }
 }
