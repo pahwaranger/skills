@@ -75,12 +75,11 @@ struct ReviewWindowView: View {
             rebuildSidebarModel(from: newState)
         }
         // Consume the focus-skill handoff set by the dropdown row action.
-        // The property is cleared immediately after reading so a second open
-        // of the same window does not re-select a stale skill.
+        // `consumeReviewFocusSkill()` atomically reads and clears the channel so
+        // a second open of the same window does not re-select a stale skill.
         .onChange(of: appModel.reviewFocusSkill) { _, skillName in
-            guard let skillName else { return }
+            guard let skillName = appModel.consumeReviewFocusSkill() else { return }
             applyFocusSkill(skillName)
-            appModel.reviewFocusSkill = nil
         }
         .onAppear {
             // Apply the persisted default diff view as the initial mode (Slice 11).
@@ -95,9 +94,8 @@ struct ReviewWindowView: View {
             // Consume any focus skill that was set before the view appeared
             // (i.e. first open: the dropdown set reviewFocusSkill before the
             // window existed, so onChange fired into the void).
-            if let skillName = appModel.reviewFocusSkill {
+            if let skillName = appModel.consumeReviewFocusSkill() {
                 applyFocusSkill(skillName)
-                appModel.reviewFocusSkill = nil
             }
         }
         .onDisappear {

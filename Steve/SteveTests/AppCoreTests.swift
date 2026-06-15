@@ -978,13 +978,19 @@ struct WindowTabTests {
                 "selectedTab must update to .settings after assignment")
     }
 
-    /// Round-tripping: .settings → .review works.
-    @Test @MainActor func selectedTabCanBeRoundTripped() throws {
+    /// Switching to Settings and back to Review always lands on .review.
+    /// This guards the WindowTab enum against accidental case removal or rename:
+    /// if either case vanishes, these assignments won't compile.
+    @Test @MainActor func selectedTabSettingsThenReviewLandsOnReview() throws {
         let model = try makeModel()
         model.selectedTab = .settings
+        // Simulate the user clicking the Review tab button
         model.selectedTab = .review
         #expect(model.selectedTab == .review,
-                "selectedTab must round-trip back to .review")
+                "clicking Review after Settings must land on .review")
+        // The review-focus skill must be unaffected by tab switches
+        #expect(model.reviewFocusSkill == nil,
+                "a tab switch alone must not set reviewFocusSkill")
     }
 
     /// Skill-row tap: sets focus skill AND switches to .review.
@@ -1002,13 +1008,60 @@ struct WindowTabTests {
                 "focus skill must be set to the tapped skill name")
     }
 
-    /// Settings-footer tap: switches to .settings tab.
-    @Test @MainActor func settingsFooterTapSetsSettingsTab() throws {
+    /// Settings-footer tap: switches to .settings AND leaves reviewFocusSkill nil.
+    /// The dropdown "Settings…" action only writes selectedTab; it must not
+    /// touch reviewFocusSkill. A subsequent skill-row tap must still be able to
+    /// set reviewFocusSkill independently.
+    @Test @MainActor func settingsFooterTapSetsSettingsTabAndLeavesNoFocusSkill() throws {
         let model = try makeModel()
-        // Simulate the dropdown "Settings…" action
+        // Simulate the dropdown "Settings…" action (from .review start state)
         model.selectedTab = .settings
         #expect(model.selectedTab == .settings,
                 "after Settings… tap the selected tab must be .settings")
+        #expect(model.reviewFocusSkill == nil,
+                "Settings…footer action must not write reviewFocusSkill")
+
+        // Simulate a subsequent skill-row tap overwriting the tab + setting focus
+        model.reviewFocusSkill = "beta-skill"
+        model.selectedTab = .review
+        #expect(model.selectedTab == .review)
+        #expect(model.reviewFocusSkill == "beta-skill",
+                "skill-row tap after Settings must correctly arm reviewFocusSkill")
+    }
+
+    // MARK: — consumeReviewFocusSkill: testable set → consume → nil round-trip
+
+    /// Full round-trip: dropdown sets both routing properties, then the view
+    /// calls consumeReviewFocusSkill() — returns the skill and clears the channel.
+    /// This is the model-level proxy for "Opening focused on a skill pre-selects it
+    /// in the sidebar" (ticket requirement) and guards the consume-once semantic so
+    /// a second open never re-applies a stale focus.
+    @Test @MainActor func consumeReviewFocusSkillReturnsThenClears() throws {
+        let model = try makeModel()
+
+        // Precondition: channel is empty
+        #expect(model.reviewFocusSkill == nil)
+
+        // Dropdown skill-row action: set focus + route to Review tab
+        model.reviewFocusSkill = "target-skill"
+        model.selectedTab = .review
+        #expect(model.selectedTab == .review)
+        #expect(model.reviewFocusSkill == "target-skill",
+                "reviewFocusSkill must be set before consumption")
+
+        // View calls consumeReviewFocusSkill() — must return the pending skill
+        let consumed = model.consumeReviewFocusSkill()
+        #expect(consumed == "target-skill",
+                "consumeReviewFocusSkill() must return the skill set by the dropdown")
+
+        // Channel must be nil immediately after consumption
+        #expect(model.reviewFocusSkill == nil,
+                "reviewFocusSkill must be nil after consumption (second open sees no stale skill)")
+
+        // Second call must return nil (idempotent consume)
+        let consumedAgain = model.consumeReviewFocusSkill()
+        #expect(consumedAgain == nil,
+                "consuming an already-empty channel must return nil")
     }
 }
 

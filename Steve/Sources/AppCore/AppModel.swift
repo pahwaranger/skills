@@ -65,6 +65,19 @@ public final class AppModel {
     /// so the window opens on the correct tab — mirroring the `reviewFocusSkill` channel.
     public var selectedTab: WindowTab = .review
 
+    /// Atomically returns the current `reviewFocusSkill` and clears it to `nil`.
+    ///
+    /// `ReviewWindowView` calls this instead of manually reading + zeroing the property,
+    /// so the consume-and-clear is a single, testable model operation. Callers receive
+    /// the skill name that was set by the dropdown (or `nil` if no skill was pending),
+    /// and the channel is left clean for the next open.
+    @discardableResult
+    public func consumeReviewFocusSkill() -> String? {
+        let skill = reviewFocusSkill
+        reviewFocusSkill = nil
+        return skill
+    }
+
     /// The immutable origin snapshot captured when the Review window opens.
     /// `nil` when no Review window is open or before the first successful check.
     /// Background scheduler checks update `lastDerivedState` but must NOT replace this.
