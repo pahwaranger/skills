@@ -643,17 +643,17 @@ private struct FileCard: View {
 
                     Spacer(minLength: 4)
 
-                    // Line count badges
+                    // Line count badges (Issue #50): palette colors, non-zero only, right-aligned.
                     if !file.isBinary {
                         if file.addedLines > 0 {
                             Text("+\(file.addedLines)")
                                 .font(.system(size: 11, weight: .medium, design: .monospaced))
-                                .foregroundStyle(Color(red: 0.133, green: 0.545, blue: 0.133))
+                                .foregroundStyle(Color(Palette.Review.diffAdded))
                         }
                         if file.removedLines > 0 {
                             Text("−\(file.removedLines)")
                                 .font(.system(size: 11, weight: .medium, design: .monospaced))
-                                .foregroundStyle(Color(red: 0.78, green: 0.082, blue: 0.082))
+                                .foregroundStyle(Color(Palette.Review.diffRemoved))
                         }
                     }
                 }
@@ -679,36 +679,25 @@ private struct FileCard: View {
     }
 }
 
-// MARK: — File status pill (Slice 9b)
+// MARK: — File status pill (Issue #50)
 
-/// A coloured badge showing "Added" / "Modified" / "Deleted".
+/// A tinted badge showing "Added" / "Modified" / "Deleted".
+///
+/// Uses a light ~12% tint background with saturated colored text (not white-on-solid).
+/// Label and color are driven by `FileDiff.Status.pillLabel` / `.pillColor` — the
+/// same pure helpers that are unit-tested in `FileDiffStatusMappingTests`.
 private struct FileStatusPill: View {
     let status: FileDiff.Status
 
     var body: some View {
-        Text(label)
+        let themeColor = Color(status.pillColor)
+        Text(status.pillLabel)
             .font(.system(size: 10, weight: .semibold))
-            .foregroundStyle(.white)
+            .foregroundStyle(themeColor)
             .padding(.horizontal, 6)
             .padding(.vertical, 2)
-            .background(color)
+            .background(themeColor.opacity(0.12))
             .clipShape(Capsule())
-    }
-
-    private var label: String {
-        switch status {
-        case .added:    return "Added"
-        case .removed:  return "Deleted"
-        case .modified: return "Modified"
-        }
-    }
-
-    private var color: Color {
-        switch status {
-        case .added:    return Color(red: 0.133, green: 0.545, blue: 0.133)
-        case .removed:  return Color(red: 0.78,  green: 0.082, blue: 0.082)
-        case .modified: return Color(red: 0.0,   green: 0.478, blue: 1.0)
-        }
     }
 }
 

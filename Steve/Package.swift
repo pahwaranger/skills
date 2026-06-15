@@ -89,6 +89,7 @@ let package = Package(
         ),
         .target(
             name: "DiffBridge",
+            dependencies: ["Theme"],
             path: "Sources/DiffBridge"
         ),
         .target(
@@ -136,6 +137,12 @@ let package = Package(
             dependencies: ["Theme"],
             path: "SteveTests",
             sources: ["ThemeTests.swift"]
+        ),
+        .testTarget(
+            name: "FileDiffStatusMappingTests",
+            dependencies: ["DiffBridge", "Theme"],
+            path: "SteveTests",
+            sources: ["FileDiffStatusMappingTests.swift"]
         ),
     ]
 )
