@@ -81,6 +81,12 @@ let package = Package(
             path: "SteveTests",
             sources: ["ReviewSidebarTests.swift"]
         ),
+        .testTarget(
+            name: "DiffPaneHelpersTests",
+            dependencies: ["AppCore", "StateEngine"],
+            path: "SteveTests",
+            sources: ["DiffPaneHelpersTests.swift"]
+        ),
         .target(
             name: "DiffBridge",
             path: "Sources/DiffBridge"
