@@ -21,6 +21,8 @@ The route already exists. Variants are rendered **on the same route**, gated by 
 
 The variant components and switcher live in `prototypes/<session-name>/`, isolated from production code — the existing route just imports them and adds the temporary `?variant=` gate. That keeps the prototype in one isolated tree even though it renders against the real page.
 
+**No-production-dependency invariant:** no production file may import from or link to `prototypes/` (or `mockups/`) as a permanent dependency. The only permitted exception is the live `?variant=` wiring on the host route — and only while the prototype session is open. That temporary wiring must be removed as a completion gate before the prototype is considered done (see step 6). All prototype artifacts — variant components, the switcher, stubs, fixtures — stay under `prototypes/<session-name>/` at all times.
+
 If the prototype is for something that doesn't yet have a page but *would naturally live inside one* (a new section of the dashboard, a new card on the settings screen, a new step in an existing flow) — that's still sub-shape A. Mount the variants inside the host page.
 
 ### Sub-shape B — a new page (last resort)
@@ -121,20 +123,24 @@ The interesting feedback is usually **"I want the header from B with the sidebar
 
 For multi-target prototypes, also send the URL for the Unified view once the first target is locked in.
 
-### 6. Capture the answer and absorb the winner
+### 6. Capture the answer and promote the winner
 
-Once a variant has won (or, for multi-target prototypes, once all targets have a locked-in variant), **ask the user for explicit final confirmation** before doing anything destructive. Show them a summary of what was decided, e.g.:
+Once a variant has won (or, for multi-target prototypes, once all targets have a locked-in variant), **ask the user for explicit final confirmation** before doing anything. Show them a summary of what was decided, e.g.:
 
 > "Ready to wrap up: Header → B (sidebar layout), Sidebar → A (compact), Empty state → C (illustration). Lock these in and stop the server?"
 
 Only after they confirm:
 
 1. **Stop the dev server** and **stop port sharing** — don't leave a forwarded port dangling.
-2. Then fold the winner into the real code and un-wire the temporary hooks from production:
-   - **Sub-shape A** — fold the winning variant into the existing page, and remove the temporary `?variant=` gate and switcher import from that route. The variant components and switcher stay in `prototypes/<session>/`.
-   - **Sub-shape B** — promote the winning variant to a real route, and remove the throwaway route entry point. The variant components and switcher stay in `prototypes/<session>/`.
+2. **Remove the temporary production wiring** — this is a completion gate, not a tidy-up:
+   - **Sub-shape A** — remove the temporary `?variant=` gate and switcher import from the existing route. The variant components and switcher stay in `prototypes/<session>/`.
+   - **Sub-shape B** — remove the throwaway route entry point. The variant components and switcher stay in `prototypes/<session>/`.
+   - **Before declaring done**, grep production files for any path containing `prototypes/` and confirm there are no remaining imports or references. A stray `prototypes/` reference in production is a blocker, not a warning.
+3. **Promote the winner to a mockup:**
+   - **If this prototype was initiated by the [`mockup`](../mockup/SKILL.md) skill** — hand the winning variant back to `mockup` for promotion. The mockup skill takes it from here (flatten, write `SPEC.md`, register).
+   - **If this prototype was initiated directly by the user** — suggest promoting to a mockup by running [`mockup`](../mockup/SKILL.md) (`"Run /mockup to lock this as the authoritative design reference"`). For a *trivial cosmetic tweak* where the change is already minimal and production-ready, it is acceptable to fold it directly into the real code instead — but this is the escape hatch, not the default.
 
-The point is to leave production clean — no `?variant=` gates, throwaway routes, switcher imports, or forwarded ports lingering — while keeping the prototype itself under `prototypes/` as a record of how the decision was reached. Don't delete the prototype directory.
+The point is to leave production clean — no `?variant=` gates, throwaway routes, switcher imports, or forwarded ports lingering — while keeping the prototype itself under `prototypes/` as a permanent record of how the decision was reached. Don't delete the prototype directory.
 
 ## Anti-patterns
 
