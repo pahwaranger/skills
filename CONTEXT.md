@@ -40,6 +40,25 @@ review — and so cannot be merged unattended. The complement of AFK; never pick
 by `implement-afk`.
 _Avoid_: manual, blocked (as the ticket label).
 
+### Design references
+
+**Prototype**:
+Throwaway exploration that answers a design question. Holds several competing
+variants switchable from one route, lives in `prototypes/<slug>/`, and carries
+no production dependency — production never imports it. Retained after the
+question is answered as a record of how the decision was reached, not deleted.
+_Avoid_: mockup (the prototype is the exploration, not the locked answer); spike.
+
+**Mockup**:
+The single locked design for a UI surface — the authoritative reference a
+developer replicates in the production app, the repo's equivalent of a locked
+Figma frame. Promoted from the winning prototype variant, lives in
+`mockups/<slug>/`, and is kept current as the design evolves (a "living"
+reference): design changes land in the mockup first, then production follows it.
+Each modification increments the mockup's version; ADRs, PRDs, and tickets cite a
+specific mockup and version (e.g. `mockups/review-tab` v3) when specifying UI work.
+_Avoid_: prototype (that's the throwaway exploration); wireframe, comp.
+
 ### Syncing
 
 **Origin**:
