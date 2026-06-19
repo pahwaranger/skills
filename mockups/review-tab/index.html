@@ -292,7 +292,7 @@
     border-collapse: collapse;
     font-family: "SF Mono", ui-monospace, Menlo, monospace;
     font-size: 12px;
-    line-height: 1.5;
+    line-height: 1.7;
   }
   /* Split diff: two equal half-width columns */
   .diff-table.split td { width: 50%; }
@@ -626,14 +626,22 @@ const SKILLS_DATA = [
   <tr class="diff-add"><td class="diff-line-num"></td><td class="diff-line-num">3</td><td class="diff-line-code"><span class="diff-add-marker">+</span> These examples show the kind of adversarial questions the skill generates.</td></tr>
   <tr class="diff-add"><td class="diff-line-num"></td><td class="diff-line-num">4</td><td class="diff-line-code"><span class="diff-add-marker">+</span></td></tr>
   <tr class="diff-add"><td class="diff-line-num"></td><td class="diff-line-num">5</td><td class="diff-line-code"><span class="diff-add-marker">+</span> ## Example 1 — Auth redesign</td></tr>
+  <tr class="diff-add"><td class="diff-line-num"></td><td class="diff-line-num">6</td><td class="diff-line-code"><span class="diff-add-marker">+</span></td></tr>
   <tr class="diff-add"><td class="diff-line-num"></td><td class="diff-line-num">7</td><td class="diff-line-code"><span class="diff-add-marker">+</span> **Plan:** Replace session tokens with JWTs to support horizontal scaling.</td></tr>
+  <tr class="diff-add"><td class="diff-line-num"></td><td class="diff-line-num">8</td><td class="diff-line-code"><span class="diff-add-marker">+</span></td></tr>
   <tr class="diff-add"><td class="diff-line-num"></td><td class="diff-line-num">9</td><td class="diff-line-code"><span class="diff-add-marker">+</span> **Questions generated:**</td></tr>
+  <tr class="diff-add"><td class="diff-line-num"></td><td class="diff-line-num">10</td><td class="diff-line-code"><span class="diff-add-marker">+</span></td></tr>
   <tr class="diff-add"><td class="diff-line-num"></td><td class="diff-line-num">11</td><td class="diff-line-code"><span class="diff-add-marker">+</span> - "CONTEXT.md defines *session* as a server-side object. JWTs are client-side.</td></tr>
   <tr class="diff-add"><td class="diff-line-num"></td><td class="diff-line-num">12</td><td class="diff-line-code"><span class="diff-add-marker">+</span>   Which term wins? Update the glossary before continuing."</td></tr>
   <tr class="diff-add"><td class="diff-line-num"></td><td class="diff-line-num">13</td><td class="diff-line-code"><span class="diff-add-marker">+</span> - "ADR-004 says 'reject stateless tokens' — is this plan overriding that decision?"</td></tr>
   <tr class="diff-add"><td class="diff-line-num"></td><td class="diff-line-num">14</td><td class="diff-line-code"><span class="diff-add-marker">+</span> - "You said 'horizontal scaling' but CONTEXT.md has no definition for that term."</td></tr>
+  <tr class="diff-add"><td class="diff-line-num"></td><td class="diff-line-num">15</td><td class="diff-line-code"><span class="diff-add-marker">+</span></td></tr>
   <tr class="diff-add"><td class="diff-line-num"></td><td class="diff-line-num">16</td><td class="diff-line-code"><span class="diff-add-marker">+</span> ## Example 2 — New event pipeline</td></tr>
+  <tr class="diff-add"><td class="diff-line-num"></td><td class="diff-line-num">17</td><td class="diff-line-code"><span class="diff-add-marker">+</span></td></tr>
   <tr class="diff-add"><td class="diff-line-num"></td><td class="diff-line-num">18</td><td class="diff-line-code"><span class="diff-add-marker">+</span> **Plan:** Add a Kafka topic for user-action events.</td></tr>
+  <tr class="diff-add"><td class="diff-line-num"></td><td class="diff-line-num">19</td><td class="diff-line-code"><span class="diff-add-marker">+</span></td></tr>
+  <tr class="diff-add"><td class="diff-line-num"></td><td class="diff-line-num">20</td><td class="diff-line-code"><span class="diff-add-marker">+</span> **Questions generated:**</td></tr>
+  <tr class="diff-add"><td class="diff-line-num"></td><td class="diff-line-num">21</td><td class="diff-line-code"><span class="diff-add-marker">+</span></td></tr>
   <tr class="diff-add"><td class="diff-line-num"></td><td class="diff-line-num">22</td><td class="diff-line-code"><span class="diff-add-marker">+</span> - "Is *event* the right term? CONTEXT.md uses *action* for user-initiated changes."</td></tr>
   <tr class="diff-add"><td class="diff-line-num"></td><td class="diff-line-num">23</td><td class="diff-line-code"><span class="diff-add-marker">+</span> - "ADR-011 mandates all new topics go through Platform team review."</td></tr>
   <tr class="diff-add"><td class="diff-line-num"></td><td class="diff-line-num">24</td><td class="diff-line-code"><span class="diff-add-marker">+</span> - "The word *pipeline* appears three times but is not in CONTEXT.md."</td></tr>
@@ -1036,12 +1044,16 @@ function wireEvents(skills, mode) {
   if (toolbarUpdate) toolbarUpdate.addEventListener('click', () => {
     [...uiState.checkedSkills].forEach(id => uiState.resolvedSkills.add(id));
     uiState.checkedSkills = new Set();
+    const remaining = skills.filter(s => !uiState.resolvedSkills.has(s.id) && s.state !== 'uptodate');
+    uiState.selectedSkill = remaining[0]?.id ?? skills.find(s => !uiState.resolvedSkills.has(s.id))?.id ?? '';
     render();
   });
   const toolbarSkip = document.getElementById('toolbar-skip');
   if (toolbarSkip) toolbarSkip.addEventListener('click', () => {
     [...uiState.checkedSkills].forEach(id => uiState.resolvedSkills.add(id));
     uiState.checkedSkills = new Set();
+    const remaining = skills.filter(s => !uiState.resolvedSkills.has(s.id) && s.state !== 'uptodate');
+    uiState.selectedSkill = remaining[0]?.id ?? skills.find(s => !uiState.resolvedSkills.has(s.id))?.id ?? '';
     render();
   });
 
