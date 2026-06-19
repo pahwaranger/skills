@@ -1,5 +1,7 @@
 # Settings tab — prototype notes
 
+> **Promoted to mockup:** [`mockups/settings-tab/`](../../mockups/settings-tab/) (v1) is the authoritative locked design. This prototype is retained as a record of the design exploration (all three variants remain reachable via the switcher).
+
 **Question being answered:** What should Steve's Settings tab look like, and how
 should the disabled-interval dependency (*Minutes between checks*, when *Automatic
 checks* is off) read?
