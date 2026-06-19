@@ -18,5 +18,7 @@ interaction treatments within them.
 | [`settings/`](./settings/NOTES.md) | Settings tab | ✅ Locked | Variant C: grouped sections, interval nested + disabled (not hidden) — see NOTES.md |
 
 These are **throwaway** (no networking, no persistence — fake data only). When a
-treatment wins, capture the verdict in a `NOTES.md` next to that prototype, then
-fold the decision into the real app and delete the rest.
+treatment wins, capture the verdict in a `NOTES.md` next to that prototype. The
+prototype stays here permanently as a record of how the decision was reached — do
+not delete it. Promote the winner to a mockup via the [`mockup`](../skills/mockup/SKILL.md)
+skill; the mockup becomes the authoritative design reference for production to build from.
