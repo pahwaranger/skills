@@ -1,0 +1,1097 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Steve — Review tab · mockup v1</title>
+<link rel="stylesheet" href="tokens.css" />
+<!--
+  MOCKUP v1 — Steve Review tab (Variant D: C's sidebar × B's main pane).
+  Self-contained, no build. Open directly in a browser.
+
+  States (reachable via the floating state-switcher or ?state=<slug>):
+    update-available  — grill-with-docs selected, split diff, no toolbar
+    toolbar-visible   — 3 skills checked, materialising toolbar visible
+    unified-diff      — grill-with-docs selected, unified diff view
+    uptodate-selected — up-to-date skill selected (placeholder)
+    all-resolved      — all actionable skills actioned (caught-up placeholder)
+
+  Provenance: prototypes/review-diff/ (Variant D)
+  Diff content: baked static HTML — reproduced from data.ts diffs without diff2html.
+-->
+<style>
+  * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Arial, sans-serif;
+    background: radial-gradient(120% 120% at 50% 0%, #d7d7da 0%, #bcbcc0 100%);
+    color: var(--text);
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    padding: 40px 16px 96px;
+    min-height: 100%;
+    -webkit-font-smoothing: antialiased;
+  }
+  @media (prefers-color-scheme: dark) {
+    body { background: radial-gradient(120% 120% at 50% 0%, #1a1a1c 0%, #050506 100%); }
+  }
+
+  /* ============================================================
+     Window chrome
+     ============================================================ */
+  .window {
+    width: 1200px;
+    max-width: 100%;
+    height: 740px;
+    background: var(--win-bg);
+    border-radius: 12px;
+    box-shadow: var(--shadow);
+    overflow: hidden;
+    border: 0.5px solid var(--separator-strong);
+    display: flex;
+    flex-direction: column;
+  }
+  .titlebar {
+    height: 44px;
+    background: var(--titlebar-bg);
+    display: flex;
+    align-items: center;
+    padding: 0 14px;
+    position: relative;
+    border-bottom: 0.5px solid var(--separator);
+    flex-shrink: 0;
+  }
+  .traffic { display: flex; gap: 8px; }
+  .traffic span { width: 12px; height: 12px; border-radius: 50%; display: inline-block; }
+  .traffic .r { background: #ff5f57; }
+  .traffic .y { background: #febc2e; }
+  .traffic .g { background: #28c840; }
+  .win-title {
+    position: absolute; left: 0; right: 0; text-align: center;
+    font-size: 13px; font-weight: 600; color: var(--text);
+    pointer-events: none;
+  }
+  .tabs {
+    display: flex; justify-content: center; gap: 2px;
+    background: var(--titlebar-bg);
+    padding: 6px 0 10px;
+    border-bottom: 0.5px solid var(--separator);
+    flex-shrink: 0;
+  }
+  .tab {
+    appearance: none; border: 0; background: transparent;
+    font: inherit; color: var(--text-secondary);
+    display: flex; flex-direction: column; align-items: center; gap: 3px;
+    padding: 5px 22px; border-radius: 7px; cursor: default;
+    font-size: 11px; font-weight: 500;
+  }
+  .tab .glyph { font-size: 16px; line-height: 1; }
+  .tab.active { background: var(--tab-active-bg); color: var(--text); }
+
+  .win-content {
+    flex: 1;
+    overflow: hidden;
+    display: flex;
+    min-height: 0;
+  }
+
+  /* ============================================================
+     Sidebar (Variant C style — sticky action header)
+     ============================================================ */
+  .sidebar {
+    width: 200px;
+    flex-shrink: 0;
+    background: var(--sidebar-bg);
+    border-right: 0.5px solid var(--separator);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  .action-header {
+    padding: 8px 10px;
+    background: var(--sidebar-bg);
+    border-bottom: 0.5px solid var(--separator);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-shrink: 0;
+  }
+  .select-toggle {
+    appearance: none; border: 1.5px solid var(--separator-strong);
+    background: var(--control-bg); color: var(--text);
+    font-size: 14px; line-height: 1; padding: 3px 6px;
+    border-radius: 5px; cursor: pointer; flex-shrink: 0;
+  }
+  .select-toggle:hover { border-color: var(--accent); }
+  .action-btn {
+    flex: 1; appearance: none; border: 0;
+    background: var(--accent); color: #fff;
+    font: inherit; font-size: 11px; font-weight: 600;
+    padding: 4px 6px; border-radius: 6px; cursor: pointer;
+    text-align: center;
+  }
+  .action-btn:disabled { opacity: 0.35; cursor: default; }
+  .action-btn:not(:disabled):hover { opacity: 0.88; }
+  .action-btn--secondary {
+    background: var(--segment-bg); color: var(--text);
+    border: 1px solid var(--separator-strong);
+  }
+  .action-btn--secondary:not(:disabled):hover { border-color: var(--accent); color: var(--accent); }
+
+  .skill-list { flex: 1; overflow-y: auto; }
+  .group-header {
+    padding: 7px 10px 3px;
+    font-size: 10px; font-weight: 700;
+    letter-spacing: 0.04em; text-transform: uppercase;
+  }
+  .skill-row {
+    display: flex; align-items: center; gap: 7px;
+    padding: 5px 8px 5px 10px;
+    cursor: pointer; font-size: 12px;
+  }
+  .skill-row:hover { background: var(--hover-bg); }
+  .skill-row--selected { background: var(--selected-bg) !important; }
+  .skill-row--disabled { cursor: default; opacity: 0.5; }
+  .skill-row--disabled:hover { background: transparent; }
+  .skill-label { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+  /* Custom checkbox */
+  .skill-checkbox {
+    width: 15px; height: 15px;
+    appearance: none;
+    border: 1.5px solid var(--control-border);
+    border-radius: 4px;
+    background: var(--control-bg);
+    cursor: pointer;
+    position: relative;
+    flex-shrink: 0;
+    transition: background 0.1s, border-color 0.1s;
+  }
+  .skill-checkbox:checked {
+    background: var(--accent);
+    border-color: var(--accent);
+  }
+  .skill-checkbox:checked::after {
+    content: '';
+    position: absolute;
+    top: 1px; left: 4px;
+    width: 4px; height: 8px;
+    border: 2px solid #fff;
+    border-top: 0; border-left: 0;
+    transform: rotate(45deg);
+  }
+
+  /* ============================================================
+     Main pane (Variant B style — collapsible file cards)
+     ============================================================ */
+  .main-pane {
+    flex: 1; display: flex; flex-direction: column;
+    overflow: hidden; min-width: 0;
+  }
+
+  /* Materialising toolbar */
+  .toolbar {
+    display: flex; align-items: center; gap: 10px;
+    background: var(--toolbar-bg);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    color: #fff;
+    padding: 7px 14px;
+    font-size: 12.5px; font-weight: 500;
+    flex-shrink: 0; z-index: 10;
+  }
+  .toolbar-select-cycle {
+    appearance: none; border: 1.5px solid rgba(255,255,255,0.4);
+    background: transparent; color: #fff;
+    font-size: 15px; line-height: 1; padding: 1px 4px;
+    border-radius: 4px; cursor: pointer;
+  }
+  .toolbar-select-cycle:hover { background: rgba(255,255,255,0.15); }
+  .toolbar-btn {
+    appearance: none; border: 1.5px solid rgba(255,255,255,0.35);
+    background: transparent; font: inherit; font-size: 12px; font-weight: 600;
+    color: #fff; padding: 3px 12px; border-radius: 6px; cursor: pointer;
+  }
+  .toolbar-btn:hover { background: rgba(255,255,255,0.15); }
+  .toolbar-btn--primary { background: rgba(255,255,255,0.2); border-color: rgba(255,255,255,0.6); }
+  .toolbar-btn--primary:hover { background: rgba(255,255,255,0.3); }
+  .toolbar-dismiss {
+    appearance: none; border: 0; background: transparent;
+    color: rgba(255,255,255,0.7); font-size: 16px; cursor: pointer; padding: 0 2px;
+  }
+  .toolbar-dismiss:hover { color: #fff; }
+
+  /* Pane header */
+  .pane-header {
+    padding: 8px 14px;
+    background: var(--card-bg);
+    border-bottom: 0.5px solid var(--separator);
+    display: flex; align-items: center; gap: 10px;
+    flex-shrink: 0; font-size: 13px;
+  }
+  .state-chip {
+    font-size: 10px; font-weight: 700; letter-spacing: 0.03em;
+    padding: 1px 7px; border-radius: 100px; color: #fff;
+  }
+  .segmented {
+    display: inline-flex;
+    background: var(--segment-bg);
+    border-radius: 7px;
+    padding: 2px;
+  }
+  .segmented button {
+    appearance: none; border: 0; background: transparent; font: inherit;
+    font-size: 12px; font-weight: 500; color: var(--text);
+    padding: 3px 12px; border-radius: 5px; cursor: pointer;
+  }
+  .segmented button.sel {
+    background: var(--segment-sel);
+    box-shadow: 0 1px 2px rgba(0,0,0,0.18);
+  }
+
+  .diff-scroll {
+    flex: 1; overflow: auto; display: flex; flex-direction: column;
+  }
+
+  /* Collapsible file cards */
+  .file-card { border-bottom: 0.5px solid var(--separator); }
+  .file-card-header {
+    display: flex; align-items: center; gap: 8px;
+    padding: 8px 14px;
+    cursor: pointer; font-size: 12.5px;
+    background: var(--content-bg);
+    user-select: none;
+  }
+  .file-card-header:hover { background: var(--hover-bg); }
+  .chevron { font-size: 9px; color: var(--text-secondary); width: 10px; flex-shrink: 0; }
+  .file-name { font-family: "SF Mono", ui-monospace, monospace; font-weight: 600; }
+  .file-status {
+    font-size: 10px; font-weight: 600;
+    padding: 1px 7px; border-radius: 100px;
+  }
+  .file-status--modified { background: rgba(10,132,255,0.12); color: var(--state-update); }
+  .file-status--added    { background: rgba(48,164,108,0.12); color: #1a8a4a; }
+  .file-status--deleted  { background: rgba(229,72,77,0.12);  color: var(--state-removed); }
+  @media (prefers-color-scheme: dark) {
+    .file-status--added { color: #4cc38a; }
+  }
+  .lines-added   { font-size: 11px; color: #1a8a4a; font-weight: 600; margin-left: auto; }
+  .lines-removed { font-size: 11px; color: var(--state-removed); font-weight: 600; margin-left: 4px; }
+  @media (prefers-color-scheme: dark) {
+    .lines-added { color: #4cc38a; }
+  }
+  .file-card-body { overflow-x: auto; }
+
+  /* ============================================================
+     Baked static diff markup (replaces diff2html output)
+     Mimics diff2html's split and unified table structure.
+     ============================================================ */
+  .diff-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-family: "SF Mono", ui-monospace, Menlo, monospace;
+    font-size: 12px;
+    line-height: 1.5;
+  }
+  /* Split diff: two equal half-width columns */
+  .diff-table.split td { width: 50%; }
+  .diff-col-left, .diff-col-right {
+    vertical-align: top;
+    border: none;
+  }
+  .diff-col-left { border-right: 1px solid var(--separator); }
+
+  /* Column side-labels row */
+  .diff-side-labels td {
+    padding: 3px 8px;
+    font-size: 10px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase;
+    color: var(--text-secondary);
+    background: var(--content-bg);
+    border-bottom: 1px solid var(--separator);
+  }
+
+  /* Hunk header */
+  .diff-hunk td {
+    padding: 2px 8px;
+    background: rgba(10,132,255,0.06);
+    color: var(--text-secondary);
+    font-size: 11px;
+    border-top: 1px solid var(--separator);
+    border-bottom: 1px solid var(--separator);
+  }
+
+  /* Context, added, removed cells */
+  .diff-line-num {
+    width: 36px; min-width: 36px;
+    text-align: right;
+    padding: 0 6px;
+    color: var(--text-secondary);
+    background: rgba(127,127,127,0.06);
+    border-right: 1px solid var(--separator);
+    user-select: none;
+    font-size: 11px;
+    vertical-align: top;
+    line-height: 1.7;
+  }
+  .diff-line-code {
+    padding: 0 8px;
+    white-space: pre;
+    vertical-align: top;
+    line-height: 1.7;
+  }
+  .diff-ctx   { background: transparent; }
+  .diff-add   { background: rgba(48,209,88,0.10); }
+  .diff-del   { background: rgba(229,72,77,0.10); }
+  .diff-add .diff-line-num { background: rgba(48,209,88,0.12); }
+  .diff-del .diff-line-num { background: rgba(229,72,77,0.12); }
+  .diff-add .diff-line-code { color: var(--text); }
+  .diff-del .diff-line-code { color: var(--text); }
+  .diff-add-marker { color: #1a8a4a; font-weight: 700; }
+  .diff-del-marker { color: var(--state-removed); font-weight: 700; }
+  @media (prefers-color-scheme: dark) {
+    .diff-add { background: rgba(48,209,88,0.08); }
+    .diff-del { background: rgba(229,72,77,0.08); }
+    .diff-add-marker { color: #4cc38a; }
+  }
+
+  /* Unified diff: full-width table */
+  .diff-table.unified td { width: auto; }
+
+  /* ============================================================
+     Placeholders
+     ============================================================ */
+  .caught-up {
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    flex: 1; min-height: 300px;
+    gap: 6px; color: var(--text-secondary);
+    font-size: 13px; text-align: center; padding: 40px;
+  }
+  .caught-up-icon { font-size: 28px; color: var(--accent); margin-bottom: 4px; }
+  .caught-up p { margin: 0; font-size: 15px; font-weight: 600; color: var(--text); }
+  .caught-up a { color: var(--accent); text-decoration: none; margin-top: 4px; }
+  .caught-up a:hover { text-decoration: underline; }
+
+  /* ============================================================
+     State-switcher (mockup scaffolding — not part of the design)
+     ============================================================ */
+  .state-switcher {
+    position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
+    background: rgba(28,28,30,0.88); color: #fff;
+    backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+    border-radius: 100px; padding: 9px 18px;
+    display: flex; align-items: center; gap: 14px;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.38);
+    font-size: 13px; font-weight: 500; z-index: 9999; user-select: none;
+  }
+  .state-switcher button {
+    appearance: none; border: 0; background: transparent;
+    color: #fff; cursor: pointer; font-size: 20px; line-height: 1;
+    padding: 0 4px; border-radius: 5px; opacity: 0.75;
+    transition: opacity 0.15s, background 0.15s;
+  }
+  .state-switcher button:hover { opacity: 1; background: rgba(255,255,255,0.12); }
+  .state-switcher small { font-weight: 400; opacity: 0.7; }
+</style>
+</head>
+<body>
+<div class="window">
+  <!-- Window chrome -->
+  <div class="titlebar">
+    <div class="traffic"><span class="r"></span><span class="y"></span><span class="g"></span></div>
+    <span class="win-title">Steve</span>
+  </div>
+  <div class="tabs">
+    <button class="tab active"><span class="glyph">↕</span>Review</button>
+    <button class="tab"><span class="glyph">⚙</span>Settings</button>
+  </div>
+
+  <!-- Main content: sidebar + diff pane -->
+  <div class="win-content">
+
+    <!-- Sidebar (Variant C: sticky action header) -->
+    <div class="sidebar">
+      <div class="action-header" id="action-header">
+        <!-- rendered by JS -->
+      </div>
+      <div class="skill-list" id="skill-list">
+        <!-- rendered by JS -->
+      </div>
+    </div>
+
+    <!-- Main pane (Variant B: collapsible file cards) -->
+    <div class="main-pane" id="main-pane">
+      <!-- rendered by JS -->
+    </div>
+
+  </div>
+</div>
+
+<!-- State-switcher (scaffolding) -->
+<div class="state-switcher">
+  <button id="prev" aria-label="Previous state">‹</button>
+  <span id="slabel"></span>
+  <button id="next" aria-label="Next state">›</button>
+</div>
+
+<script>
+// ============================================================
+// Data — baked from prototypes/review-diff/app/src/data.ts
+// ============================================================
+const SKILLS_DATA = [
+  // Removed on origin
+  {
+    id: 'zoom-out', label: 'zoom-out', state: 'removed',
+    files: [
+      {
+        filename: 'zoom-out/SKILL.md', shortName: 'SKILL.md',
+        status: 'deleted',
+        addedLines: 0, removedLines: 22,
+        splitHtml: `
+<table class="diff-table split"><tbody>
+  <tr class="diff-side-labels"><td colspan="2">Installed</td><td colspan="2">Origin</td></tr>
+  <tr class="diff-hunk"><td colspan="4">@@ -1,22 +0,0 @@  zoom-out/SKILL.md deleted</td></tr>
+  <tr class="diff-del"><td class="diff-line-num">1</td><td class="diff-line-code"><span class="diff-del-marker">−</span> # Zoom Out</td><td class="diff-line-num"></td><td class="diff-line-code"></td></tr>
+  <tr class="diff-del"><td class="diff-line-num">2</td><td class="diff-line-code"><span class="diff-del-marker">−</span></td><td class="diff-line-num"></td><td class="diff-line-code"></td></tr>
+  <tr class="diff-del"><td class="diff-line-num">3</td><td class="diff-line-code"><span class="diff-del-marker">−</span> Step back from the current task and assess whether it still makes sense</td><td class="diff-line-num"></td><td class="diff-line-code"></td></tr>
+  <tr class="diff-del"><td class="diff-line-num">4</td><td class="diff-line-code"><span class="diff-del-marker">−</span> in the context of the broader goal.</td><td class="diff-line-num"></td><td class="diff-line-code"></td></tr>
+  <tr class="diff-del"><td class="diff-line-num">5</td><td class="diff-line-code"><span class="diff-del-marker">−</span></td><td class="diff-line-num"></td><td class="diff-line-code"></td></tr>
+  <tr class="diff-del"><td class="diff-line-num">6</td><td class="diff-line-code"><span class="diff-del-marker">−</span> ## When to use</td><td class="diff-line-num"></td><td class="diff-line-code"></td></tr>
+  <tr class="diff-del"><td class="diff-line-num">7</td><td class="diff-line-code"><span class="diff-del-marker">−</span></td><td class="diff-line-num"></td><td class="diff-line-code"></td></tr>
+  <tr class="diff-del"><td class="diff-line-num">8</td><td class="diff-line-code"><span class="diff-del-marker">−</span> When the user seems stuck in implementation details, when the approach has</td><td class="diff-line-num"></td><td class="diff-line-code"></td></tr>
+  <tr class="diff-del"><td class="diff-line-num">9</td><td class="diff-line-code"><span class="diff-del-marker">−</span> drifted from the original plan, or when asked to "zoom out" or "step back".</td><td class="diff-line-num"></td><td class="diff-line-code"></td></tr>
+  <tr class="diff-del"><td class="diff-line-num">10</td><td class="diff-line-code"><span class="diff-del-marker">−</span></td><td class="diff-line-num"></td><td class="diff-line-code"></td></tr>
+  <tr class="diff-del"><td class="diff-line-num">11</td><td class="diff-line-code"><span class="diff-del-marker">−</span> ## Steps</td><td class="diff-line-num"></td><td class="diff-line-code"></td></tr>
+  <tr class="diff-del"><td class="diff-line-num">12</td><td class="diff-line-code"><span class="diff-del-marker">−</span></td><td class="diff-line-num"></td><td class="diff-line-code"></td></tr>
+  <tr class="diff-del"><td class="diff-line-num">13</td><td class="diff-line-code"><span class="diff-del-marker">−</span> 1. Summarise what has been built so far in one paragraph.</td><td class="diff-line-num"></td><td class="diff-line-code"></td></tr>
+  <tr class="diff-del"><td class="diff-line-num">14</td><td class="diff-line-code"><span class="diff-del-marker">−</span> 2. Re-read the original brief or goal.</td><td class="diff-line-num"></td><td class="diff-line-code"></td></tr>
+  <tr class="diff-del"><td class="diff-line-num">15</td><td class="diff-line-code"><span class="diff-del-marker">−</span> 3. List any divergences between current approach and original intent.</td><td class="diff-line-num"></td><td class="diff-line-code"></td></tr>
+  <tr class="diff-del"><td class="diff-line-num">16</td><td class="diff-line-code"><span class="diff-del-marker">−</span> 4. Ask the user: continue, pivot, or restart?</td><td class="diff-line-num"></td><td class="diff-line-code"></td></tr>
+  <tr class="diff-del"><td class="diff-line-num">17</td><td class="diff-line-code"><span class="diff-del-marker">−</span></td><td class="diff-line-num"></td><td class="diff-line-code"></td></tr>
+  <tr class="diff-del"><td class="diff-line-num">18</td><td class="diff-line-code"><span class="diff-del-marker">−</span> ## Notes</td><td class="diff-line-num"></td><td class="diff-line-code"></td></tr>
+  <tr class="diff-del"><td class="diff-line-num">19</td><td class="diff-line-code"><span class="diff-del-marker">−</span></td><td class="diff-line-num"></td><td class="diff-line-code"></td></tr>
+  <tr class="diff-del"><td class="diff-line-num">20</td><td class="diff-line-code"><span class="diff-del-marker">−</span> - Do not make code changes during a zoom-out pass.</td><td class="diff-line-num"></td><td class="diff-line-code"></td></tr>
+  <tr class="diff-del"><td class="diff-line-num">21</td><td class="diff-line-code"><span class="diff-del-marker">−</span> - This is a diagnostic tool, not an implementation tool.</td><td class="diff-line-num"></td><td class="diff-line-code"></td></tr>
+  <tr class="diff-del"><td class="diff-line-num">22</td><td class="diff-line-code"><span class="diff-del-marker">−</span> - Always end with a concrete question to the user.</td><td class="diff-line-num"></td><td class="diff-line-code"></td></tr>
+</tbody></table>`,
+        unifiedHtml: `
+<table class="diff-table unified"><tbody>
+  <tr class="diff-hunk"><td colspan="3">@@ -1,22 +0,0 @@  zoom-out/SKILL.md deleted</td></tr>
+  <tr class="diff-del"><td class="diff-line-num">1</td><td class="diff-line-num"></td><td class="diff-line-code"><span class="diff-del-marker">−</span> # Zoom Out</td></tr>
+  <tr class="diff-del"><td class="diff-line-num">2</td><td class="diff-line-num"></td><td class="diff-line-code"><span class="diff-del-marker">−</span></td></tr>
+  <tr class="diff-del"><td class="diff-line-num">3</td><td class="diff-line-num"></td><td class="diff-line-code"><span class="diff-del-marker">−</span> Step back from the current task and assess whether it still makes sense</td></tr>
+  <tr class="diff-del"><td class="diff-line-num">4</td><td class="diff-line-num"></td><td class="diff-line-code"><span class="diff-del-marker">−</span> in the context of the broader goal.</td></tr>
+  <tr class="diff-del"><td class="diff-line-num">5</td><td class="diff-line-num"></td><td class="diff-line-code"><span class="diff-del-marker">−</span></td></tr>
+  <tr class="diff-del"><td class="diff-line-num">6</td><td class="diff-line-num"></td><td class="diff-line-code"><span class="diff-del-marker">−</span> ## When to use</td></tr>
+  <tr class="diff-del"><td class="diff-line-num">7</td><td class="diff-line-num"></td><td class="diff-line-code"><span class="diff-del-marker">−</span></td></tr>
+  <tr class="diff-del"><td class="diff-line-num">8</td><td class="diff-line-num"></td><td class="diff-line-code"><span class="diff-del-marker">−</span> When the user seems stuck in implementation details, when the approach has</td></tr>
+  <tr class="diff-del"><td class="diff-line-num">9</td><td class="diff-line-num"></td><td class="diff-line-code"><span class="diff-del-marker">−</span> drifted from the original plan, or when asked to "zoom out" or "step back".</td></tr>
+  <tr class="diff-del"><td class="diff-line-num">10</td><td class="diff-line-num"></td><td class="diff-line-code"><span class="diff-del-marker">−</span></td></tr>
+  <tr class="diff-del"><td class="diff-line-num">11</td><td class="diff-line-num"></td><td class="diff-line-code"><span class="diff-del-marker">−</span> ## Steps</td></tr>
+  <tr class="diff-del"><td class="diff-line-num">12</td><td class="diff-line-num"></td><td class="diff-line-code"><span class="diff-del-marker">−</span></td></tr>
+  <tr class="diff-del"><td class="diff-line-num">13</td><td class="diff-line-num"></td><td class="diff-line-code"><span class="diff-del-marker">−</span> 1. Summarise what has been built so far in one paragraph.</td></tr>
+  <tr class="diff-del"><td class="diff-line-num">14</td><td class="diff-line-num"></td><td class="diff-line-code"><span class="diff-del-marker">−</span> 2. Re-read the original brief or goal.</td></tr>
+  <tr class="diff-del"><td class="diff-line-num">15</td><td class="diff-line-num"></td><td class="diff-line-code"><span class="diff-del-marker">−</span> 3. List any divergences between current approach and original intent.</td></tr>
+  <tr class="diff-del"><td class="diff-line-num">16</td><td class="diff-line-num"></td><td class="diff-line-code"><span class="diff-del-marker">−</span> 4. Ask the user: continue, pivot, or restart?</td></tr>
+  <tr class="diff-del"><td class="diff-line-num">17</td><td class="diff-line-num"></td><td class="diff-line-code"><span class="diff-del-marker">−</span></td></tr>
+  <tr class="diff-del"><td class="diff-line-num">18</td><td class="diff-line-num"></td><td class="diff-line-code"><span class="diff-del-marker">−</span> ## Notes</td></tr>
+  <tr class="diff-del"><td class="diff-line-num">19</td><td class="diff-line-num"></td><td class="diff-line-code"><span class="diff-del-marker">−</span></td></tr>
+  <tr class="diff-del"><td class="diff-line-num">20</td><td class="diff-line-num"></td><td class="diff-line-code"><span class="diff-del-marker">−</span> - Do not make code changes during a zoom-out pass.</td></tr>
+  <tr class="diff-del"><td class="diff-line-num">21</td><td class="diff-line-num"></td><td class="diff-line-code"><span class="diff-del-marker">−</span> - This is a diagnostic tool, not an implementation tool.</td></tr>
+  <tr class="diff-del"><td class="diff-line-num">22</td><td class="diff-line-num"></td><td class="diff-line-code"><span class="diff-del-marker">−</span> - Always end with a concrete question to the user.</td></tr>
+</tbody></table>`
+      }
+    ]
+  },
+  // Update available
+  {
+    id: 'grill-with-docs', label: 'grill-with-docs', state: 'update',
+    files: [
+      {
+        filename: 'grill-with-docs/SKILL.md', shortName: 'SKILL.md',
+        status: 'modified', addedLines: 4, removedLines: 4,
+        splitHtml: `
+<table class="diff-table split"><tbody>
+  <tr class="diff-side-labels"><td colspan="2">Installed</td><td colspan="2">Origin</td></tr>
+  <tr class="diff-hunk"><td colspan="4">@@ -1,7 +1,7 @@  grill-with-docs/SKILL.md</td></tr>
+  <tr class="diff-ctx"><td class="diff-line-num">1</td><td class="diff-line-code"> # Grill with Docs</td><td class="diff-line-num">1</td><td class="diff-line-code"> # Grill with Docs</td></tr>
+  <tr class="diff-ctx"><td class="diff-line-num">2</td><td class="diff-line-code"></td><td class="diff-line-num">2</td><td class="diff-line-code"></td></tr>
+  <tr class="diff-del"><td class="diff-line-num">3</td><td class="diff-line-code"><span class="diff-del-marker">−</span> Challenge your plan against the existing domain model, sharpen terminology,</td><td class="diff-line-num"></td><td class="diff-line-code"></td></tr>
+  <tr class="diff-del"><td class="diff-line-num">4</td><td class="diff-line-code"><span class="diff-del-marker">−</span> and update documentation inline as decisions crystallise.</td><td class="diff-line-num"></td><td class="diff-line-code"></td></tr>
+  <tr class="diff-add"><td class="diff-line-num"></td><td class="diff-line-code"></td><td class="diff-line-num">3</td><td class="diff-line-code"><span class="diff-add-marker">+</span> Challenge any design against the canonical domain model — surface unstated</td></tr>
+  <tr class="diff-add"><td class="diff-line-num"></td><td class="diff-line-code"></td><td class="diff-line-num">4</td><td class="diff-line-code"><span class="diff-add-marker">+</span> assumptions, force vocabulary alignment, and lock decisions into docs as they land.</td></tr>
+  <tr class="diff-ctx"><td class="diff-line-num">5</td><td class="diff-line-code"></td><td class="diff-line-num">5</td><td class="diff-line-code"></td></tr>
+  <tr class="diff-ctx"><td class="diff-line-num">6</td><td class="diff-line-code"> ## When to use</td><td class="diff-line-num">6</td><td class="diff-line-code"> ## When to use</td></tr>
+  <tr class="diff-hunk"><td colspan="4">@@ -13,7 +13,7 @@</td></tr>
+  <tr class="diff-ctx"><td class="diff-line-num">13</td><td class="diff-line-code"> ## Steps</td><td class="diff-line-num">13</td><td class="diff-line-code"> ## Steps</td></tr>
+  <tr class="diff-ctx"><td class="diff-line-num">14</td><td class="diff-line-code"></td><td class="diff-line-num">14</td><td class="diff-line-code"></td></tr>
+  <tr class="diff-ctx"><td class="diff-line-num">15</td><td class="diff-line-code"> 1. Load CONTEXT.md and all ADRs from docs/adr/.</td><td class="diff-line-num">15</td><td class="diff-line-code"> 1. Load CONTEXT.md and all ADRs from docs/adr/.</td></tr>
+  <tr class="diff-del"><td class="diff-line-num">16</td><td class="diff-line-code"><span class="diff-del-marker">−</span> 2. Ask 5–8 adversarial questions about the plan.</td><td class="diff-line-num"></td><td class="diff-line-code"></td></tr>
+  <tr class="diff-del"><td class="diff-line-num">17</td><td class="diff-line-code"><span class="diff-del-marker">−</span> 3. For each answer: update CONTEXT.md or write/amend an ADR.</td><td class="diff-line-num"></td><td class="diff-line-code"></td></tr>
+  <tr class="diff-add"><td class="diff-line-num"></td><td class="diff-line-code"></td><td class="diff-line-num">16</td><td class="diff-line-code"><span class="diff-add-marker">+</span> 2. Ask 7–10 adversarial questions — at least two must challenge vocabulary.</td></tr>
+  <tr class="diff-add"><td class="diff-line-num"></td><td class="diff-line-code"></td><td class="diff-line-num">17</td><td class="diff-line-code"><span class="diff-add-marker">+</span> 3. For each settled answer: update CONTEXT.md or write/amend an ADR immediately.</td></tr>
+  <tr class="diff-ctx"><td class="diff-line-num">18</td><td class="diff-line-code"> 4. Re-grill any answer that introduces new ambiguity.</td><td class="diff-line-num">18</td><td class="diff-line-code"> 4. Re-grill any answer that introduces new ambiguity.</td></tr>
+  <tr class="diff-ctx"><td class="diff-line-num">19</td><td class="diff-line-code"> 5. Stop when no open questions remain.</td><td class="diff-line-num">19</td><td class="diff-line-code"> 5. Stop when no open questions remain.</td></tr>
+</tbody></table>`,
+        unifiedHtml: `
+<table class="diff-table unified"><tbody>
+  <tr class="diff-hunk"><td colspan="3">@@ -1,7 +1,7 @@  grill-with-docs/SKILL.md</td></tr>
+  <tr class="diff-ctx"><td class="diff-line-num">1</td><td class="diff-line-num">1</td><td class="diff-line-code"> # Grill with Docs</td></tr>
+  <tr class="diff-ctx"><td class="diff-line-num">2</td><td class="diff-line-num">2</td><td class="diff-line-code"></td></tr>
+  <tr class="diff-del"><td class="diff-line-num">3</td><td class="diff-line-num"></td><td class="diff-line-code"><span class="diff-del-marker">−</span> Challenge your plan against the existing domain model, sharpen terminology,</td></tr>
+  <tr class="diff-del"><td class="diff-line-num">4</td><td class="diff-line-num"></td><td class="diff-line-code"><span class="diff-del-marker">−</span> and update documentation inline as decisions crystallise.</td></tr>
+  <tr class="diff-add"><td class="diff-line-num"></td><td class="diff-line-num">3</td><td class="diff-line-code"><span class="diff-add-marker">+</span> Challenge any design against the canonical domain model — surface unstated</td></tr>
+  <tr class="diff-add"><td class="diff-line-num"></td><td class="diff-line-num">4</td><td class="diff-line-code"><span class="diff-add-marker">+</span> assumptions, force vocabulary alignment, and lock decisions into docs as they land.</td></tr>
+  <tr class="diff-ctx"><td class="diff-line-num">5</td><td class="diff-line-num">5</td><td class="diff-line-code"></td></tr>
+  <tr class="diff-ctx"><td class="diff-line-num">6</td><td class="diff-line-num">6</td><td class="diff-line-code"> ## When to use</td></tr>
+  <tr class="diff-hunk"><td colspan="3">@@ -13,7 +13,7 @@</td></tr>
+  <tr class="diff-ctx"><td class="diff-line-num">13</td><td class="diff-line-num">13</td><td class="diff-line-code"> ## Steps</td></tr>
+  <tr class="diff-ctx"><td class="diff-line-num">14</td><td class="diff-line-num">14</td><td class="diff-line-code"></td></tr>
+  <tr class="diff-ctx"><td class="diff-line-num">15</td><td class="diff-line-num">15</td><td class="diff-line-code"> 1. Load CONTEXT.md and all ADRs from docs/adr/.</td></tr>
+  <tr class="diff-del"><td class="diff-line-num">16</td><td class="diff-line-num"></td><td class="diff-line-code"><span class="diff-del-marker">−</span> 2. Ask 5–8 adversarial questions about the plan.</td></tr>
+  <tr class="diff-del"><td class="diff-line-num">17</td><td class="diff-line-num"></td><td class="diff-line-code"><span class="diff-del-marker">−</span> 3. For each answer: update CONTEXT.md or write/amend an ADR.</td></tr>
+  <tr class="diff-add"><td class="diff-line-num"></td><td class="diff-line-num">16</td><td class="diff-line-code"><span class="diff-add-marker">+</span> 2. Ask 7–10 adversarial questions — at least two must challenge vocabulary.</td></tr>
+  <tr class="diff-add"><td class="diff-line-num"></td><td class="diff-line-num">17</td><td class="diff-line-code"><span class="diff-add-marker">+</span> 3. For each settled answer: update CONTEXT.md or write/amend an ADR immediately.</td></tr>
+  <tr class="diff-ctx"><td class="diff-line-num">18</td><td class="diff-line-num">18</td><td class="diff-line-code"> 4. Re-grill any answer that introduces new ambiguity.</td></tr>
+  <tr class="diff-ctx"><td class="diff-line-num">19</td><td class="diff-line-num">19</td><td class="diff-line-code"> 5. Stop when no open questions remain.</td></tr>
+</tbody></table>`
+      },
+      {
+        filename: 'grill-with-docs/CONTEXT-FORMAT.md', shortName: 'CONTEXT-FORMAT.md',
+        status: 'modified', addedLines: 3, removedLines: 0,
+        splitHtml: `
+<table class="diff-table split"><tbody>
+  <tr class="diff-side-labels"><td colspan="2">Installed</td><td colspan="2">Origin</td></tr>
+  <tr class="diff-hunk"><td colspan="4">@@ -18,6 +18,9 @@  grill-with-docs/CONTEXT-FORMAT.md</td></tr>
+  <tr class="diff-ctx"><td class="diff-line-num">18</td><td class="diff-line-code"> ## Rules</td><td class="diff-line-num">18</td><td class="diff-line-code"> ## Rules</td></tr>
+  <tr class="diff-ctx"><td class="diff-line-num">19</td><td class="diff-line-code"></td><td class="diff-line-num">19</td><td class="diff-line-code"></td></tr>
+  <tr class="diff-ctx"><td class="diff-line-num">20</td><td class="diff-line-code"> - One concept per entry; never merge two terms into one bullet.</td><td class="diff-line-num">20</td><td class="diff-line-code"> - One concept per entry; never merge two terms into one bullet.</td></tr>
+  <tr class="diff-add"><td class="diff-line-num"></td><td class="diff-line-code"></td><td class="diff-line-num">21</td><td class="diff-line-code"><span class="diff-add-marker">+</span> - Every term must have a canonical short form used consistently in code.</td></tr>
+  <tr class="diff-add"><td class="diff-line-num"></td><td class="diff-line-code"></td><td class="diff-line-num">22</td><td class="diff-line-code"><span class="diff-add-marker">+</span> - If a term has a well-known industry equivalent, note the mapping explicitly.</td></tr>
+  <tr class="diff-add"><td class="diff-line-num"></td><td class="diff-line-code"></td><td class="diff-line-num">23</td><td class="diff-line-code"><span class="diff-add-marker">+</span> - Deprecated terms belong in a ## Retired section, not deleted.</td></tr>
+  <tr class="diff-ctx"><td class="diff-line-num">21</td><td class="diff-line-code"> - ADR titles must be imperative ("Use X", "Reject Y") — no gerunds.</td><td class="diff-line-num">24</td><td class="diff-line-code"> - ADR titles must be imperative ("Use X", "Reject Y") — no gerunds.</td></tr>
+  <tr class="diff-ctx"><td class="diff-line-num">22</td><td class="diff-line-code"> - Cross-reference liberally; a term that appears in an ADR should link back.</td><td class="diff-line-num">25</td><td class="diff-line-code"> - Cross-reference liberally; a term that appears in an ADR should link back.</td></tr>
+</tbody></table>`,
+        unifiedHtml: `
+<table class="diff-table unified"><tbody>
+  <tr class="diff-hunk"><td colspan="3">@@ -18,6 +18,9 @@  grill-with-docs/CONTEXT-FORMAT.md</td></tr>
+  <tr class="diff-ctx"><td class="diff-line-num">18</td><td class="diff-line-num">18</td><td class="diff-line-code"> ## Rules</td></tr>
+  <tr class="diff-ctx"><td class="diff-line-num">19</td><td class="diff-line-num">19</td><td class="diff-line-code"></td></tr>
+  <tr class="diff-ctx"><td class="diff-line-num">20</td><td class="diff-line-num">20</td><td class="diff-line-code"> - One concept per entry; never merge two terms into one bullet.</td></tr>
+  <tr class="diff-add"><td class="diff-line-num"></td><td class="diff-line-num">21</td><td class="diff-line-code"><span class="diff-add-marker">+</span> - Every term must have a canonical short form used consistently in code.</td></tr>
+  <tr class="diff-add"><td class="diff-line-num"></td><td class="diff-line-num">22</td><td class="diff-line-code"><span class="diff-add-marker">+</span> - If a term has a well-known industry equivalent, note the mapping explicitly.</td></tr>
+  <tr class="diff-add"><td class="diff-line-num"></td><td class="diff-line-num">23</td><td class="diff-line-code"><span class="diff-add-marker">+</span> - Deprecated terms belong in a ## Retired section, not deleted.</td></tr>
+  <tr class="diff-ctx"><td class="diff-line-num">21</td><td class="diff-line-num">24</td><td class="diff-line-code"> - ADR titles must be imperative ("Use X", "Reject Y") — no gerunds.</td></tr>
+  <tr class="diff-ctx"><td class="diff-line-num">22</td><td class="diff-line-num">25</td><td class="diff-line-code"> - Cross-reference liberally; a term that appears in an ADR should link back.</td></tr>
+</tbody></table>`
+      },
+      {
+        filename: 'grill-with-docs/EXAMPLES.md', shortName: 'EXAMPLES.md',
+        status: 'added', addedLines: 30, removedLines: 0,
+        splitHtml: `
+<table class="diff-table split"><tbody>
+  <tr class="diff-side-labels"><td colspan="2">Installed</td><td colspan="2">Origin</td></tr>
+  <tr class="diff-hunk"><td colspan="4">@@ -0,0 +1,30 @@  grill-with-docs/EXAMPLES.md (new file)</td></tr>
+  <tr class="diff-add"><td class="diff-line-num"></td><td class="diff-line-code"></td><td class="diff-line-num">1</td><td class="diff-line-code"><span class="diff-add-marker">+</span> # Grill with Docs — Examples</td></tr>
+  <tr class="diff-add"><td class="diff-line-num"></td><td class="diff-line-code"></td><td class="diff-line-num">2</td><td class="diff-line-code"><span class="diff-add-marker">+</span></td></tr>
+  <tr class="diff-add"><td class="diff-line-num"></td><td class="diff-line-code"></td><td class="diff-line-num">3</td><td class="diff-line-code"><span class="diff-add-marker">+</span> These examples show the kind of adversarial questions the skill generates.</td></tr>
+  <tr class="diff-add"><td class="diff-line-num"></td><td class="diff-line-code"></td><td class="diff-line-num">4</td><td class="diff-line-code"><span class="diff-add-marker">+</span></td></tr>
+  <tr class="diff-add"><td class="diff-line-num"></td><td class="diff-line-code"></td><td class="diff-line-num">5</td><td class="diff-line-code"><span class="diff-add-marker">+</span> ## Example 1 — Auth redesign</td></tr>
+  <tr class="diff-add"><td class="diff-line-num"></td><td class="diff-line-code"></td><td class="diff-line-num">6</td><td class="diff-line-code"><span class="diff-add-marker">+</span></td></tr>
+  <tr class="diff-add"><td class="diff-line-num"></td><td class="diff-line-code"></td><td class="diff-line-num">7</td><td class="diff-line-code"><span class="diff-add-marker">+</span> **Plan:** Replace session tokens with JWTs to support horizontal scaling.</td></tr>
+  <tr class="diff-add"><td class="diff-line-num"></td><td class="diff-line-code"></td><td class="diff-line-num">8</td><td class="diff-line-code"><span class="diff-add-marker">+</span></td></tr>
+  <tr class="diff-add"><td class="diff-line-num"></td><td class="diff-line-code"></td><td class="diff-line-num">9</td><td class="diff-line-code"><span class="diff-add-marker">+</span> **Questions generated:**</td></tr>
+  <tr class="diff-add"><td class="diff-line-num"></td><td class="diff-line-code"></td><td class="diff-line-num">10</td><td class="diff-line-code"><span class="diff-add-marker">+</span></td></tr>
+  <tr class="diff-add"><td class="diff-line-num"></td><td class="diff-line-code"></td><td class="diff-line-num">11</td><td class="diff-line-code"><span class="diff-add-marker">+</span> - "CONTEXT.md defines *session* as a server-side object. JWTs are client-side.</td></tr>
+  <tr class="diff-add"><td class="diff-line-num"></td><td class="diff-line-code"></td><td class="diff-line-num">12</td><td class="diff-line-code"><span class="diff-add-marker">+</span>   Which term wins? Update the glossary before continuing."</td></tr>
+  <tr class="diff-add"><td class="diff-line-num"></td><td class="diff-line-code"></td><td class="diff-line-num">13</td><td class="diff-line-code"><span class="diff-add-marker">+</span> - "ADR-004 says 'reject stateless tokens' — is this plan overriding that decision?"</td></tr>
+  <tr class="diff-add"><td class="diff-line-num"></td><td class="diff-line-code"></td><td class="diff-line-num">14</td><td class="diff-line-code"><span class="diff-add-marker">+</span> - "You said 'horizontal scaling' but CONTEXT.md has no definition for that term."</td></tr>
+  <tr class="diff-add"><td class="diff-line-num"></td><td class="diff-line-code"></td><td class="diff-line-num">15</td><td class="diff-line-code"><span class="diff-add-marker">+</span></td></tr>
+  <tr class="diff-add"><td class="diff-line-num"></td><td class="diff-line-code"></td><td class="diff-line-num">16</td><td class="diff-line-code"><span class="diff-add-marker">+</span> ## Example 2 — New event pipeline</td></tr>
+  <tr class="diff-add"><td class="diff-line-num"></td><td class="diff-line-code"></td><td class="diff-line-num">17</td><td class="diff-line-code"><span class="diff-add-marker">+</span></td></tr>
+  <tr class="diff-add"><td class="diff-line-num"></td><td class="diff-line-code"></td><td class="diff-line-num">18</td><td class="diff-line-code"><span class="diff-add-marker">+</span> **Plan:** Add a Kafka topic for user-action events.</td></tr>
+  <tr class="diff-add"><td class="diff-line-num"></td><td class="diff-line-code"></td><td class="diff-line-num">19</td><td class="diff-line-code"><span class="diff-add-marker">+</span></td></tr>
+  <tr class="diff-add"><td class="diff-line-num"></td><td class="diff-line-code"></td><td class="diff-line-num">20</td><td class="diff-line-code"><span class="diff-add-marker">+</span> **Questions generated:**</td></tr>
+  <tr class="diff-add"><td class="diff-line-num"></td><td class="diff-line-code"></td><td class="diff-line-num">21</td><td class="diff-line-code"><span class="diff-add-marker">+</span></td></tr>
+  <tr class="diff-add"><td class="diff-line-num"></td><td class="diff-line-code"></td><td class="diff-line-num">22</td><td class="diff-line-code"><span class="diff-add-marker">+</span> - "Is *event* the right term? CONTEXT.md uses *action* for user-initiated changes."</td></tr>
+  <tr class="diff-add"><td class="diff-line-num"></td><td class="diff-line-code"></td><td class="diff-line-num">23</td><td class="diff-line-code"><span class="diff-add-marker">+</span> - "ADR-011 mandates all new topics go through Platform team review."</td></tr>
+  <tr class="diff-add"><td class="diff-line-num"></td><td class="diff-line-code"></td><td class="diff-line-num">24</td><td class="diff-line-code"><span class="diff-add-marker">+</span> - "The word *pipeline* appears three times but is not in CONTEXT.md."</td></tr>
+</tbody></table>`,
+        unifiedHtml: `
+<table class="diff-table unified"><tbody>
+  <tr class="diff-hunk"><td colspan="3">@@ -0,0 +1,30 @@  grill-with-docs/EXAMPLES.md (new file)</td></tr>
+  <tr class="diff-add"><td class="diff-line-num"></td><td class="diff-line-num">1</td><td class="diff-line-code"><span class="diff-add-marker">+</span> # Grill with Docs — Examples</td></tr>
+  <tr class="diff-add"><td class="diff-line-num"></td><td class="diff-line-num">2</td><td class="diff-line-code"><span class="diff-add-marker">+</span></td></tr>
+  <tr class="diff-add"><td class="diff-line-num"></td><td class="diff-line-num">3</td><td class="diff-line-code"><span class="diff-add-marker">+</span> These examples show the kind of adversarial questions the skill generates.</td></tr>
+  <tr class="diff-add"><td class="diff-line-num"></td><td class="diff-line-num">4</td><td class="diff-line-code"><span class="diff-add-marker">+</span></td></tr>
+  <tr class="diff-add"><td class="diff-line-num"></td><td class="diff-line-num">5</td><td class="diff-line-code"><span class="diff-add-marker">+</span> ## Example 1 — Auth redesign</td></tr>
+  <tr class="diff-add"><td class="diff-line-num"></td><td class="diff-line-num">7</td><td class="diff-line-code"><span class="diff-add-marker">+</span> **Plan:** Replace session tokens with JWTs to support horizontal scaling.</td></tr>
+  <tr class="diff-add"><td class="diff-line-num"></td><td class="diff-line-num">9</td><td class="diff-line-code"><span class="diff-add-marker">+</span> **Questions generated:**</td></tr>
+  <tr class="diff-add"><td class="diff-line-num"></td><td class="diff-line-num">11</td><td class="diff-line-code"><span class="diff-add-marker">+</span> - "CONTEXT.md defines *session* as a server-side object. JWTs are client-side.</td></tr>
+  <tr class="diff-add"><td class="diff-line-num"></td><td class="diff-line-num">12</td><td class="diff-line-code"><span class="diff-add-marker">+</span>   Which term wins? Update the glossary before continuing."</td></tr>
+  <tr class="diff-add"><td class="diff-line-num"></td><td class="diff-line-num">13</td><td class="diff-line-code"><span class="diff-add-marker">+</span> - "ADR-004 says 'reject stateless tokens' — is this plan overriding that decision?"</td></tr>
+  <tr class="diff-add"><td class="diff-line-num"></td><td class="diff-line-num">14</td><td class="diff-line-code"><span class="diff-add-marker">+</span> - "You said 'horizontal scaling' but CONTEXT.md has no definition for that term."</td></tr>
+  <tr class="diff-add"><td class="diff-line-num"></td><td class="diff-line-num">16</td><td class="diff-line-code"><span class="diff-add-marker">+</span> ## Example 2 — New event pipeline</td></tr>
+  <tr class="diff-add"><td class="diff-line-num"></td><td class="diff-line-num">18</td><td class="diff-line-code"><span class="diff-add-marker">+</span> **Plan:** Add a Kafka topic for user-action events.</td></tr>
+  <tr class="diff-add"><td class="diff-line-num"></td><td class="diff-line-num">22</td><td class="diff-line-code"><span class="diff-add-marker">+</span> - "Is *event* the right term? CONTEXT.md uses *action* for user-initiated changes."</td></tr>
+  <tr class="diff-add"><td class="diff-line-num"></td><td class="diff-line-num">23</td><td class="diff-line-code"><span class="diff-add-marker">+</span> - "ADR-011 mandates all new topics go through Platform team review."</td></tr>
+  <tr class="diff-add"><td class="diff-line-num"></td><td class="diff-line-num">24</td><td class="diff-line-code"><span class="diff-add-marker">+</span> - "The word *pipeline* appears three times but is not in CONTEXT.md."</td></tr>
+</tbody></table>`
+      }
+    ]
+  },
+  {
+    id: 'tdd', label: 'tdd', state: 'update',
+    files: [
+      {
+        filename: 'tdd/SKILL.md', shortName: 'SKILL.md',
+        status: 'modified', addedLines: 4, removedLines: 4,
+        splitHtml: `
+<table class="diff-table split"><tbody>
+  <tr class="diff-side-labels"><td colspan="2">Installed</td><td colspan="2">Origin</td></tr>
+  <tr class="diff-hunk"><td colspan="4">@@ -1,8 +1,8 @@  tdd/SKILL.md</td></tr>
+  <tr class="diff-ctx"><td class="diff-line-num">1</td><td class="diff-line-code"> # TDD</td><td class="diff-line-num">1</td><td class="diff-line-code"> # TDD</td></tr>
+  <tr class="diff-ctx"><td class="diff-line-num">2</td><td class="diff-line-code"></td><td class="diff-line-num">2</td><td class="diff-line-code"></td></tr>
+  <tr class="diff-del"><td class="diff-line-num">3</td><td class="diff-line-code"><span class="diff-del-marker">−</span> Red-green-refactor loop for building features or fixing bugs test-first.</td><td class="diff-line-num"></td><td class="diff-line-code"></td></tr>
+  <tr class="diff-add"><td class="diff-line-num"></td><td class="diff-line-code"></td><td class="diff-line-num">3</td><td class="diff-line-code"><span class="diff-add-marker">+</span> Strict red-green-refactor loop for features and bug fixes, with integration</td></tr>
+  <tr class="diff-add"><td class="diff-line-num"></td><td class="diff-line-code"></td><td class="diff-line-num">4</td><td class="diff-line-code"><span class="diff-add-marker">+</span> test coverage as a first-class goal alongside unit tests.</td></tr>
+  <tr class="diff-ctx"><td class="diff-line-num">5</td><td class="diff-line-code"></td><td class="diff-line-num">5</td><td class="diff-line-code"></td></tr>
+  <tr class="diff-ctx"><td class="diff-line-num">6</td><td class="diff-line-code"> ## When to use</td><td class="diff-line-num">6</td><td class="diff-line-code"> ## When to use</td></tr>
+  <tr class="diff-ctx"><td class="diff-line-num">7</td><td class="diff-line-code"></td><td class="diff-line-num">7</td><td class="diff-line-code"></td></tr>
+  <tr class="diff-del"><td class="diff-line-num">8</td><td class="diff-line-code"><span class="diff-del-marker">−</span> When the user asks for TDD, mentions red-green-refactor, or wants a test harness</td><td class="diff-line-num"></td><td class="diff-line-code"></td></tr>
+  <tr class="diff-del"><td class="diff-line-num">9</td><td class="diff-line-code"><span class="diff-del-marker">−</span> before implementation begins.</td><td class="diff-line-num"></td><td class="diff-line-code"></td></tr>
+  <tr class="diff-add"><td class="diff-line-num"></td><td class="diff-line-code"></td><td class="diff-line-num">8</td><td class="diff-line-code"><span class="diff-add-marker">+</span> When the user asks for TDD, mentions red-green-refactor, wants integration tests,</td></tr>
+  <tr class="diff-add"><td class="diff-line-num"></td><td class="diff-line-code"></td><td class="diff-line-num">9</td><td class="diff-line-code"><span class="diff-add-marker">+</span> or asks for test-first development on any non-trivial feature.</td></tr>
+</tbody></table>`,
+        unifiedHtml: `
+<table class="diff-table unified"><tbody>
+  <tr class="diff-hunk"><td colspan="3">@@ -1,8 +1,8 @@  tdd/SKILL.md</td></tr>
+  <tr class="diff-ctx"><td class="diff-line-num">1</td><td class="diff-line-num">1</td><td class="diff-line-code"> # TDD</td></tr>
+  <tr class="diff-ctx"><td class="diff-line-num">2</td><td class="diff-line-num">2</td><td class="diff-line-code"></td></tr>
+  <tr class="diff-del"><td class="diff-line-num">3</td><td class="diff-line-num"></td><td class="diff-line-code"><span class="diff-del-marker">−</span> Red-green-refactor loop for building features or fixing bugs test-first.</td></tr>
+  <tr class="diff-add"><td class="diff-line-num"></td><td class="diff-line-num">3</td><td class="diff-line-code"><span class="diff-add-marker">+</span> Strict red-green-refactor loop for features and bug fixes, with integration</td></tr>
+  <tr class="diff-add"><td class="diff-line-num"></td><td class="diff-line-num">4</td><td class="diff-line-code"><span class="diff-add-marker">+</span> test coverage as a first-class goal alongside unit tests.</td></tr>
+  <tr class="diff-ctx"><td class="diff-line-num">5</td><td class="diff-line-num">5</td><td class="diff-line-code"></td></tr>
+  <tr class="diff-ctx"><td class="diff-line-num">6</td><td class="diff-line-num">6</td><td class="diff-line-code"> ## When to use</td></tr>
+  <tr class="diff-del"><td class="diff-line-num">8</td><td class="diff-line-num"></td><td class="diff-line-code"><span class="diff-del-marker">−</span> When the user asks for TDD, mentions red-green-refactor, or wants a test harness</td></tr>
+  <tr class="diff-del"><td class="diff-line-num">9</td><td class="diff-line-num"></td><td class="diff-line-code"><span class="diff-del-marker">−</span> before implementation begins.</td></tr>
+  <tr class="diff-add"><td class="diff-line-num"></td><td class="diff-line-num">8</td><td class="diff-line-code"><span class="diff-add-marker">+</span> When the user asks for TDD, mentions red-green-refactor, wants integration tests,</td></tr>
+  <tr class="diff-add"><td class="diff-line-num"></td><td class="diff-line-num">9</td><td class="diff-line-code"><span class="diff-add-marker">+</span> or asks for test-first development on any non-trivial feature.</td></tr>
+</tbody></table>`
+      }
+    ]
+  },
+  {
+    id: 'to-issues', label: 'to-issues', state: 'update',
+    files: [
+      {
+        filename: 'to-issues/SKILL.md', shortName: 'SKILL.md',
+        status: 'modified', addedLines: 3, removedLines: 2,
+        splitHtml: `
+<table class="diff-table split"><tbody>
+  <tr class="diff-side-labels"><td colspan="2">Installed</td><td colspan="2">Origin</td></tr>
+  <tr class="diff-hunk"><td colspan="4">@@ -1,7 +1,7 @@  to-issues/SKILL.md</td></tr>
+  <tr class="diff-ctx"><td class="diff-line-num">1</td><td class="diff-line-code"> # To Issues</td><td class="diff-line-num">1</td><td class="diff-line-code"> # To Issues</td></tr>
+  <tr class="diff-ctx"><td class="diff-line-num">2</td><td class="diff-line-code"></td><td class="diff-line-num">2</td><td class="diff-line-code"></td></tr>
+  <tr class="diff-del"><td class="diff-line-num">3</td><td class="diff-line-code"><span class="diff-del-marker">−</span> Break a plan or spec into independently-grabbable GitHub issues using</td><td class="diff-line-num"></td><td class="diff-line-code"></td></tr>
+  <tr class="diff-del"><td class="diff-line-num">4</td><td class="diff-line-code"><span class="diff-del-marker">−</span> tracer-bullet vertical slices.</td><td class="diff-line-num"></td><td class="diff-line-code"></td></tr>
+  <tr class="diff-add"><td class="diff-line-num"></td><td class="diff-line-code"></td><td class="diff-line-num">3</td><td class="diff-line-code"><span class="diff-add-marker">+</span> Break a plan, spec, or PRD into independently-grabbable issues on the project</td></tr>
+  <tr class="diff-add"><td class="diff-line-num"></td><td class="diff-line-code"></td><td class="diff-line-num">4</td><td class="diff-line-code"><span class="diff-add-marker">+</span> issue tracker using tracer-bullet vertical slices.</td></tr>
+  <tr class="diff-hunk"><td colspan="4">@@ -20,5 +20,6 @@</td></tr>
+  <tr class="diff-ctx"><td class="diff-line-num">20</td><td class="diff-line-code"> 3. Write each issue: title, background, acceptance criteria, open questions.</td><td class="diff-line-num">20</td><td class="diff-line-code"> 3. Write each issue: title, background, acceptance criteria, open questions.</td></tr>
+  <tr class="diff-ctx"><td class="diff-line-num">21</td><td class="diff-line-code"> 4. Link dependent issues explicitly.</td><td class="diff-line-num">21</td><td class="diff-line-code"> 4. Link dependent issues explicitly.</td></tr>
+  <tr class="diff-ctx"><td class="diff-line-num">22</td><td class="diff-line-code"> 5. Post all issues in one batch.</td><td class="diff-line-num">22</td><td class="diff-line-code"> 5. Post all issues in one batch.</td></tr>
+  <tr class="diff-add"><td class="diff-line-num"></td><td class="diff-line-code"></td><td class="diff-line-num">23</td><td class="diff-line-code"><span class="diff-add-marker">+</span> 6. Leave a comment on the parent issue listing all child issue URLs.</td></tr>
+</tbody></table>`,
+        unifiedHtml: `
+<table class="diff-table unified"><tbody>
+  <tr class="diff-hunk"><td colspan="3">@@ -1,7 +1,7 @@  to-issues/SKILL.md</td></tr>
+  <tr class="diff-ctx"><td class="diff-line-num">1</td><td class="diff-line-num">1</td><td class="diff-line-code"> # To Issues</td></tr>
+  <tr class="diff-ctx"><td class="diff-line-num">2</td><td class="diff-line-num">2</td><td class="diff-line-code"></td></tr>
+  <tr class="diff-del"><td class="diff-line-num">3</td><td class="diff-line-num"></td><td class="diff-line-code"><span class="diff-del-marker">−</span> Break a plan or spec into independently-grabbable GitHub issues using</td></tr>
+  <tr class="diff-del"><td class="diff-line-num">4</td><td class="diff-line-num"></td><td class="diff-line-code"><span class="diff-del-marker">−</span> tracer-bullet vertical slices.</td></tr>
+  <tr class="diff-add"><td class="diff-line-num"></td><td class="diff-line-num">3</td><td class="diff-line-code"><span class="diff-add-marker">+</span> Break a plan, spec, or PRD into independently-grabbable issues on the project</td></tr>
+  <tr class="diff-add"><td class="diff-line-num"></td><td class="diff-line-num">4</td><td class="diff-line-code"><span class="diff-add-marker">+</span> issue tracker using tracer-bullet vertical slices.</td></tr>
+  <tr class="diff-hunk"><td colspan="3">@@ -20,5 +20,6 @@</td></tr>
+  <tr class="diff-ctx"><td class="diff-line-num">20</td><td class="diff-line-num">20</td><td class="diff-line-code"> 3. Write each issue: title, background, acceptance criteria, open questions.</td></tr>
+  <tr class="diff-ctx"><td class="diff-line-num">21</td><td class="diff-line-num">21</td><td class="diff-line-code"> 4. Link dependent issues explicitly.</td></tr>
+  <tr class="diff-ctx"><td class="diff-line-num">22</td><td class="diff-line-num">22</td><td class="diff-line-code"> 5. Post all issues in one batch.</td></tr>
+  <tr class="diff-add"><td class="diff-line-num"></td><td class="diff-line-num">23</td><td class="diff-line-code"><span class="diff-add-marker">+</span> 6. Leave a comment on the parent issue listing all child issue URLs.</td></tr>
+</tbody></table>`
+      }
+    ]
+  },
+  // Skipped
+  {
+    id: 'handoff', label: 'handoff', state: 'skipped',
+    files: [
+      {
+        filename: 'handoff/SKILL.md', shortName: 'SKILL.md',
+        status: 'modified', addedLines: 2, removedLines: 2,
+        splitHtml: `
+<table class="diff-table split"><tbody>
+  <tr class="diff-side-labels"><td colspan="2">Installed</td><td colspan="2">Origin</td></tr>
+  <tr class="diff-hunk"><td colspan="4">@@ -1,7 +1,7 @@  handoff/SKILL.md</td></tr>
+  <tr class="diff-ctx"><td class="diff-line-num">1</td><td class="diff-line-code"> # Handoff</td><td class="diff-line-num">1</td><td class="diff-line-code"> # Handoff</td></tr>
+  <tr class="diff-ctx"><td class="diff-line-num">2</td><td class="diff-line-code"></td><td class="diff-line-num">2</td><td class="diff-line-code"></td></tr>
+  <tr class="diff-del"><td class="diff-line-num">3</td><td class="diff-line-code"><span class="diff-del-marker">−</span> Compact the current conversation into a handoff document for another agent.</td><td class="diff-line-num"></td><td class="diff-line-code"></td></tr>
+  <tr class="diff-add"><td class="diff-line-num"></td><td class="diff-line-code"></td><td class="diff-line-num">3</td><td class="diff-line-code"><span class="diff-add-marker">+</span> Compact the current conversation into a structured handoff document for another</td></tr>
+  <tr class="diff-add"><td class="diff-line-num"></td><td class="diff-line-code"></td><td class="diff-line-num">4</td><td class="diff-line-code"><span class="diff-add-marker">+</span> agent or to resume work in a new session.</td></tr>
+  <tr class="diff-del"><td class="diff-line-num">19</td><td class="diff-line-code"><span class="diff-del-marker">−</span> 5. Save the document as HANDOFF.md in the project root.</td><td class="diff-line-num"></td><td class="diff-line-code"></td></tr>
+  <tr class="diff-add"><td class="diff-line-num"></td><td class="diff-line-code"></td><td class="diff-line-num">19</td><td class="diff-line-code"><span class="diff-add-marker">+</span> 5. Save to HANDOFF.md in the project root, or wherever the user specifies.</td></tr>
+</tbody></table>`,
+        unifiedHtml: `
+<table class="diff-table unified"><tbody>
+  <tr class="diff-hunk"><td colspan="3">@@ -1,7 +1,7 @@  handoff/SKILL.md</td></tr>
+  <tr class="diff-ctx"><td class="diff-line-num">1</td><td class="diff-line-num">1</td><td class="diff-line-code"> # Handoff</td></tr>
+  <tr class="diff-ctx"><td class="diff-line-num">2</td><td class="diff-line-num">2</td><td class="diff-line-code"></td></tr>
+  <tr class="diff-del"><td class="diff-line-num">3</td><td class="diff-line-num"></td><td class="diff-line-code"><span class="diff-del-marker">−</span> Compact the current conversation into a handoff document for another agent.</td></tr>
+  <tr class="diff-add"><td class="diff-line-num"></td><td class="diff-line-num">3</td><td class="diff-line-code"><span class="diff-add-marker">+</span> Compact the current conversation into a structured handoff document for another</td></tr>
+  <tr class="diff-add"><td class="diff-line-num"></td><td class="diff-line-num">4</td><td class="diff-line-code"><span class="diff-add-marker">+</span> agent or to resume work in a new session.</td></tr>
+  <tr class="diff-del"><td class="diff-line-num">19</td><td class="diff-line-num"></td><td class="diff-line-code"><span class="diff-del-marker">−</span> 5. Save the document as HANDOFF.md in the project root.</td></tr>
+  <tr class="diff-add"><td class="diff-line-num"></td><td class="diff-line-num">19</td><td class="diff-line-code"><span class="diff-add-marker">+</span> 5. Save to HANDOFF.md in the project root, or wherever the user specifies.</td></tr>
+</tbody></table>`
+      }
+    ]
+  },
+  // Up-to-date
+  { id: 'diagnose',                      label: 'diagnose',                      state: 'uptodate', files: [] },
+  { id: 'improve-codebase-architecture', label: 'improve-codebase-architecture', state: 'uptodate', files: [] },
+  { id: 'prototype',                     label: 'prototype',                     state: 'uptodate', files: [] },
+  { id: 'setup-skills',                  label: 'setup-skills',                  state: 'uptodate', files: [] },
+  { id: 'to-prd',                        label: 'to-prd',                        state: 'uptodate', files: [] },
+  { id: 'triage',                        label: 'triage',                        state: 'uptodate', files: [] },
+];
+
+const STATE_COLOR = {
+  removed:  'var(--state-removed)',
+  update:   'var(--state-update)',
+  skipped:  'var(--state-skipped)',
+  uptodate: 'var(--state-uptodate)',
+};
+const GROUP_ORDER = ['removed', 'update', 'skipped', 'uptodate'];
+const GROUP_LABEL = { removed: 'Removed', update: 'Updates', skipped: 'Skipped', uptodate: 'Up to date' };
+const STATE_BADGE = { removed: 'Removed', update: 'Update', skipped: 'Skipped' };
+
+// ============================================================
+// Mockup states
+// ============================================================
+const STATES = [
+  { slug: 'update-available',  label: 'Update available — grill-with-docs, split diff' },
+  { slug: 'toolbar-visible',   label: 'Toolbar visible — 3 skills checked' },
+  { slug: 'unified-diff',      label: 'Unified diff view' },
+  { slug: 'uptodate-selected', label: 'Up-to-date skill selected' },
+  { slug: 'all-resolved',      label: 'All skills resolved' },
+];
+
+// ============================================================
+// UI model (mutated by state transitions)
+// ============================================================
+let uiState = {
+  selectedSkill: 'grill-with-docs',
+  checkedSkills: new Set(),
+  diffView: 'split',
+  collapsedFiles: new Set(),
+  resolvedSkills: new Set(),
+};
+
+function getStateSlug() {
+  const s = new URLSearchParams(location.search).get('state');
+  return STATES.find(x => x.slug === s) ? s : STATES[0].slug;
+}
+
+function applyStateSlug(slug) {
+  // Reset to baseline
+  uiState.checkedSkills = new Set();
+  uiState.collapsedFiles = new Set();
+  uiState.resolvedSkills = new Set();
+  uiState.diffView = 'split';
+  uiState.selectedSkill = 'grill-with-docs';
+
+  if (slug === 'toolbar-visible') {
+    uiState.checkedSkills = new Set(['zoom-out', 'grill-with-docs', 'tdd']);
+  } else if (slug === 'unified-diff') {
+    uiState.diffView = 'unified';
+  } else if (slug === 'uptodate-selected') {
+    uiState.selectedSkill = 'diagnose';
+  } else if (slug === 'all-resolved') {
+    uiState.resolvedSkills = new Set(['zoom-out', 'grill-with-docs', 'tdd', 'to-issues', 'handoff']);
+  }
+}
+
+// ============================================================
+// Render helpers
+// ============================================================
+function getVisibleSkills() {
+  return SKILLS_DATA.filter(s => !uiState.resolvedSkills.has(s.id));
+}
+
+function getMode(skills) {
+  const actionable = skills.filter(s => s.state !== 'uptodate');
+  const newOnly    = skills.filter(s => s.state === 'update' || s.state === 'removed');
+  if (actionable.length === 0) return 'none';
+  const ca = actionable.filter(s => uiState.checkedSkills.has(s.id)).length;
+  if (ca === 0) return 'none';
+  if (ca === actionable.length) return 'all';
+  const cn = newOnly.filter(s => uiState.checkedSkills.has(s.id)).length;
+  if (cn === newOnly.length && ca === newOnly.length) return 'new';
+  return 'partial';
+}
+
+function cycleChecked(mode, skills) {
+  const actionable = skills.filter(s => s.state !== 'uptodate');
+  const newOnly    = skills.filter(s => s.state === 'update' || s.state === 'removed');
+  if (mode === 'none' || mode === 'partial') return new Set(actionable.map(s => s.id));
+  if (mode === 'all')                        return new Set(newOnly.map(s => s.id));
+  return new Set();
+}
+
+// ============================================================
+// Render
+// ============================================================
+function render() {
+  const slug = getStateSlug();
+  const skills = getVisibleSkills();
+  const selected = skills.find(s => s.id === uiState.selectedSkill);
+  const actionable = skills.filter(s => s.state !== 'uptodate');
+  const mode = getMode(skills);
+  const checkedCount = actionable.filter(s => uiState.checkedSkills.has(s.id)).length;
+  const showToolbar = checkedCount > 0;
+
+  const selectIcon  = mode === 'all' ? '☑' : mode === 'new' ? '⊟' : '☐';
+  const selectTitle = mode === 'all' ? 'Select new only' : mode === 'new' ? 'Deselect all' : 'Select all';
+
+  // --- Action header ---
+  document.getElementById('action-header').innerHTML = `
+    <button class="select-toggle" id="header-select" title="${selectTitle}">${selectIcon}</button>
+    <button class="action-btn" id="header-update" ${checkedCount === 0 ? 'disabled' : ''}>
+      Update${checkedCount > 0 ? ' ' + checkedCount : ''}
+    </button>
+    <button class="action-btn action-btn--secondary" id="header-skip" ${checkedCount === 0 ? 'disabled' : ''}>
+      Skip${checkedCount > 0 ? ' ' + checkedCount : ''}
+    </button>
+  `;
+
+  // --- Skill list ---
+  const groups = GROUP_ORDER
+    .map(state => ({ state, label: GROUP_LABEL[state], items: skills.filter(s => s.state === state) }))
+    .filter(g => g.items.length > 0);
+
+  document.getElementById('skill-list').innerHTML = groups.map(g => `
+    <div class="group-header" style="color:${STATE_COLOR[g.state]}">${g.label}</div>
+    ${g.items.map(skill => {
+      const isActionable = skill.state !== 'uptodate';
+      const isSelected   = uiState.selectedSkill === skill.id;
+      const isChecked    = uiState.checkedSkills.has(skill.id);
+      return `<div class="skill-row${isSelected ? ' skill-row--selected' : ''}${!isActionable ? ' skill-row--disabled' : ''}"
+                   data-skill="${skill.id}">
+        ${isActionable
+          ? `<input type="checkbox" class="skill-checkbox" data-check="${skill.id}" ${isChecked ? 'checked' : ''}>`
+          : `<span style="width:15px;flex-shrink:0"></span>`}
+        <span class="skill-label">${skill.label}</span>
+      </div>`;
+    }).join('')}
+  `).join('');
+
+  // --- Main pane ---
+  const mainPane = document.getElementById('main-pane');
+
+  let toolbarHtml = '';
+  if (showToolbar) {
+    const tbIcon = mode === 'all' ? '☑' : '⊟';
+    toolbarHtml = `
+      <div class="toolbar">
+        <button class="toolbar-select-cycle" id="toolbar-select">${tbIcon}</button>
+        <span>${checkedCount} selected</span>
+        <div style="flex:1"></div>
+        <button class="toolbar-btn" id="toolbar-skip">Skip</button>
+        <button class="toolbar-btn toolbar-btn--primary" id="toolbar-update">Update</button>
+        <button class="toolbar-dismiss" id="toolbar-dismiss" title="Clear selection">✕</button>
+      </div>
+    `;
+  }
+
+  const stateChipColor = selected && selected.state !== 'uptodate' ? STATE_COLOR[selected.state] : '';
+  const stateChipLabel = selected ? STATE_BADGE[selected.state] || '' : '';
+
+  let paneContentHtml = '';
+  if (actionable.length === 0) {
+    paneContentHtml = `
+      <div class="caught-up">
+        <span class="caught-up-icon">✓</span>
+        <p>All caught up!</p>
+        <span>Nothing left to review.</span>
+      </div>`;
+  } else if (!selected || selected.state === 'uptodate') {
+    paneContentHtml = `
+      <div class="caught-up">
+        <span class="caught-up-icon">✓</span>
+        <p>Up to date</p>
+        <span>Nothing to sync for this skill.</span>
+        <a href="https://github.com/pahwaranger/skills/tree/master/skills/${selected ? selected.id : ''}" target="_blank" rel="noreferrer">View on GitHub ↗</a>
+      </div>`;
+  } else {
+    paneContentHtml = selected.files.map(f => {
+      const isCollapsed = uiState.collapsedFiles.has(f.filename);
+      const chevron = isCollapsed ? '▶' : '▼';
+      const statusClass = `file-status--${f.status}`;
+      const statusLabel = f.status.charAt(0).toUpperCase() + f.status.slice(1);
+      const diffHtml = uiState.diffView === 'split' ? f.splitHtml : f.unifiedHtml;
+      return `
+        <div class="file-card">
+          <div class="file-card-header" data-toggle-file="${f.filename}">
+            <span class="chevron">${chevron}</span>
+            <span class="file-name">${f.shortName}</span>
+            <span class="file-status ${statusClass}">${statusLabel}</span>
+            ${f.addedLines   > 0 ? `<span class="lines-added">+${f.addedLines}</span>` : ''}
+            ${f.removedLines > 0 ? `<span class="lines-removed">−${f.removedLines}</span>` : ''}
+          </div>
+          ${!isCollapsed ? `<div class="file-card-body">${diffHtml}</div>` : ''}
+        </div>`;
+    }).join('');
+  }
+
+  mainPane.innerHTML = `
+    ${toolbarHtml}
+    <div class="pane-header">
+      <span style="font-weight:600;font-size:13px">${selected ? selected.label : '—'}</span>
+      ${stateChipLabel ? `<span class="state-chip" style="background:${stateChipColor}">${stateChipLabel}</span>` : ''}
+      <div style="flex:1"></div>
+      <div class="segmented">
+        <button id="btn-split" class="${uiState.diffView === 'split' ? 'sel' : ''}">Split</button>
+        <button id="btn-unified" class="${uiState.diffView === 'unified' ? 'sel' : ''}">Unified</button>
+      </div>
+    </div>
+    <div class="diff-scroll">${paneContentHtml}</div>
+  `;
+
+  // State-switcher label
+  const st = STATES.find(x => x.slug === slug);
+  document.getElementById('slabel').innerHTML =
+    `review-tab · v1 &nbsp;<small>— ${st.label}</small>`;
+
+  wireEvents(skills, mode);
+}
+
+function wireEvents(skills, mode) {
+  // Sidebar: select skill
+  document.querySelectorAll('.skill-row[data-skill]').forEach(el => {
+    el.addEventListener('click', (e) => {
+      if (e.target.matches('.skill-checkbox')) return;
+      uiState.selectedSkill = el.dataset.skill;
+      render();
+    });
+  });
+
+  // Sidebar: checkboxes
+  document.querySelectorAll('[data-check]').forEach(cb => {
+    cb.addEventListener('change', (e) => {
+      e.stopPropagation();
+      const id = cb.dataset.check;
+      if (cb.checked) uiState.checkedSkills.add(id);
+      else uiState.checkedSkills.delete(id);
+      render();
+    });
+    cb.addEventListener('click', e => e.stopPropagation());
+  });
+
+  // Action header: select toggle
+  const headerSelect = document.getElementById('header-select');
+  if (headerSelect) headerSelect.addEventListener('click', () => {
+    uiState.checkedSkills = cycleChecked(mode, skills);
+    render();
+  });
+
+  // Action header: update / skip (resolve selected in mockup)
+  const headerUpdate = document.getElementById('header-update');
+  if (headerUpdate) headerUpdate.addEventListener('click', () => {
+    [...uiState.checkedSkills].forEach(id => uiState.resolvedSkills.add(id));
+    uiState.checkedSkills = new Set();
+    const remaining = skills.filter(s => !uiState.resolvedSkills.has(s.id) && s.state !== 'uptodate');
+    uiState.selectedSkill = remaining[0]?.id ?? skills.find(s => !uiState.resolvedSkills.has(s.id))?.id ?? '';
+    render();
+  });
+  const headerSkip = document.getElementById('header-skip');
+  if (headerSkip) headerSkip.addEventListener('click', () => {
+    [...uiState.checkedSkills].forEach(id => uiState.resolvedSkills.add(id));
+    uiState.checkedSkills = new Set();
+    const remaining = skills.filter(s => !uiState.resolvedSkills.has(s.id) && s.state !== 'uptodate');
+    uiState.selectedSkill = remaining[0]?.id ?? skills.find(s => !uiState.resolvedSkills.has(s.id))?.id ?? '';
+    render();
+  });
+
+  // Toolbar
+  const toolbarSelect = document.getElementById('toolbar-select');
+  if (toolbarSelect) toolbarSelect.addEventListener('click', () => {
+    uiState.checkedSkills = cycleChecked(mode, skills);
+    render();
+  });
+  const toolbarDismiss = document.getElementById('toolbar-dismiss');
+  if (toolbarDismiss) toolbarDismiss.addEventListener('click', () => {
+    uiState.checkedSkills = new Set();
+    render();
+  });
+  const toolbarUpdate = document.getElementById('toolbar-update');
+  if (toolbarUpdate) toolbarUpdate.addEventListener('click', () => {
+    [...uiState.checkedSkills].forEach(id => uiState.resolvedSkills.add(id));
+    uiState.checkedSkills = new Set();
+    render();
+  });
+  const toolbarSkip = document.getElementById('toolbar-skip');
+  if (toolbarSkip) toolbarSkip.addEventListener('click', () => {
+    [...uiState.checkedSkills].forEach(id => uiState.resolvedSkills.add(id));
+    uiState.checkedSkills = new Set();
+    render();
+  });
+
+  // Diff view toggle
+  const btnSplit = document.getElementById('btn-split');
+  if (btnSplit) btnSplit.addEventListener('click', () => { uiState.diffView = 'split'; render(); });
+  const btnUnified = document.getElementById('btn-unified');
+  if (btnUnified) btnUnified.addEventListener('click', () => { uiState.diffView = 'unified'; render(); });
+
+  // File card collapse/expand
+  document.querySelectorAll('[data-toggle-file]').forEach(el => {
+    el.addEventListener('click', () => {
+      const fn = el.dataset.toggleFile;
+      if (uiState.collapsedFiles.has(fn)) uiState.collapsedFiles.delete(fn);
+      else uiState.collapsedFiles.add(fn);
+      render();
+    });
+  });
+}
+
+// ============================================================
+// State-switcher navigation
+// ============================================================
+function setStateSlug(slug) {
+  const p = new URLSearchParams(location.search);
+  p.set('state', slug);
+  history.replaceState(null, '', '?' + p.toString());
+}
+
+function go(dir) {
+  const idx = STATES.findIndex(x => x.slug === getStateSlug());
+  const next = STATES[(idx + dir + STATES.length) % STATES.length];
+  setStateSlug(next.slug);
+  applyStateSlug(next.slug);
+  render();
+}
+
+document.getElementById('prev').addEventListener('click', () => go(-1));
+document.getElementById('next').addEventListener('click', () => go(1));
+
+document.addEventListener('keydown', e => {
+  const t = e.target;
+  if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable)) return;
+  if (e.key === 'ArrowLeft') go(-1);
+  if (e.key === 'ArrowRight') go(1);
+});
+
+// Initialise
+applyStateSlug(getStateSlug());
+render();
+</script>
+</body>
+</html>

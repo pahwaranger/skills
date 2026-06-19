@@ -1,0 +1,48 @@
+/*
+ * Snapshot of prototypes/settings/index.html CSS custom properties
+ * captured 2026-06-18 — copy, do not import.
+ * Source: prototypes/settings/index.html (inline <style>)
+ */
+
+:root {
+  color-scheme: light dark;
+
+  /* Light */
+  --win-bg: #ececec;
+  --content-bg: #f5f5f7;
+  --card-bg: #ffffff;
+  --titlebar-bg: #e3e3e3;
+  --text: #1d1d1f;
+  --text-secondary: #86868b;
+  --separator: rgba(0,0,0,0.10);
+  --separator-strong: rgba(0,0,0,0.16);
+  --accent: #0a84ff;
+  --control-bg: #ffffff;
+  --control-border: rgba(0,0,0,0.18);
+  --track-off: #e0e0e2;
+  --segment-bg: #e7e7ea;
+  --segment-sel: #ffffff;
+  --shadow: 0 18px 60px rgba(0,0,0,0.28), 0 2px 8px rgba(0,0,0,0.12);
+  --tab-active-bg: rgba(0,0,0,0.07);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --win-bg: #2a2a2c;
+    --content-bg: #232325;
+    --card-bg: #2e2e30;
+    --titlebar-bg: #353537;
+    --text: #f5f5f7;
+    --text-secondary: #98989d;
+    --separator: rgba(255,255,255,0.10);
+    --separator-strong: rgba(255,255,255,0.16);
+    --accent: #0a84ff;
+    --control-bg: #3a3a3c;
+    --control-border: rgba(255,255,255,0.16);
+    --track-off: #555558;
+    --segment-bg: #1c1c1e;
+    --segment-sel: #636366;
+    --shadow: 0 18px 60px rgba(0,0,0,0.55), 0 2px 8px rgba(0,0,0,0.4);
+    --tab-active-bg: rgba(255,255,255,0.12);
+  }
+}

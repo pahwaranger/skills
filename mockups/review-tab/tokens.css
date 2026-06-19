@@ -1,0 +1,68 @@
+/*
+ * Snapshot of prototypes/review-diff/app/src/styles.css CSS custom properties
+ * captured 2026-06-18 — copy, do not import.
+ * Source: prototypes/review-diff/app/src/styles.css
+ */
+
+:root {
+  color-scheme: light dark;
+
+  /* Light */
+  --win-bg: #ececec;
+  --content-bg: #f5f5f7;
+  --card-bg: #ffffff;
+  --titlebar-bg: #e3e3e3;
+  --text: #1d1d1f;
+  --text-secondary: #86868b;
+  --text-disabled: #aeaeb2;
+  --separator: rgba(0,0,0,0.10);
+  --separator-strong: rgba(0,0,0,0.16);
+  --accent: #0a84ff;
+  --control-bg: #ffffff;
+  --control-border: rgba(0,0,0,0.18);
+  --segment-bg: #e7e7ea;
+  --segment-sel: #ffffff;
+  --shadow: 0 18px 60px rgba(0,0,0,0.28), 0 2px 8px rgba(0,0,0,0.12);
+  --tab-active-bg: rgba(0,0,0,0.07);
+  --sidebar-bg: #e8e8ea;
+  --hover-bg: rgba(0,0,0,0.05);
+  --selected-bg: rgba(10,132,255,0.12);
+  --footer-bg: rgba(232,232,234,0.96);
+  --toolbar-bg: rgba(10,132,255,0.92);
+
+  /* State colours */
+  --state-removed: #e5484d;
+  --state-update: #0a84ff;
+  --state-skipped: #c4620c;
+  --state-uptodate: #86868b;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --win-bg: #2a2a2c;
+    --content-bg: #232325;
+    --card-bg: #2e2e30;
+    --titlebar-bg: #353537;
+    --text: #f5f5f7;
+    --text-secondary: #98989d;
+    --text-disabled: #636366;
+    --separator: rgba(255,255,255,0.10);
+    --separator-strong: rgba(255,255,255,0.16);
+    --accent: #0a84ff;
+    --control-bg: #3a3a3c;
+    --control-border: rgba(255,255,255,0.16);
+    --segment-bg: #1c1c1e;
+    --segment-sel: #636366;
+    --shadow: 0 18px 60px rgba(0,0,0,0.55), 0 2px 8px rgba(0,0,0,0.4);
+    --tab-active-bg: rgba(255,255,255,0.12);
+    --sidebar-bg: #232325;
+    --hover-bg: rgba(255,255,255,0.06);
+    --selected-bg: rgba(10,132,255,0.18);
+    --footer-bg: rgba(35,35,37,0.96);
+    --toolbar-bg: rgba(10,100,220,0.92);
+    --state-removed: #ff6369;
+    --state-update: #3b9eff;
+    --state-skipped: #f0883e;
+    --state-uptodate: #98989d;
+  }
+}
