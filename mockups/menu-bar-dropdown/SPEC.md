@@ -7,11 +7,13 @@
 ## States
 
 The states this surface can be in, and what triggers each. These map 1:1 to the
-in-file state-switcher.
+in-file state-switcher. **Default (index 0) is `attention`** — the populated state
+with all four buckets visible.
 
-- **up-to-date** — default clean state; no pending updates or removals; banner shows "All skills up to date"; skill list shows current skills only (no section header); icon is monochrome idle.
-- **update-available** — ≥1 skill has an update and/or is removed on origin; attention banner tinted red; skill list shows Removed on origin and Update available sections above the Up to date group; icon is solid red.
-- **removed-on-origin** — at least one skill has been removed from origin (no updates pending); attention banner tinted red; skill list shows Removed on origin section only above current skills; icon is solid red.
+- **attention** *(default)* — full attention state: 1 removed on origin, 3 updates available, 1 skipped, 6 up-to-date; banner reads "Attention required · 3 updates available · 1 removed · 1 skipped"; all four section buckets rendered; icon is solid red.
+- **updates** — updates only (no removed, no skipped): 3 updates available, 6 up-to-date; banner reads "Updates available · 3 updates available"; two section buckets (Update available + Up to date); icon is solid red.
+- **removed** — removed only (no updates, no skipped): 1 removed on origin, 6 up-to-date; banner reads "Attention required · 1 removed on origin"; two section buckets (Removed on origin + Up to date); icon is solid red.
+- **up-to-date** — clean state; no pending updates or removals; banner shows "All skills up to date"; skill list shows current skills only (no section header); icon is monochrome idle.
 - **checking** — a check is in flight (triggered manually or by scheduler); banner reads "Checking…"; Check for updates button is disabled with an inline spinner; icon pulses in monochrome (no prior attention in this state — would pulse red if attention were already active).
 
 ## Anatomy
@@ -21,11 +23,11 @@ The regions and components that make up the surface, named in `CONTEXT.md` vocab
 - **Menu-bar icon** — Steve's status-bar item rendered as `↺` in the macOS menu bar. Defined by two independent axes: **base colour** (monochrome when idle; solid `#FF3B30` when attention — ≥1 Update available or Removed on origin) × **pulsing** (opacity animation ~1.5 s cycle, overlaid in the current base colour while a check is in flight). Checking is a modifier, not a third state: a check while pending shows as pulsing red. No badge dot.
 - **Dropdown panel** — 300 px wide borderless floating panel anchored below the menu-bar icon. `MenuBarExtra(.window)` style — no NSPopover caret. Four vertical zones (top → bottom): Status banner → Check for updates button → Skill list → Footer.
 - **Status banner** — Zone 1. Horizontal strip with a circular icon badge on the left and a two-line text block (title + sub-text) on the right. Tinted `rgba(255,59,48,0.06)` background in attention states; no tint in clean or checking states. Badge colour matches state: red circle with "!" for attention, grey circle with "↺" for checking, green circle with "✓" for up-to-date.
-- **Check for updates button** — Zone 2. Full-width rounded button (`var(--btn-bg)` fill, `var(--tlink)` label). Disabled with an inline CSS spinner when a check is in flight.
+- **Check for updates button** — Zone 2. Full-width rounded bubble button: explicit light-gray fill (`#E5E5EA` light / `rgba(255,255,255,0.14)` dark), 1 px visible border, 8 px border-radius, `var(--tlink)` label, full width minus 14 px side margins (`calc(100% - 28px)`). Renders as a standard macOS bordered button — clearly distinct from the background. Disabled with an inline CSS spinner when a check is in flight.
 - **Skill list** — Zone 3. Skills grouped by state in priority order: Removed on origin → Update available → (Skipped) → Up to date. Each non-current group is preceded by an uppercase section label (10.5 px, weight 600, `var(--t3)`, 0.07 em letter-spacing). Each row is 26 px tall with a 3 px left-bar accent inset 9 px from the left edge; accent colour: `var(--cr)` removed, `var(--cu)` update, `var(--cs)` skipped, transparent for current. A thin separator (`var(--sep)`) divides actionable groups from the up-to-date group.
 - **Footer** — Zone 4. "Settings…" and "Quit Steve" rows, 26 px each, no left-bar accent. Separated from the skill list by a `var(--sep)` top border.
 - **Icon reference strip** — Mockup scaffolding only (not part of the production design). A labelled row below the scene showing all four icon renderings: idle, pulsing-clean, attention-red, pulsing-red.
-- **State-switcher** — Mockup scaffolding only. Fixed pill at the bottom of the viewport; ‹ / › buttons and arrow keys cycle through the four panel states.
+- **State-switcher** — Mockup scaffolding only. Fixed pill at the bottom of the viewport; ‹ / › buttons and arrow keys cycle through the five panel states.
 
 ## Behavior & interactions
 

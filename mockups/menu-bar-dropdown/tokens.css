@@ -29,6 +29,10 @@
   /* Chrome */
   --sep:        rgba(0,0,0,0.09);
   --hover:      rgba(0,0,0,0.05);
+  /* NOTE: --btn-bg / --btn-border are overridden in index.html with explicit
+     values (#E5E5EA fill, rgba(0,0,0,0.18) border) so the CfU button renders
+     as a clearly-filled macOS bordered bubble rather than a near-invisible
+     ghost. The token values below are the prototype originals — too faint. */
   --btn-bg:     rgba(0,0,0,0.06);
   --btn-border: rgba(0,0,0,0.10);
 

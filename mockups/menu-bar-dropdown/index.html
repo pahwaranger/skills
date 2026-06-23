@@ -12,10 +12,11 @@
   Self-contained, no build. Open directly in a browser.
 
   States (reachable via the floating state-switcher or ?state=<slug>):
-    up-to-date         — clean; neutral banner; no skill sections shown; icon monochrome
-    update-available   — attention banner; update + removed groups; icon red
-    removed-on-origin  — attention banner; removed-only group; icon red
-    checking           — banner shows "Checking…"; Check button disabled+spinner; icon pulsing
+    attention    [DEFAULT] — all four buckets: removed + update + skipped + up-to-date; icon red
+    updates                — update + up-to-date buckets only; icon red
+    removed                — removed + up-to-date buckets only; icon red
+    up-to-date             — clean; neutral banner; up-to-date only (no section header); icon mono
+    checking               — banner "Checking…"; Check button disabled+spinner; icon pulsing mono
 
   Provenance: prototypes/menu-bar-dropdown/ (Variant B)
   Menu-bar icon axes: base colour (monochrome idle / #FF3B30 attention) × pulsing modifier.
@@ -205,16 +206,18 @@
     margin-top: 1px;
   }
 
-  /* Zone 2: Check for updates button */
+  /* Zone 2: Check for updates button — filled rounded bubble */
   .vb-cfu {
-    background: var(--btn-bg);
-    border: 1px solid var(--btn-border);
+    /* Explicit fills so the bubble reads as a real button in both modes.
+       Light: light-gray fill + 1px visible border; Dark: slightly lighter surface. */
+    background: #E5E5EA;
+    border: 1px solid rgba(0,0,0,0.18);
     color: var(--tlink);
     font-size: 12.5px;
     font-family: inherit;
     padding: 5px 0;
     margin: 7px 14px;
-    border-radius: 7px;
+    border-radius: 8px;
     cursor: pointer;
     text-align: center;
     width: calc(100% - 28px);
@@ -223,6 +226,14 @@
     align-items: center;
     justify-content: center;
     gap: 6px;
+    appearance: none;
+    -webkit-appearance: none;
+  }
+  @media (prefers-color-scheme: dark) {
+    .vb-cfu {
+      background: rgba(255,255,255,0.14);
+      border: 1px solid rgba(255,255,255,0.18);
+    }
   }
   .vb-cfu:hover:not(:disabled) { background: rgba(0,122,255,0.09); }
   .vb-cfu:disabled {
@@ -485,24 +496,58 @@
   </div>
 
 <script>
-  // ── Skill data ────────────────────────────────────────────────────────────
-  const SKILLS_UPDATE_AVAILABLE = [
-    { name: 'grill-with-docs', state: 'update'  },
-    { name: 'tdd',             state: 'update'  },
-    { name: 'to-tickets',      state: 'update'  },
-    { name: 'zoom-out',        state: 'removed' },
+  // ── Skill data (canonical names from spec) ────────────────────────────────
+
+  // Full attention state: 1 removed + 3 updates + 1 skipped + 6 up-to-date
+  const SKILLS_ATTENTION = [
+    { name: 'zoom-out',                       state: 'removed'  },
+    { name: 'grill-with-docs',                state: 'update'   },
+    { name: 'tdd',                            state: 'update'   },
+    { name: 'to-issues',                      state: 'update'   },
+    { name: 'handoff',                        state: 'skipped'  },
+    { name: 'diagnose',                       state: 'current'  },
+    { name: 'improve-codebase-architecture',  state: 'current'  },
+    { name: 'prototype',                      state: 'current'  },
+    { name: 'setup-skills',                   state: 'current'  },
+    { name: 'to-prd',                         state: 'current'  },
+    { name: 'triage',                         state: 'current'  },
   ];
 
-  const SKILLS_REMOVED_ONLY = [
-    { name: 'zoom-out',        state: 'removed' },
+  // Updates state: 3 updates + 6 up-to-date (no removed, no skipped)
+  const SKILLS_UPDATES = [
+    { name: 'grill-with-docs',                state: 'update'   },
+    { name: 'tdd',                            state: 'update'   },
+    { name: 'to-issues',                      state: 'update'   },
+    { name: 'diagnose',                       state: 'current'  },
+    { name: 'improve-codebase-architecture',  state: 'current'  },
+    { name: 'prototype',                      state: 'current'  },
+    { name: 'setup-skills',                   state: 'current'  },
+    { name: 'to-prd',                         state: 'current'  },
+    { name: 'triage',                         state: 'current'  },
   ];
 
+  // Removed state: 1 removed + 6 up-to-date
+  const SKILLS_REMOVED = [
+    { name: 'zoom-out',                       state: 'removed'  },
+    { name: 'diagnose',                       state: 'current'  },
+    { name: 'improve-codebase-architecture',  state: 'current'  },
+    { name: 'prototype',                      state: 'current'  },
+    { name: 'setup-skills',                   state: 'current'  },
+    { name: 'to-prd',                         state: 'current'  },
+    { name: 'triage',                         state: 'current'  },
+  ];
+
+  // Up-to-date state: all skills current
   const SKILLS_UP_TO_DATE = [
-    { name: 'diagnose',                      state: 'current' },
-    { name: 'handoff',                       state: 'current' },
-    { name: 'improve-codebase-architecture', state: 'current' },
-    { name: 'prototype',                     state: 'current' },
-    { name: 'triage',                        state: 'current' },
+    { name: 'diagnose',                       state: 'current'  },
+    { name: 'grill-with-docs',                state: 'current'  },
+    { name: 'handoff',                        state: 'current'  },
+    { name: 'improve-codebase-architecture',  state: 'current'  },
+    { name: 'prototype',                      state: 'current'  },
+    { name: 'setup-skills',                   state: 'current'  },
+    { name: 'tdd',                            state: 'current'  },
+    { name: 'to-prd',                         state: 'current'  },
+    { name: 'triage',                         state: 'current'  },
   ];
 
   const STATE_LABELS = {
@@ -513,9 +558,51 @@
   };
 
   // ── Mockup states ─────────────────────────────────────────────────────────
-  // Each state defines: banner (zone 1), check button (zone 2),
-  // skill sections (zone 3), footer (zone 4), icon axes.
+  // Order: attention (default) → updates → removed → up-to-date → checking.
+  // Banner sub-lines are derived from actual bucket counts to stay honest.
   const STATES = [
+    {
+      slug:        'attention',
+      label:       'Attention required',
+      iconBase:    'attention',
+      iconPulse:   false,
+      banner: {
+        type:  'attention',
+        icon:  '!',
+        title: 'Attention required',
+        sub:   '3 updates available · 1 removed · 1 skipped',
+      },
+      checkDisabled: false,
+      skills: SKILLS_ATTENTION,
+    },
+    {
+      slug:        'updates',
+      label:       'Updates available',
+      iconBase:    'attention',
+      iconPulse:   false,
+      banner: {
+        type:  'attention',
+        icon:  '!',
+        title: 'Updates available',
+        sub:   '3 updates available',
+      },
+      checkDisabled: false,
+      skills: SKILLS_UPDATES,
+    },
+    {
+      slug:        'removed',
+      label:       'Removed on origin',
+      iconBase:    'attention',
+      iconPulse:   false,
+      banner: {
+        type:  'attention',
+        icon:  '!',
+        title: 'Attention required',
+        sub:   '1 removed on origin',
+      },
+      checkDisabled: false,
+      skills: SKILLS_REMOVED,
+    },
     {
       slug:        'up-to-date',
       label:       'Up to date',
@@ -529,34 +616,6 @@
       },
       checkDisabled: false,
       skills: SKILLS_UP_TO_DATE,
-    },
-    {
-      slug:        'update-available',
-      label:       'Update available',
-      iconBase:    'attention',
-      iconPulse:   false,
-      banner: {
-        type:  'attention',
-        icon:  '!',
-        title: 'Attention required',
-        sub:   '3 updates available · 1 removed',
-      },
-      checkDisabled: false,
-      skills: SKILLS_UPDATE_AVAILABLE.concat(SKILLS_UP_TO_DATE),
-    },
-    {
-      slug:        'removed-on-origin',
-      label:       'Removed on origin',
-      iconBase:    'attention',
-      iconPulse:   false,
-      banner: {
-        type:  'attention',
-        icon:  '!',
-        title: 'Attention required',
-        sub:   '1 removed on origin',
-      },
-      checkDisabled: false,
-      skills: SKILLS_REMOVED_ONLY.concat(SKILLS_UP_TO_DATE),
     },
     {
       slug:        'checking',
