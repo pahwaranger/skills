@@ -53,7 +53,7 @@ Tokens are snapshotted in `tokens.css` (source: `prototypes/menu-bar-dropdown/in
 - Banner badge: 22 × 22 px circle; attention `rgba(255,59,48,0.12)` bg / `#FF3B30` text; checking `rgba(142,142,147,0.12)` bg / `var(--t3)` text; clean `rgba(52,199,89,0.12)` bg / `#34C759` text.
 - Banner title: 13 px, weight 500, `var(--t1)`.
 - Banner sub-text: 11 px, `var(--t2)`, 1 px top margin.
-- Check button: `var(--btn-bg)` fill; `var(--btn-border)` border; `var(--tlink)` label; 7 px border-radius; 5 px vertical padding; 14 px horizontal margin (full-width minus margins).
+- Check button: `#E5E5EA` fill (light) / `rgba(255,255,255,0.14)` fill (dark); 1 px border (`rgba(0,0,0,0.18)` light / `rgba(255,255,255,0.18)` dark); `var(--tlink)` label; 8 px border-radius; 5 px vertical padding; 14 px horizontal margin (full-width minus margins).
 - Section label: 10.5 px, weight 600, `var(--t3)`, `text-transform: uppercase`, `letter-spacing: 0.07em`; padding 6 px top / 2 px bottom / 14 px horizontal.
 - Skill row height: 26 px; left-bar accent 3 × (row height − 12) px, 2 px radius, 9 px from left, 6 px inset top/bottom.
 - Hover background: `var(--hover)`.
