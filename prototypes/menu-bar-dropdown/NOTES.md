@@ -51,3 +51,8 @@ finishes. No issues with either base colour across light and dark mode.
 **Animated icon** — `.symbolEffect(.pulse)` on macOS 14+; manual opacity `withAnimation(.easeInOut.repeatForever())` on macOS 13. Worth a quick smoke-test in the actual menu bar renderer before shipping.
 
 **Minimum target** — support policy is a **rolling window of the latest two macOS major releases** (as of 2026-06 that's macOS 15 Sequoia + macOS 26; floor = macOS 15). That clears `MenuBarExtra` (13+) and `.symbolEffect` (14+) with margin, so the `NSStatusItem` + `NSPopover` fallback is **not needed**.
+
+## Living mockup
+
+Design locked and promoted to **[`mockups/menu-bar-dropdown/`](../../mockups/menu-bar-dropdown/)** (v1).
+That is the authoritative reference developers replicate — see its `SPEC.md` for measurements, tokens, and constraints.

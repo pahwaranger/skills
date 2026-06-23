@@ -1,0 +1,693 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Steve — Menu-bar dropdown · mockup v1</title>
+<link rel="stylesheet" href="tokens.css" />
+<!--
+  MOCKUP v1 — Steve menu-bar dropdown (Variant B — Structured).
+  Variant B only: tinted status banner, full-width Check button,
+  uppercase group labels, left-bar row accents.
+  Self-contained, no build. Open directly in a browser.
+
+  States (reachable via the floating state-switcher or ?state=<slug>):
+    up-to-date         — clean; neutral banner; no skill sections shown; icon monochrome
+    update-available   — attention banner; update + removed groups; icon red
+    removed-on-origin  — attention banner; removed-only group; icon red
+    checking           — banner shows "Checking…"; Check button disabled+spinner; icon pulsing
+
+  Provenance: prototypes/menu-bar-dropdown/ (Variant B)
+  Menu-bar icon axes: base colour (monochrome idle / #FF3B30 attention) × pulsing modifier.
+-->
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", system-ui, sans-serif;
+    background: radial-gradient(120% 120% at 50% 0%, #d7d7da 0%, #bcbcc0 100%);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 28px 20px 120px;
+    gap: 20px;
+    -webkit-font-smoothing: antialiased;
+  }
+  @media (prefers-color-scheme: dark) {
+    body { background: radial-gradient(120% 120% at 50% 0%, #1a1a1c 0%, #050506 100%); }
+  }
+
+  /* ── macOS scene ───────────────────────────────── */
+  .mac-scene {
+    background: var(--bg-page);
+    border-radius: 10px;
+    width: 680px;
+    max-width: 100%;
+    box-shadow: 0 20px 80px rgba(0,0,0,0.55), 0 0 0 1px rgba(255,255,255,0.06);
+    position: relative;
+    overflow: visible;
+  }
+
+  /* ── Menu bar ──────────────────────────────────── */
+  .menubar {
+    background: var(--mb-bg);
+    backdrop-filter: blur(20px) saturate(1.4);
+    -webkit-backdrop-filter: blur(20px) saturate(1.4);
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 10px;
+    border-radius: 10px 10px 0 0;
+    border-bottom: 1px solid var(--mb-border);
+    user-select: none;
+    position: relative;
+    z-index: 20;
+  }
+  .mb-left {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: var(--mb-color);
+    font-size: 13px;
+    font-weight: 500;
+  }
+  .mb-apple { font-size: 13px; opacity: 0.75; }
+  .mb-app   { font-weight: 600; }
+  .mb-item  { font-weight: 400; opacity: 0.68; cursor: default; }
+  .mb-right {
+    display: flex;
+    align-items: center;
+    gap: 1px;
+  }
+  .mb-sys {
+    font-size: 11px;
+    color: var(--mb-color);
+    opacity: 0.58;
+    padding: 1px 5px;
+    cursor: default;
+  }
+
+  /* Steve menu-bar icon button */
+  .steve-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 26px;
+    height: 20px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background 0.1s;
+  }
+  .steve-btn:hover { background: rgba(128,128,128,0.22); }
+  .steve-ico {
+    font-size: 14px;
+    line-height: 1;
+    display: flex;
+    align-items: center;
+    transition: color 0.2s;
+  }
+
+  /* Icon states — two independent axes:
+     base-colour: monochrome (idle) or #FF3B30 (attention)
+     pulsing: overlaid on the current base colour while checking */
+  .steve-btn[data-base="idle"]      .steve-ico { color: var(--mb-color); opacity: 0.82; }
+  .steve-btn[data-base="attention"] .steve-ico { color: #FF3B30; opacity: 1; }
+  .steve-btn[data-pulse="true"][data-base="idle"]      .steve-ico {
+    color: var(--mb-color);
+    animation: ico-pulse 1.5s ease-in-out infinite;
+  }
+  .steve-btn[data-pulse="true"][data-base="attention"] .steve-ico {
+    color: #FF3B30;
+    animation: ico-pulse 1.5s ease-in-out infinite;
+  }
+
+  @keyframes ico-pulse {
+    0%, 100% { opacity: 0.82; }
+    50%       { opacity: 0.18; }
+  }
+
+  /* ── Desktop strip (holds the dropdown) ───────── */
+  .desktop {
+    height: 64px;
+    position: relative;
+  }
+
+  /* ── Dropdown panel — Variant B ───────────────── */
+  #dropdown {
+    position: absolute;
+    top: 4px;
+    right: 8px;
+    width: 300px;
+    background: var(--dd-bg);
+    border: 1px solid var(--dd-border);
+    border-radius: 12px;
+    box-shadow: var(--dd-shadow);
+    backdrop-filter: blur(30px) saturate(1.6);
+    -webkit-backdrop-filter: blur(30px) saturate(1.6);
+    overflow: hidden;
+    font-size: 13px;
+    color: var(--t1);
+    z-index: 10;
+  }
+
+  /* ── Variant B anatomy ─────────────────────────── */
+
+  /* Zone 1: Status banner */
+  .vb-banner {
+    padding: 9px 14px 8px;
+    border-bottom: 1px solid var(--sep);
+    display: flex;
+    align-items: flex-start;
+    gap: 9px;
+  }
+  /* Tinted banner (attention states only) */
+  .vb-banner.tinted {
+    background: rgba(255,59,48,0.06);
+  }
+
+  .vb-icon {
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    margin-top: 1px;
+    font-size: 11px;
+    font-weight: 700;
+  }
+  .vb-icon.attention {
+    background: rgba(255,59,48,0.12);
+    color: #FF3B30;
+  }
+  .vb-icon.checking {
+    background: rgba(142,142,147,0.12);
+    color: var(--t3);
+    font-size: 13px;
+  }
+  .vb-icon.clean {
+    background: rgba(52,199,89,0.12);
+    color: #34C759;
+  }
+
+  .vb-body { flex: 1; }
+  .vb-title {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--t1);
+  }
+  .vb-sub {
+    font-size: 11px;
+    color: var(--t2);
+    margin-top: 1px;
+  }
+
+  /* Zone 2: Check for updates button */
+  .vb-cfu {
+    display: block;
+    background: var(--btn-bg);
+    border: 1px solid var(--btn-border);
+    color: var(--tlink);
+    font-size: 12.5px;
+    font-family: inherit;
+    padding: 5px 0;
+    margin: 7px 14px;
+    border-radius: 7px;
+    cursor: pointer;
+    text-align: center;
+    width: calc(100% - 28px);
+    transition: background 0.1s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+  }
+  .vb-cfu:hover:not(:disabled) { background: rgba(0,122,255,0.09); }
+  .vb-cfu:disabled {
+    opacity: 0.5;
+    cursor: default;
+  }
+
+  /* Spinner for checking state */
+  .vb-spinner {
+    width: 11px;
+    height: 11px;
+    border: 1.5px solid currentColor;
+    border-top-color: transparent;
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+    flex-shrink: 0;
+    opacity: 0.7;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* Zone 3: Section headers (uppercase group labels) */
+  .vb-sec {
+    padding: 6px 14px 2px;
+    font-size: 10.5px;
+    font-weight: 600;
+    color: var(--t3);
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+  }
+
+  /* Skill rows — Variant B left-bar accents */
+  .dd-row {
+    display: flex;
+    align-items: center;
+    padding: 0 14px 0 20px;
+    height: 26px;
+    color: var(--t1);
+    font-size: 13px;
+    cursor: pointer;
+    position: relative;
+    white-space: nowrap;
+    overflow: hidden;
+  }
+  .dd-row:hover { background: var(--hover); }
+  .dd-row .rn { flex: 1; overflow: hidden; text-overflow: ellipsis; }
+
+  /* Left-bar accent: 3px wide, 6px inset top/bottom */
+  .dd-row::before {
+    content: '';
+    position: absolute;
+    left: 9px;
+    top: 6px;
+    bottom: 6px;
+    width: 3px;
+    border-radius: 2px;
+  }
+  .dd-row.s-removed::before { background: var(--cr); }
+  .dd-row.s-update::before  { background: var(--cu); }
+  .dd-row.s-skipped::before { background: var(--cs); }
+  .dd-row.s-current::before { background: transparent; }
+
+  /* Zone 4: Footer */
+  .dd-sep { height: 1px; background: var(--sep); margin: 3px 0; }
+  .dd-bottom {
+    border-top: 1px solid var(--sep);
+    padding: 3px 0;
+  }
+  .dd-bottom .dd-row { padding-left: 14px; }
+  .dd-bottom .dd-row::before { display: none; }
+
+  /* ── Icon reference strip ──────────────────────── */
+  .icon-ref {
+    margin-top: 10px;
+    width: 680px;
+    max-width: 100%;
+  }
+  .icon-ref-label {
+    font-size: 10px;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.28);
+    margin-bottom: 8px;
+    padding-left: 2px;
+  }
+  .icon-ref-row {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+  .icon-ref-item {
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.09);
+    border-radius: 8px;
+    padding: 8px 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 140px;
+  }
+  /* Simulate menu-bar bg for icon reference */
+  .icon-ref-swatch {
+    background: rgba(210,210,210,0.92);
+    border-radius: 4px;
+    width: 28px;
+    height: 22px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+  .icon-ref-swatch .ico {
+    font-size: 14px;
+    color: #000;
+  }
+  /* Idle: monochrome at 0.82 opacity */
+  .ref-idle      .ico { opacity: 0.82; }
+  /* Pulsing-clean: same mono, opacity animated */
+  .ref-pulse-clean .ico { animation: ico-pulse 1.5s ease-in-out infinite; }
+  /* Attention-red: #FF3B30, full opacity */
+  .ref-attention .ico { color: #FF3B30; opacity: 1; }
+  /* Pulsing-red: #FF3B30 with pulse */
+  .ref-pulse-red .ico { color: #FF3B30; animation: ico-pulse 1.5s ease-in-out infinite; }
+
+  .icon-ref-desc {
+    font-size: 11px;
+    color: rgba(255,255,255,0.52);
+    line-height: 1.4;
+  }
+  .icon-ref-desc strong {
+    display: block;
+    color: rgba(255,255,255,0.78);
+    font-weight: 600;
+    font-size: 11px;
+    margin-bottom: 1px;
+  }
+
+  /* ── State-switcher (mockup scaffolding) ───────── */
+  .state-switcher {
+    position: fixed;
+    bottom: 22px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    background: rgba(28,28,30,0.92);
+    color: #fff;
+    border-radius: 999px;
+    padding: 6px 8px;
+    box-shadow: 0 8px 30px rgba(0,0,0,0.45);
+    font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    z-index: 50;
+    user-select: none;
+  }
+  .state-switcher button {
+    appearance: none;
+    border: 0;
+    background: rgba(255,255,255,0.12);
+    color: #fff;
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    font-size: 15px;
+    cursor: pointer;
+    display: grid;
+    place-items: center;
+  }
+  .state-switcher button:hover { background: rgba(255,255,255,0.25); }
+  .state-switcher .lbl {
+    font-size: 12.5px;
+    font-weight: 600;
+    padding: 0 12px;
+    white-space: nowrap;
+  }
+  .state-switcher .lbl small { font-weight: 400; opacity: 0.7; }
+</style>
+</head>
+<body>
+
+  <!-- macOS scene: menu bar + dropdown panel -->
+  <div class="mac-scene">
+    <!-- Menu bar chrome -->
+    <div class="menubar">
+      <div class="mb-left">
+        <span class="mb-apple">&#63743;</span>
+        <span class="mb-app">Finder</span>
+        <span class="mb-item">File</span>
+        <span class="mb-item">Edit</span>
+        <span class="mb-item">View</span>
+        <span class="mb-item">Go</span>
+        <span class="mb-item">Window</span>
+      </div>
+      <div class="mb-right">
+        <span class="mb-sys">100%</span>
+        <span class="mb-sys">&#9685;</span>
+        <span class="mb-sys">Mon 10:00 AM</span>
+        <!-- Steve menu-bar icon — base and pulse set by JS -->
+        <div class="steve-btn" id="steve-btn" data-base="idle" data-pulse="false">
+          <span class="steve-ico">↺</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Desktop area — dropdown panel anchored below icon -->
+    <div class="desktop">
+      <div id="dropdown"><!-- populated by JS --></div>
+    </div>
+  </div>
+
+  <!-- Menu-bar icon reference: all four renderings -->
+  <div class="icon-ref">
+    <div class="icon-ref-label">Menu-bar icon — all four renderings</div>
+    <div class="icon-ref-row">
+      <div class="icon-ref-item">
+        <div class="icon-ref-swatch ref-idle">
+          <span class="ico">↺</span>
+        </div>
+        <div class="icon-ref-desc">
+          <strong>Idle</strong>
+          Monochrome, 0.82 opacity. No check in flight; no pending updates.
+        </div>
+      </div>
+      <div class="icon-ref-item">
+        <div class="icon-ref-swatch ref-pulse-clean">
+          <span class="ico">↺</span>
+        </div>
+        <div class="icon-ref-desc">
+          <strong>Pulsing-clean</strong>
+          Monochrome + opacity pulse (1.5 s). Check running, no prior attention.
+        </div>
+      </div>
+      <div class="icon-ref-item">
+        <div class="icon-ref-swatch ref-attention">
+          <span class="ico">↺</span>
+        </div>
+        <div class="icon-ref-desc">
+          <strong>Attention-red</strong>
+          Solid #FF3B30. ≥1 Update available or Removed on origin; no check in flight.
+        </div>
+      </div>
+      <div class="icon-ref-item">
+        <div class="icon-ref-swatch ref-pulse-red">
+          <span class="ico">↺</span>
+        </div>
+        <div class="icon-ref-desc">
+          <strong>Pulsing-red</strong>
+          #FF3B30 + opacity pulse. Check running while attention state is active.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Floating state-switcher (mockup scaffolding — not part of the design) -->
+  <div class="state-switcher">
+    <button id="prev" aria-label="Previous state">&#8249;</button>
+    <div class="lbl" id="slabel"></div>
+    <button id="next" aria-label="Next state">&#8250;</button>
+  </div>
+
+<script>
+  // ── Skill data ────────────────────────────────────────────────────────────
+  const SKILLS_UPDATE_AVAILABLE = [
+    { name: 'grill-with-docs', state: 'update'  },
+    { name: 'tdd',             state: 'update'  },
+    { name: 'to-tickets',      state: 'update'  },
+    { name: 'zoom-out',        state: 'removed' },
+  ];
+
+  const SKILLS_REMOVED_ONLY = [
+    { name: 'zoom-out',        state: 'removed' },
+  ];
+
+  const SKILLS_UP_TO_DATE = [
+    { name: 'diagnose',                      state: 'current' },
+    { name: 'handoff',                       state: 'current' },
+    { name: 'improve-codebase-architecture', state: 'current' },
+    { name: 'prototype',                     state: 'current' },
+    { name: 'triage',                        state: 'current' },
+  ];
+
+  const STATE_LABELS = {
+    removed: 'Removed on origin',
+    update:  'Update available',
+    skipped: 'Skipped',
+    current: 'Up to date',
+  };
+
+  // ── Mockup states ─────────────────────────────────────────────────────────
+  // Each state defines: banner (zone 1), check button (zone 2),
+  // skill sections (zone 3), footer (zone 4), icon axes.
+  const STATES = [
+    {
+      slug:        'up-to-date',
+      label:       'Up to date',
+      iconBase:    'idle',
+      iconPulse:   false,
+      banner: {
+        type:  'clean',
+        icon:  '✓',
+        title: 'All skills up to date',
+        sub:   'Last checked just now.',
+      },
+      checkDisabled: false,
+      skills: SKILLS_UP_TO_DATE,
+    },
+    {
+      slug:        'update-available',
+      label:       'Update available',
+      iconBase:    'attention',
+      iconPulse:   false,
+      banner: {
+        type:  'attention',
+        icon:  '!',
+        title: 'Attention required',
+        sub:   '3 updates available · 1 removed',
+      },
+      checkDisabled: false,
+      skills: SKILLS_UPDATE_AVAILABLE.concat(SKILLS_UP_TO_DATE),
+    },
+    {
+      slug:        'removed-on-origin',
+      label:       'Removed on origin',
+      iconBase:    'attention',
+      iconPulse:   false,
+      banner: {
+        type:  'attention',
+        icon:  '!',
+        title: 'Attention required',
+        sub:   '1 removed on origin',
+      },
+      checkDisabled: false,
+      skills: SKILLS_REMOVED_ONLY.concat(SKILLS_UP_TO_DATE),
+    },
+    {
+      slug:        'checking',
+      label:       'Checking…',
+      iconBase:    'idle',   // no prior attention in this state
+      iconPulse:   true,     // check in flight — pulse modifier active
+      banner: {
+        type:  'checking',
+        icon:  '↺',
+        title: 'Checking…',
+        sub:   'Comparing installed skills to origin.',
+      },
+      checkDisabled: true,
+      skills: SKILLS_UP_TO_DATE,
+    },
+  ];
+
+  // ── Render Variant B dropdown ─────────────────────────────────────────────
+  function renderDropdown(state) {
+    const { banner, checkDisabled, skills } = state;
+
+    // Group skills by state (in canonical order)
+    const ORDER = ['removed', 'update', 'skipped', 'current'];
+    const groups = {};
+    for (const s of ORDER) groups[s] = [];
+    for (const sk of skills) groups[sk.state].push(sk.name);
+    for (const s of ORDER) groups[s].sort();
+    const activeGroups = ORDER.filter(s => groups[s].length);
+
+    // Zone 1: Status banner (tinted when attention)
+    const tintedClass = banner.type === 'attention' ? ' tinted' : '';
+    let html = `
+      <div class="vb-banner${tintedClass}">
+        <div class="vb-icon ${banner.type}">${banner.icon}</div>
+        <div class="vb-body">
+          <div class="vb-title">${banner.title}</div>
+          <div class="vb-sub">${banner.sub}</div>
+        </div>
+      </div>`;
+
+    // Zone 2: Check for updates button
+    const disabled = checkDisabled ? ' disabled' : '';
+    const spinner  = checkDisabled ? '<span class="vb-spinner"></span>' : '';
+    html += `<button class="vb-cfu"${disabled}>${spinner}↺ Check for updates</button>`;
+
+    // Zone 3: Skill list with uppercase section labels + left-bar accents
+    const actionableGroups = activeGroups.filter(s => s !== 'current');
+    if (actionableGroups.length) {
+      for (const s of actionableGroups) {
+        html += `<div class="vb-sec">${STATE_LABELS[s]}</div>`;
+        for (const name of groups[s]) {
+          html += `<div class="dd-row s-${s}"><span class="rn">${name}</span></div>`;
+        }
+      }
+      // Separator between actionable and current
+      if (groups['current'].length) {
+        html += `<div class="dd-sep"></div>`;
+        html += `<div class="vb-sec">${STATE_LABELS['current']}</div>`;
+        for (const name of groups['current']) {
+          html += `<div class="dd-row s-current"><span class="rn">${name}</span></div>`;
+        }
+      }
+    } else if (groups['current'].length) {
+      // Clean state: only up-to-date skills, omit section header for brevity
+      for (const name of groups['current']) {
+        html += `<div class="dd-row s-current"><span class="rn">${name}</span></div>`;
+      }
+    }
+
+    // Zone 4: Footer
+    html += `
+      <div class="dd-bottom">
+        <div class="dd-row">Settings…</div>
+        <div class="dd-row">Quit Steve</div>
+      </div>`;
+
+    document.getElementById('dropdown').innerHTML = html;
+  }
+
+  // ── Icon state ────────────────────────────────────────────────────────────
+  function applyIconState(state) {
+    const btn = document.getElementById('steve-btn');
+    btn.dataset.base  = state.iconBase;
+    btn.dataset.pulse = state.iconPulse ? 'true' : 'false';
+  }
+
+  // ── State routing ─────────────────────────────────────────────────────────
+  function getSlug() {
+    const s = new URLSearchParams(location.search).get('state');
+    return STATES.find(x => x.slug === s) ? s : STATES[0].slug;
+  }
+
+  function setSlug(slug) {
+    const p = new URLSearchParams(location.search);
+    p.set('state', slug);
+    history.replaceState(null, '', '?' + p.toString());
+  }
+
+  let stateIdx = 0;
+
+  function go(dir) {
+    stateIdx = ((stateIdx + dir) + STATES.length) % STATES.length;
+    const state = STATES[stateIdx];
+    setSlug(state.slug);
+    applyState(state);
+  }
+
+  function applyState(state) {
+    renderDropdown(state);
+    applyIconState(state);
+    document.getElementById('slabel').innerHTML =
+      `menu-bar-dropdown · v1 &nbsp;<small>— ${state.label}</small>`;
+  }
+
+  // ── Init ──────────────────────────────────────────────────────────────────
+  const initSlug = getSlug();
+  stateIdx = STATES.findIndex(x => x.slug === initSlug);
+  if (stateIdx < 0) stateIdx = 0;
+  applyState(STATES[stateIdx]);
+
+  // ── Controls ──────────────────────────────────────────────────────────────
+  document.getElementById('prev').addEventListener('click', () => go(-1));
+  document.getElementById('next').addEventListener('click', () => go(1));
+
+  document.addEventListener('keydown', e => {
+    const t = e.target;
+    if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable)) return;
+    if (e.key === 'ArrowLeft')  { e.preventDefault(); go(-1); }
+    if (e.key === 'ArrowRight') { e.preventDefault(); go(1); }
+  });
+</script>
+</body>
+</html>

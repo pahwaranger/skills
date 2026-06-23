@@ -8,3 +8,4 @@ production replicates it. Cite a mockup by version when specifying UI work, e.g.
 | --- | --- | --- | --- |
 | Review tab | [mockups/review-tab/](review-tab/) | v1 | `Steve/Steve/ReviewWindowView.swift`, `Steve/Steve/ReviewSidebarView.swift`, `Steve/Steve/DiffRendererView.swift` |
 | Settings tab | [mockups/settings-tab/](settings-tab/) | v1 | `Steve/Steve/SettingsView.swift` |
+| Menu-bar dropdown | [mockups/menu-bar-dropdown/](menu-bar-dropdown/) | v1 | `Steve/Steve/DropdownView.swift`, `Steve/Steve/SteveApp.swift` |
