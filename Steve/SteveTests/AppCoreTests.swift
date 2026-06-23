@@ -1112,7 +1112,7 @@ struct DirectSeedTests {
         guard let session else { return }
 
         // Verify skillFiles are populated for each scenario entry with origin files.
-        // Note: to-prd is removedOnOrigin (originFiles = nil) so it's not in skillFiles.
+        // Note: to-prd is removedOnOrigin (originFiles = nil) so it must NOT appear in skillFiles.
         #expect(session.skillFiles["diagnose"] != nil,
                 "diagnose origin files should be populated")
         #expect(session.skillFiles["tdd"] != nil,
@@ -1123,6 +1123,10 @@ struct DirectSeedTests {
                 "handoff origin files should be populated")
         #expect(session.skillFiles["triage"] != nil,
                 "triage origin files should be populated")
+        // to-prd has originFiles == nil (removedOnOrigin): the factory must not copy
+        // installedFiles or cacheFiles into skillFiles for it.
+        #expect(session.skillFiles["to-prd"] == nil,
+                "to-prd (removedOnOrigin) must be absent from skillFiles — no origin files exist")
 
         // Verify the origin files have correct content for a known skill
         if let diagnoseFiles = session.skillFiles["diagnose"] {

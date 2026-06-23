@@ -328,9 +328,11 @@ private struct DropdownActionRow: View {
 
 // MARK: — SwiftUI Previews (route b, #if DEBUG)
 
-#if DEBUG && SWIFT_PACKAGE
+#if DEBUG
 
+#if SWIFT_PACKAGE
 import FixtureEngine
+#endif
 
 #Preview("Dropdown — rich sections", traits: .fixedLayout(width: 280, height: 550)) {
     let appModel = AppModel.directSeed(from: FixtureScenario.default)
@@ -339,4 +341,4 @@ import FixtureEngine
         .background(Color(.controlBackgroundColor))
 }
 
-#endif
+#endif // DEBUG

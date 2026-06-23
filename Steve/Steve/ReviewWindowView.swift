@@ -737,9 +737,11 @@ private struct BinaryFileNotice: View {
 
 // MARK: — SwiftUI Previews (route b, #if DEBUG)
 
-#if DEBUG && SWIFT_PACKAGE
+#if DEBUG
 
+#if SWIFT_PACKAGE
 import FixtureEngine
+#endif
 
 #Preview("Sidebar — all groups", traits: .fixedLayout(width: 260, height: 500)) {
     let appModel = AppModel.directSeed(from: FixtureScenario.default)
@@ -834,5 +836,5 @@ import FixtureEngine
     .background(Color(.windowBackgroundColor))
 }
 
-#endif
+#endif // DEBUG
 
