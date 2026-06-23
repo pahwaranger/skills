@@ -8,13 +8,13 @@ import Cache
 /// corrupt-tarball signal. A `.tar.gz` GitHub serves wraps everything in a
 /// single top-level prefix dir (`<repo>-<sha>/`), with skills at
 /// `<prefix>/skills/<name>/<files>`.
-public enum TarballExtractor {
-    public enum ExtractError: Error, Equatable {
+enum TarballExtractor {
+    enum ExtractError: Error, Equatable {
         case tarFailed       // tar exited nonzero — corrupt/incomplete archive
         case noSkillsTree    // extraction succeeded but no skills/ subtree present
     }
 
-    public static func extractSkills(fromTarGz data: Data) throws -> [OriginSnapshot.Skill] {
+    static func extractSkills(fromTarGz data: Data) throws -> [OriginSnapshot.Skill] {
         let fm = FileManager.default
         let work = fm.temporaryDirectory
             .appending(path: "steve-extract-\(UUID().uuidString)", directoryHint: .isDirectory)

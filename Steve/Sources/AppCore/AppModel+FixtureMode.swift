@@ -14,11 +14,15 @@ extension AppModel {
     /// against canned data rather than the live GitHub repo.
     ///
     /// **Hard sandbox isolation (ADR 0009):**
-    /// - Skills directory, cache, and backups all resolve under
+    /// - Skills directory and cache resolve under
     ///   `NSTemporaryDirectory()/steve-fixtures-<UUID>/` — never touching
-    ///   `~/.claude/skills/`, real backups, or `UserDefaults.standard`.
-    /// - A throwaway `UserDefaults` suite named `"steve-fixture-<UUID>"` is used instead
-    ///   of `.standard` so settings written during fixture mode are automatically discarded.
+    ///   `~/.claude/skills/` or the real cache root.
+    /// - A throwaway `UserDefaults` suite named `"steve-fixture-<UUID>"` is created and
+    ///   a `SettingsStore(defaults:)` is built from it. The `interval` and
+    ///   `automaticChecksEnabled` values passed to `AppModel.init` are derived from THAT
+    ///   store — `UserDefaults.standard` is never read or written.
+    ///   The suite is returned in the tuple so callers can inspect or pre-seed it and
+    ///   verify that fixture settings are isolated from `.standard`.
     ///
     /// **Transport:**
     /// Only the HTTP transport is faked. A fixture `HTTPTransport` serves:
@@ -28,17 +32,24 @@ extension AppModel {
     /// runs real code.
     ///
     /// **Return value:**
-    /// Returns a tuple of `(AppModel, sandboxSkillsDir)` so the app layer can build
-    /// a matching `installedFilesProvider` (needed for F2 runnable mode). The
-    /// `sandboxSkillsDir` is the URL of the `skills/` subdirectory inside the sandbox.
+    /// Returns a tuple of `(AppModel, sandboxSkillsDir, fixtureDefaults)` so:
+    /// - The app layer can build a matching `installedFilesProvider` (needed for F2).
+    /// - Callers can verify that settings operations go through the throwaway suite,
+    ///   not `.standard` (required by ADR 0009's isolation guarantee).
     ///
     /// - Parameter scenario: The fixture scenario to seed. Defaults to `.default`.
-    /// - Returns: `(model, sandboxSkillsDir)` — the model is ready to `start()`.
+    /// - Returns: `(model, sandboxSkillsDir, fixtureDefaults)` — the model is ready to `start()`.
     @MainActor
     public static func fixtureMode(
         scenario: FixtureScenario = .default
-    ) -> (AppModel, sandboxSkillsDir: URL) {
-        // 1. Create ephemeral sandbox root.
+    ) -> (AppModel, sandboxSkillsDir: URL, fixtureDefaults: UserDefaults) {
+        // 1. Create a throwaway UserDefaults suite — never .standard.
+        //    SettingsStore reads interval and automaticChecksEnabled from this suite.
+        let suiteName = "steve-fixture-\(UUID().uuidString)"
+        let fixtureDefaults = UserDefaults(suiteName: suiteName) ?? .standard
+        let settingsStore = SettingsStore(defaults: fixtureDefaults)
+
+        // 2. Create ephemeral sandbox root.
         let sandboxRoot = FileManager.default.temporaryDirectory
             .appending(path: "steve-fixtures-\(UUID().uuidString)", directoryHint: .isDirectory)
         let sandboxSkillsDir = sandboxRoot.appending(path: "skills", directoryHint: .isDirectory)
@@ -48,34 +59,41 @@ extension AppModel {
         try? FileManager.default.createDirectory(at: sandboxSkillsDir, withIntermediateDirectories: true)
         try? FileManager.default.createDirectory(at: sandboxCacheDir, withIntermediateDirectories: true)
 
-        // 2. Seed the sandbox cache (C) and skills directory (S).
+        // 3. Seed the sandbox cache (C) and skills directory (S).
         let cacheStore = CacheStore(root: sandboxCacheDir)
         seedSandbox(scenario: scenario, skillsDir: sandboxSkillsDir, cacheStore: cacheStore)
 
-        // 3. Build the fixture origin tarball (O) — only non-removed skills.
+        // 4. Build the fixture origin tarball (O) — only non-removed skills.
         let originSkills = scenario.skills.compactMap { entry -> (name: String, files: [String: Data])? in
             guard let files = entry.originFiles else { return nil }
             return (name: entry.name, files: files)
         }
         let fixtureSHA = "fixture-sha-\(UUID().uuidString.prefix(8))"
-        let tarData = try? MultiSkillTarball.build(skills: originSkills)
+        // Force-unwrap: a tarball-build failure must surface loudly in fixture/dev code,
+        // not silently produce empty tarball and wrong derived states.
+        let tarData = try! MultiSkillTarball.build(skills: originSkills)
 
-        // 4. Build the fixture HTTP transport.
-        let transport = FixtureHTTPTransport(sha: fixtureSHA, tarData: tarData ?? Data())
+        // 5. Build the fixture HTTP transport.
+        let transport = FixtureHTTPTransport(sha: fixtureSHA, tarData: tarData)
 
-        // 5. Build the installed-skills provider from the sandbox skills directory.
+        // 6. Build the installed-skills provider from the sandbox skills directory.
         let installedSkillsProvider = makeInstalledSkillsProvider(skillsDir: sandboxSkillsDir)
 
-        // 6. Compose the AppModel with sandbox dirs + fixture transport.
+        // 7. Derive interval and automaticChecksEnabled from the throwaway suite — not .standard.
+        let interval = TimeInterval(settingsStore.minutesBetweenChecks) * 60
+        let automaticChecksEnabled = settingsStore.automaticChecksEnabled
+
+        // 8. Compose the AppModel with sandbox dirs + fixture transport + throwaway settings.
         let model = AppModel(
             owner: "fixture", repo: "fixture", branch: "main",
             transport: transport,
             cacheRoot: sandboxCacheDir,
-            automaticChecksEnabled: false,
+            interval: interval,
+            automaticChecksEnabled: automaticChecksEnabled,
             installedSkills: installedSkillsProvider
         )
 
-        return (model, sandboxSkillsDir)
+        return (model, sandboxSkillsDir, fixtureDefaults)
     }
 
     // MARK: — Private helpers

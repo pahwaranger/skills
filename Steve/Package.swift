@@ -28,15 +28,6 @@ let package = Package(
             dependencies: ["Cache"],
             path: "Sources/Installer"
         ),
-        .target(
-            name: "DiffBridge",
-            dependencies: ["Theme"],
-            path: "Sources/DiffBridge"
-        ),
-        .target(
-            name: "Theme",
-            path: "Sources/Theme"
-        ),
         // FixtureEngine: non-test library for fixture mode (ADR 0009).
         // Depends on OriginClient (for TarballExtractor re-export) and StateEngine
         // (for SkillState in FixtureScenario). AppCore depends on this so
@@ -104,6 +95,15 @@ let package = Package(
             dependencies: ["AppCore", "StateEngine"],
             path: "SteveTests",
             sources: ["DiffPaneHelpersTests.swift"]
+        ),
+        .target(
+            name: "DiffBridge",
+            dependencies: ["Theme"],
+            path: "Sources/DiffBridge"
+        ),
+        .target(
+            name: "Theme",
+            path: "Sources/Theme"
         ),
         .testTarget(
             name: "InstallerTests",
