@@ -161,5 +161,12 @@ let package = Package(
             path: "SteveTests",
             sources: ["FixtureEngineTests.swift"]
         ),
+        // F2 tests: installed-files provider defaulting and injection (Issue #72).
+        .testTarget(
+            name: "InstalledFilesProviderTests",
+            dependencies: ["AppCore", "FixtureEngine", "StateEngine"],
+            path: "SteveTests",
+            sources: ["InstalledFilesProviderTests.swift"]
+        ),
     ]
 )

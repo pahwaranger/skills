@@ -43,6 +43,10 @@
 		C00000000000000000000025 /* Color+Theme.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000025 /* Color+Theme.swift */; };
 		C00000000000000000000026 /* Theme.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000026 /* Theme.swift */; };
 		C00000000000000000000028 /* FileDiffStatusStyle.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000028 /* FileDiffStatusStyle.swift */; };
+		C00000000000000000000029 /* AppModel+FixtureMode.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000029 /* AppModel+FixtureMode.swift */; };
+		C0000000000000000000002A /* FixtureMode.swift in Sources */ = {isa = PBXBuildFile; fileRef = B0000000000000000000002A /* FixtureMode.swift */; };
+		C0000000000000000000002B /* FixtureScenario.swift in Sources */ = {isa = PBXBuildFile; fileRef = B0000000000000000000002B /* FixtureScenario.swift */; };
+		C0000000000000000000002C /* MultiSkillTarball.swift in Sources */ = {isa = PBXBuildFile; fileRef = B0000000000000000000002C /* MultiSkillTarball.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -84,6 +88,10 @@
 		B00000000000000000000021 /* SettingsStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsStore.swift; sourceTree = "<group>"; };
 		B00000000000000000000022 /* LaunchAtLoginManaging.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LaunchAtLoginManaging.swift; sourceTree = "<group>"; };
 		B00000000000000000000023 /* SMAppServiceLaunchManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SMAppServiceLaunchManager.swift; sourceTree = "<group>"; };
+		B00000000000000000000029 /* AppModel+FixtureMode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "AppModel+FixtureMode.swift"; sourceTree = "<group>"; };
+		B0000000000000000000002A /* FixtureMode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FixtureMode.swift; sourceTree = "<group>"; };
+		B0000000000000000000002B /* FixtureScenario.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FixtureScenario.swift; sourceTree = "<group>"; };
+		B0000000000000000000002C /* MultiSkillTarball.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MultiSkillTarball.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -144,6 +152,7 @@
 				D00000000000000000000007 /* Installer */,
 				D00000000000000000000008 /* Scheduler */,
 				D0000000000000000000000D /* Theme */,
+				D0000000000000000000000E /* FixtureEngine */,
 			);
 			path = Sources;
 			sourceTree = "<group>";
@@ -160,6 +169,7 @@
 			isa = PBXGroup;
 			children = (
 				B00000000000000000000012 /* AppModel.swift */,
+				B00000000000000000000029 /* AppModel+FixtureMode.swift */,
 				B00000000000000000000014 /* CheckError.swift */,
 				B00000000000000000000015 /* StatusLine.swift */,
 				B00000000000000000000016 /* DropdownSections.swift */,
@@ -224,6 +234,16 @@
 				B0000000000000000000000A /* Scheduler.swift */,
 			);
 			path = Scheduler;
+			sourceTree = "<group>";
+		};
+		D0000000000000000000000E /* FixtureEngine */ = {
+			isa = PBXGroup;
+			children = (
+				B0000000000000000000002A /* FixtureMode.swift */,
+				B0000000000000000000002B /* FixtureScenario.swift */,
+				B0000000000000000000002C /* MultiSkillTarball.swift */,
+			);
+			path = FixtureEngine;
 			sourceTree = "<group>";
 		};
 		D00000000000000000000009 /* SteveTests */ = {
@@ -368,6 +388,10 @@
 				C00000000000000000000028 /* FileDiffStatusStyle.swift in Sources */,
 				C00000000000000000000026 /* Theme.swift in Sources */,
 				C00000000000000000000025 /* Color+Theme.swift in Sources */,
+				C00000000000000000000029 /* AppModel+FixtureMode.swift in Sources */,
+				C0000000000000000000002A /* FixtureMode.swift in Sources */,
+				C0000000000000000000002B /* FixtureScenario.swift in Sources */,
+				C0000000000000000000002C /* MultiSkillTarball.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

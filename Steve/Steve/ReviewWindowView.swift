@@ -25,6 +25,10 @@ struct ReviewWindowView: View {
 
     let appModel: AppModel
 
+    /// Reads installed files for a given skill name.
+    /// Defaults to the real `~/.claude/skills/<name>/` provider; injectable for fixture mode.
+    var installedFilesProvider: (String) -> [String: Data] = DiffPane.defaultInstalledFilesProvider
+
     // MARK: — State
 
     /// Sidebar selection/grouping model — rebuilt whenever `appModel.lastDerivedState` changes.
@@ -66,7 +70,8 @@ struct ReviewWindowView: View {
                 onBulkUpdate: { performUpdate(Array(sidebarModel.selectedSkillNames)) },
                 onBulkSkip: { performSkip(Array(sidebarModel.selectedSkillNames)) },
                 githubURL: githubURL(for: selectedSkillName),
-                appModel: appModel
+                appModel: appModel,
+                installedFilesProvider: installedFilesProvider
             )
             .frame(minWidth: 400, maxWidth: .infinity)
         }
@@ -202,6 +207,12 @@ struct ReviewWindowView: View {
         let branch = appModel.resolvedDefaultBranch ?? appModel.branch
         let urlString = "https://github.com/\(appModel.owner)/\(appModel.repo)/tree/\(branch)/skills/\(skillName)"
         return URL(string: urlString)
+    }
+
+    /// The default production provider: reads files from `~/.claude/skills/<name>/`.
+    /// Exposed as a `static` so `MainWindowView` can reference it without knowing about `DiffPane`.
+    nonisolated static func defaultInstalledFilesProvider(_ skillName: String) -> [String: Data] {
+        DiffPane.defaultInstalledFilesProvider(skillName)
     }
 }
 
