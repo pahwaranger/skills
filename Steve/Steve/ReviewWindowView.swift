@@ -284,6 +284,8 @@ private struct DiffPane: View {
                 .frame(width: 130)
                 .labelsHidden()
             }
+            .accessibilityIdentifier("pane.header")
+            .accessibilityElement(children: .contain)
             .padding(.horizontal, 12)
             .padding(.vertical, 6)
             .background(.windowBackground)
@@ -414,6 +416,7 @@ private struct MaterialisingToolbar: View {
             .buttonStyle(.plain)
             .help("Clear selection")
         }
+        .accessibilityIdentifier("toolbar.materialising")
         .padding(.horizontal, 12)
         .padding(.vertical, 7)
         .background {
@@ -550,6 +553,9 @@ private struct SkillStateChip: View {
             .padding(.vertical, 3)
             .background(chipColor)
             .clipShape(Capsule())
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel(label)
+            .accessibilityIdentifier("chip.state.\(label.lowercased())")
     }
 
     private var chipColor: Color {
@@ -675,6 +681,8 @@ private struct FileCard: View {
                 .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
+            .accessibilityIdentifier("filecard.\(file.filename)")
+            .accessibilityElement(children: .contain)
 
             // ── Card body ─────────────────────────────────────────────────
             if !isCollapsed {
@@ -709,6 +717,9 @@ private struct FileStatusPill: View {
             .padding(.vertical, 2)
             .background(themeColor.opacity(0.12))
             .clipShape(Capsule())
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel(status.pillLabel)
+            .accessibilityIdentifier("pill.\(status.pillLabel.lowercased())")
     }
 }
 

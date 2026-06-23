@@ -189,6 +189,7 @@ private struct SidebarGroupHeader: View {
             .padding(.horizontal, 12)
             .padding(.top, 8)
             .padding(.bottom, 2)
+            .accessibilityIdentifier("sidebar.group.\(label.lowercased())")
     }
 
     private var stateColor: Color {
@@ -223,6 +224,7 @@ private struct SidebarSkillRow: View {
                 }
                 .buttonStyle(.plain)
                 .frame(width: 18)
+                .accessibilityIdentifier("sidebar.skill.check.\(skillName)")
             } else {
                 Spacer().frame(width: 18)
             }
@@ -240,6 +242,7 @@ private struct SidebarSkillRow: View {
         .padding(.horizontal, 12)
         .padding(.vertical, 4)
         .background(rowBackground)
+        .accessibilityIdentifier("sidebar.skill.\(skillName)")
     }
 
     private var rowBackground: Color {
