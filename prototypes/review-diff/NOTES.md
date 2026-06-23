@@ -1,5 +1,7 @@
 # Prototype verdict — Steve Review tab
 
+> **Promoted to mockup:** [`mockups/review-tab/`](../../mockups/review-tab/) (v1) is the authoritative locked design. This prototype is retained as a record of the design exploration.
+
 **Question:** What should the multi-skill diff review surface look/feel like?
 
 **Decision: Variant D is locked. Keep this prototype for reference during the SwiftUI + WKWebView build.**

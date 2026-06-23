@@ -1,0 +1,73 @@
+/*
+ * Snapshot of prototypes/menu-bar-dropdown/index.html CSS custom properties
+ * captured 2026-06-22 — copy, do not import.
+ * Source: prototypes/menu-bar-dropdown/index.html (inline <style>)
+ */
+
+:root {
+  color-scheme: light dark;
+
+  /* Page / scene */
+  --bg-page:   #DCDCDC;
+
+  /* Menu bar */
+  --mb-bg:     rgba(210,210,210,0.92);
+  --mb-border: rgba(0,0,0,0.14);
+  --mb-color:  #000;
+
+  /* Dropdown panel */
+  --dd-bg:     rgba(248,248,248,0.97);
+  --dd-border: rgba(0,0,0,0.11);
+  --dd-shadow: 0 4px 32px rgba(0,0,0,0.22), 0 1px 6px rgba(0,0,0,0.1);
+
+  /* Text */
+  --t1:    #1C1C1E;
+  --t2:    #636366;
+  --t3:    #8E8E93;
+  --tlink: #007AFF;
+
+  /* Chrome */
+  --sep:        rgba(0,0,0,0.09);
+  --hover:      rgba(0,0,0,0.05);
+  /* NOTE: --btn-bg / --btn-border are overridden in index.html with explicit
+     values (#E5E5EA fill, rgba(0,0,0,0.18) border) so the CfU button renders
+     as a clearly-filled macOS bordered bubble rather than a near-invisible
+     ghost. The token values below are the prototype originals — too faint. */
+  --btn-bg:     rgba(0,0,0,0.06);
+  --btn-border: rgba(0,0,0,0.10);
+
+  /* State accent colours (Variant B left-bar) */
+  --cr: #FF3B30;   /* removed on origin */
+  --cu: #FF9500;   /* update available  */
+  --cs: #8E8E93;   /* skipped           */
+  --cc: #34C759;   /* up to date        */
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    /* Page / scene */
+    --bg-page:   #1C1C1E;
+
+    /* Menu bar */
+    --mb-bg:     rgba(34,34,36,0.96);
+    --mb-border: rgba(255,255,255,0.08);
+    --mb-color:  #FFF;
+
+    /* Dropdown panel */
+    --dd-bg:     rgba(44,44,46,0.98);
+    --dd-border: rgba(255,255,255,0.08);
+    --dd-shadow: 0 4px 32px rgba(0,0,0,0.55), 0 1px 6px rgba(0,0,0,0.28);
+
+    /* Text */
+    --t1:    #FFF;
+    --t2:    rgba(255,255,255,0.72);
+    --t3:    rgba(255,255,255,0.42);
+    --tlink: #0A84FF;
+
+    /* Chrome */
+    --sep:        rgba(255,255,255,0.08);
+    --hover:      rgba(255,255,255,0.06);
+    --btn-bg:     rgba(255,255,255,0.08);
+    --btn-border: rgba(255,255,255,0.10);
+  }
+}

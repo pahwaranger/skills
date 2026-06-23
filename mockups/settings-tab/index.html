@@ -1,0 +1,373 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Steve — Settings tab · mockup v1</title>
+<link rel="stylesheet" href="tokens.css" />
+<style>
+  * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Arial, sans-serif;
+    background: radial-gradient(120% 120% at 50% 0%, #d7d7da 0%, #bcbcc0 100%);
+    color: var(--text);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 48px 16px 96px;
+    min-height: 100%;
+    -webkit-font-smoothing: antialiased;
+  }
+  @media (prefers-color-scheme: dark) {
+    body { background: radial-gradient(120% 120% at 50% 0%, #1a1a1c 0%, #050506 100%); }
+  }
+
+  /* ---- Window chrome ---- */
+  .window {
+    width: 560px;
+    max-width: 100%;
+    background: var(--win-bg);
+    border-radius: 12px;
+    box-shadow: var(--shadow);
+    overflow: hidden;
+    border: 0.5px solid var(--separator-strong);
+  }
+  .titlebar {
+    height: 44px;
+    background: var(--titlebar-bg);
+    display: flex;
+    align-items: center;
+    padding: 0 14px;
+    position: relative;
+    border-bottom: 0.5px solid var(--separator);
+  }
+  .traffic { display: flex; gap: 8px; }
+  .traffic span { width: 12px; height: 12px; border-radius: 50%; display: inline-block; }
+  .traffic .r { background: #ff5f57; }
+  .traffic .y { background: #febc2e; }
+  .traffic .g { background: #28c840; }
+  .win-title {
+    position: absolute; left: 0; right: 0; text-align: center;
+    font-size: 13px; font-weight: 600; color: var(--text);
+    pointer-events: none;
+  }
+  .tabs {
+    display: flex; justify-content: center; gap: 2px;
+    background: var(--titlebar-bg);
+    padding: 6px 0 12px;
+    border-bottom: 0.5px solid var(--separator);
+  }
+  .tab {
+    appearance: none; border: 0; background: transparent;
+    font: inherit; color: var(--text-secondary);
+    display: flex; flex-direction: column; align-items: center; gap: 3px;
+    padding: 6px 18px; border-radius: 7px; cursor: default;
+    font-size: 11px; font-weight: 500;
+  }
+  .tab .glyph { font-size: 17px; line-height: 1; }
+  .tab.active { background: var(--tab-active-bg); color: var(--text); }
+
+  .content { background: var(--content-bg); padding: 22px; min-height: 320px; }
+
+  /* ---- Generic controls ---- */
+  /* Toggle switch */
+  .switch { position: relative; width: 38px; height: 23px; flex: none; }
+  .switch input { display: none; }
+  .switch .track {
+    position: absolute; inset: 0; border-radius: 999px;
+    background: var(--track-off); transition: background .18s ease;
+  }
+  .switch .thumb {
+    position: absolute; top: 2px; left: 2px; width: 19px; height: 19px;
+    border-radius: 50%; background: #fff;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.35); transition: transform .18s ease;
+  }
+  .switch input:checked + .track { background: var(--accent); }
+  .switch input:checked + .track + .thumb { transform: translateX(15px); }
+
+  /* Segmented control */
+  .segmented { display: inline-flex; background: var(--segment-bg); border-radius: 8px; padding: 2px; }
+  .segmented button {
+    appearance: none; border: 0; background: transparent; font: inherit;
+    font-size: 12px; font-weight: 500; color: var(--text);
+    padding: 4px 14px; border-radius: 6px; cursor: pointer;
+  }
+  .segmented button.sel { background: var(--segment-sel); box-shadow: 0 1px 2px rgba(0,0,0,0.18); }
+
+  /* Stepper */
+  .stepper { display: inline-flex; align-items: center; gap: 8px; }
+  .stepper input {
+    width: 56px; text-align: right; font: inherit; font-size: 13px;
+    padding: 4px 7px; border-radius: 6px;
+    border: 1px solid var(--control-border); background: var(--control-bg);
+    color: var(--text);
+  }
+  .stepper .bumps { display: inline-flex; flex-direction: column; }
+  .stepper .bumps button {
+    appearance: none; font: inherit; font-size: 9px; line-height: 1;
+    width: 20px; height: 12px; cursor: pointer;
+    border: 1px solid var(--control-border); background: var(--control-bg);
+    color: var(--text);
+  }
+  .stepper .bumps button:first-child { border-radius: 5px 5px 0 0; border-bottom: 0; }
+  .stepper .bumps button:last-child { border-radius: 0 0 5px 5px; }
+  .unit { font-size: 13px; color: var(--text-secondary); }
+
+  /* Disabled state */
+  .disabled-ctrl { opacity: 0.38; pointer-events: none; }
+
+  /* ---- Variant C layout: grouped sections ---- */
+  .group { margin-bottom: 24px; }
+  .group > h3 {
+    margin: 0 0 7px 4px; font-size: 11px; font-weight: 600;
+    text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-secondary);
+  }
+  .card {
+    background: var(--card-bg); border-radius: 10px;
+    border: 0.5px solid var(--separator);
+    overflow: hidden;
+  }
+  .row {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 12px 14px;
+    border-bottom: 0.5px solid var(--separator);
+  }
+  .card .row:last-child { border-bottom: 0; }
+  .row .label { font-size: 13px; font-weight: 500; }
+  .row .ctrl { display: flex; align-items: center; gap: 8px; }
+
+  /* Nested row — indented under its parent toggle */
+  .nested {
+    padding: 12px 14px 12px 30px;
+    border-bottom: 0.5px solid var(--separator);
+    background: rgba(127,127,127,0.05);
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .card .nested:last-child { border-bottom: 0; }
+  .nested .label { font-size: 13px; }
+  .nested .sub { font-size: 11px; color: var(--text-secondary); display: block; margin-top: 2px; }
+  .caption { font-size: 11px; color: var(--text-secondary); margin: 7px 4px 0; }
+
+  /* ---- State-switcher (mockup scaffolding — not part of the design) ---- */
+  .state-switcher {
+    position: fixed; bottom: 22px; left: 50%; transform: translateX(-50%);
+    display: flex; align-items: center; gap: 4px;
+    background: rgba(28,28,30,0.92); color: #fff;
+    border-radius: 999px; padding: 6px 8px;
+    box-shadow: 0 8px 30px rgba(0,0,0,0.45);
+    font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    z-index: 50;
+    user-select: none;
+  }
+  .state-switcher button {
+    appearance: none; border: 0; background: rgba(255,255,255,0.12);
+    color: #fff; width: 30px; height: 30px; border-radius: 50%;
+    font-size: 15px; cursor: pointer; display: grid; place-items: center;
+  }
+  .state-switcher button:hover { background: rgba(255,255,255,0.25); }
+  .state-switcher .lbl { font-size: 12.5px; font-weight: 600; padding: 0 12px; white-space: nowrap; }
+  .state-switcher .lbl small { font-weight: 400; opacity: 0.7; }
+</style>
+</head>
+<body>
+  <div class="window">
+    <div class="titlebar">
+      <div class="traffic"><span class="r"></span><span class="y"></span><span class="g"></span></div>
+      <div class="win-title">Steve</div>
+    </div>
+    <div class="tabs">
+      <button class="tab"><span class="glyph">⤓</span>Review</button>
+      <button class="tab active"><span class="glyph">⚙</span>Settings</button>
+    </div>
+    <div class="content" id="content"></div>
+  </div>
+
+  <div class="state-switcher">
+    <button id="prev" aria-label="Previous state">‹</button>
+    <div class="lbl" id="slabel"></div>
+    <button id="next" aria-label="Next state">›</button>
+  </div>
+
+<script>
+  // In-memory control state (no persistence — mockup only)
+  const ctrlState = {
+    launchAtLogin: true,
+    autoChecks: true,
+    minutes: 60,
+    diffView: 'split',
+  };
+
+  // ---- States (map 1:1 to SPEC.md States section) ----
+  const STATES = [
+    { slug: 'checks-on',  label: 'Automatic checks on' },
+    { slug: 'checks-off', label: 'Automatic checks off' },
+  ];
+
+  function getStateSlug() {
+    const s = new URLSearchParams(location.search).get('state');
+    return STATES.find(x => x.slug === s) ? s : STATES[0].slug;
+  }
+
+  function applyState(slug) {
+    if (slug === 'checks-off') {
+      ctrlState.autoChecks = false;
+    } else {
+      ctrlState.autoChecks = true;
+    }
+  }
+
+  // ---- Render ----
+  function render() {
+    const slug = getStateSlug();
+    const off = !ctrlState.autoChecks;
+
+    document.getElementById('content').innerHTML = `
+      <div class="group">
+        <h3>Syncing</h3>
+        <div class="card">
+          <div class="row">
+            <span class="label">Automatic checks</span>
+            <span class="ctrl">
+              <label class="switch">
+                <input type="checkbox" id="auto-checks-toggle" ${ctrlState.autoChecks ? 'checked' : ''}>
+                <span class="track"></span><span class="thumb"></span>
+              </label>
+            </span>
+          </div>
+          <div class="nested">
+            <span class="label ${off ? 'disabled-ctrl' : ''}">Minutes between checks
+              <small class="sub">How often Steve looks at Origin for changes.</small>
+            </span>
+            <span class="ctrl ${off ? 'disabled-ctrl' : ''}">
+              <span class="stepper">
+                <input type="number" id="minutes-input" min="1" max="1440" value="${ctrlState.minutes}" ${off ? 'disabled' : ''}>
+                <span class="bumps">
+                  <button id="bump-up" ${off ? 'disabled' : ''}>▲</button>
+                  <button id="bump-down" ${off ? 'disabled' : ''}>▼</button>
+                </span>
+                <span class="unit">min</span>
+              </span>
+            </span>
+          </div>
+        </div>
+        <p class="caption">${off
+          ? 'Off — Steve only checks when you choose "Check for updates" from the menu.'
+          : 'Steve checks Origin on this interval and flags changes in the menu bar.'}</p>
+      </div>
+
+      <div class="group">
+        <h3>General</h3>
+        <div class="card">
+          <div class="row">
+            <span class="label">Launch at login</span>
+            <span class="ctrl">
+              <label class="switch">
+                <input type="checkbox" id="launch-toggle" ${ctrlState.launchAtLogin ? 'checked' : ''}>
+                <span class="track"></span><span class="thumb"></span>
+              </label>
+            </span>
+          </div>
+          <div class="row">
+            <span class="label">Default diff view</span>
+            <span class="ctrl">
+              <span class="segmented">
+                <button id="diff-split" class="${ctrlState.diffView === 'split' ? 'sel' : ''}">Split</button>
+                <button id="diff-unified" class="${ctrlState.diffView === 'unified' ? 'sel' : ''}">Unified</button>
+              </span>
+            </span>
+          </div>
+        </div>
+        <p class="caption">How diffs open in the Review tab. You can still switch per-review.</p>
+      </div>
+    `;
+
+    // Update state-switcher label
+    const st = STATES.find(x => x.slug === slug);
+    document.getElementById('slabel').innerHTML =
+      `settings-tab · v1 &nbsp;<small>— ${st.label}</small>`;
+
+    wire();
+  }
+
+  function wire() {
+    const autoToggle = document.getElementById('auto-checks-toggle');
+    if (autoToggle) {
+      autoToggle.addEventListener('change', () => {
+        ctrlState.autoChecks = autoToggle.checked;
+        const newSlug = ctrlState.autoChecks ? 'checks-on' : 'checks-off';
+        setStateSlug(newSlug);
+        render();
+      });
+    }
+
+    const launchToggle = document.getElementById('launch-toggle');
+    if (launchToggle) {
+      launchToggle.addEventListener('change', () => {
+        ctrlState.launchAtLogin = launchToggle.checked;
+      });
+    }
+
+    const minInput = document.getElementById('minutes-input');
+    if (minInput) {
+      minInput.addEventListener('change', () => {
+        let n = parseInt(minInput.value, 10);
+        if (isNaN(n)) n = 60;
+        ctrlState.minutes = Math.min(1440, Math.max(1, n));
+        render();
+      });
+    }
+
+    const bumpUp = document.getElementById('bump-up');
+    if (bumpUp) bumpUp.addEventListener('click', () => {
+      ctrlState.minutes = Math.min(1440, ctrlState.minutes + 1); render();
+    });
+
+    const bumpDown = document.getElementById('bump-down');
+    if (bumpDown) bumpDown.addEventListener('click', () => {
+      ctrlState.minutes = Math.max(1, ctrlState.minutes - 1); render();
+    });
+
+    const splitBtn = document.getElementById('diff-split');
+    if (splitBtn) splitBtn.addEventListener('click', () => {
+      ctrlState.diffView = 'split'; render();
+    });
+
+    const unifiedBtn = document.getElementById('diff-unified');
+    if (unifiedBtn) unifiedBtn.addEventListener('click', () => {
+      ctrlState.diffView = 'unified'; render();
+    });
+  }
+
+  function setStateSlug(slug) {
+    const p = new URLSearchParams(location.search);
+    p.set('state', slug);
+    history.replaceState(null, '', '?' + p.toString());
+  }
+
+  function go(dir) {
+    const idx = STATES.findIndex(x => x.slug === getStateSlug());
+    const next = STATES[(idx + dir + STATES.length) % STATES.length];
+    setStateSlug(next.slug);
+    applyState(next.slug);
+    render();
+  }
+
+  document.getElementById('prev').addEventListener('click', () => go(-1));
+  document.getElementById('next').addEventListener('click', () => go(1));
+
+  document.addEventListener('keydown', e => {
+    const t = e.target;
+    if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable)) return;
+    if (e.key === 'ArrowLeft') go(-1);
+    if (e.key === 'ArrowRight') go(1);
+  });
+
+  // Initialise from URL param
+  applyState(getStateSlug());
+  render();
+</script>
+</body>
+</html>
