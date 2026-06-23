@@ -29,8 +29,26 @@ let package = Package(
             path: "Sources/Installer"
         ),
         .target(
+            name: "DiffBridge",
+            dependencies: ["Theme"],
+            path: "Sources/DiffBridge"
+        ),
+        .target(
+            name: "Theme",
+            path: "Sources/Theme"
+        ),
+        // FixtureEngine: non-test library for fixture mode (ADR 0009).
+        // Depends on OriginClient (for TarballExtractor re-export) and StateEngine
+        // (for SkillState in FixtureScenario). AppCore depends on this so
+        // AppModel.fixtureMode(_:) is reachable from the production app layer.
+        .target(
+            name: "FixtureEngine",
+            dependencies: ["Cache", "StateEngine", "OriginClient"],
+            path: "Sources/FixtureEngine"
+        ),
+        .target(
             name: "AppCore",
-            dependencies: ["Cache", "StateEngine", "OriginClient", "Scheduler", "Installer", "DiffBridge"],
+            dependencies: ["Cache", "StateEngine", "OriginClient", "Scheduler", "Installer", "DiffBridge", "FixtureEngine"],
             path: "Sources/AppCore"
         ),
         .testTarget(
@@ -87,15 +105,6 @@ let package = Package(
             path: "SteveTests",
             sources: ["DiffPaneHelpersTests.swift"]
         ),
-        .target(
-            name: "DiffBridge",
-            dependencies: ["Theme"],
-            path: "Sources/DiffBridge"
-        ),
-        .target(
-            name: "Theme",
-            path: "Sources/Theme"
-        ),
         .testTarget(
             name: "InstallerTests",
             dependencies: ["Installer", "Cache"],
@@ -143,6 +152,14 @@ let package = Package(
             dependencies: ["DiffBridge", "Theme"],
             path: "SteveTests",
             sources: ["FileDiffStatusMappingTests.swift"]
+        ),
+        // FixtureEngine tests: cover FixtureScenario, FixtureMode, MultiSkillTarball,
+        // and AppModel.fixtureMode(_:).
+        .testTarget(
+            name: "FixtureEngineTests",
+            dependencies: ["AppCore", "FixtureEngine", "StateEngine", "OriginClient"],
+            path: "SteveTests",
+            sources: ["FixtureEngineTests.swift"]
         ),
     ]
 )
