@@ -6,6 +6,10 @@ import StateEngine
 import Scheduler
 @testable import AppCore
 
+#if DEBUG
+import FixtureEngine
+#endif
+
 // MARK: — Stub transport for AppCore tests
 
 /// Routes each request to a closure; records all calls.
@@ -1062,6 +1066,75 @@ struct WindowTabTests {
         let consumedAgain = model.consumeReviewFocusSkill()
         #expect(consumedAgain == nil,
                 "consuming an already-empty channel must return nil")
+    }
+}
+
+// MARK: — Direct-seed fixture initializer (route b)
+
+@Suite("AppModel — direct-seed preview factory")
+struct DirectSeedTests {
+
+    /// The direct-seed factory must populate lastDerivedState with per-skill states
+    /// from the scenario and reviewSession with per-skill origin files.
+    /// Only compiled and run in Debug builds (directSeed is #if DEBUG).
+    @Test @MainActor func directSeedPopulatesStateAndSession() async throws {
+        #if DEBUG
+        let appModel = AppModel.directSeed(from: FixtureScenario.default)
+
+        // Verify lastDerivedState is populated
+        let derivedState = appModel.lastDerivedState
+        #expect(derivedState != nil, "lastDerivedState must be populated by directSeed")
+
+        guard let derivedState else { return }
+
+        // Verify states match the scenario's target states
+        #expect(derivedState.states["to-prd"] == .removedOnOrigin,
+                "to-prd should be removedOnOrigin")
+        #expect(derivedState.states["diagnose"] == .updateAvailable,
+                "diagnose should be updateAvailable")
+        #expect(derivedState.states["tdd"] == .updateAvailable,
+                "tdd should be updateAvailable")
+        #expect(derivedState.states["verify"] == .skipped,
+                "verify should be skipped")
+        #expect(derivedState.states["handoff"] == .upToDate,
+                "handoff should be upToDate")
+        #expect(derivedState.states["triage"] == .upToDate,
+                "triage should be upToDate")
+
+        // Verify attention flag (true when any skill is not upToDate)
+        #expect(derivedState.attention == true,
+                "attention must be true when updateAvailable or removedOnOrigin skills exist")
+
+        // Verify reviewSession is populated with origin files
+        let session = appModel.reviewSession
+        #expect(session != nil, "reviewSession must be populated by directSeed")
+
+        guard let session else { return }
+
+        // Verify skillFiles are populated for each scenario entry with origin files.
+        // Note: to-prd is removedOnOrigin (originFiles = nil) so it's not in skillFiles.
+        #expect(session.skillFiles["diagnose"] != nil,
+                "diagnose origin files should be populated")
+        #expect(session.skillFiles["tdd"] != nil,
+                "tdd origin files should be populated")
+        #expect(session.skillFiles["verify"] != nil,
+                "verify origin files should be populated")
+        #expect(session.skillFiles["handoff"] != nil,
+                "handoff origin files should be populated")
+        #expect(session.skillFiles["triage"] != nil,
+                "triage origin files should be populated")
+
+        // Verify the origin files have correct content for a known skill
+        if let diagnoseFiles = session.skillFiles["diagnose"] {
+            let skillContent = diagnoseFiles["SKILL.md"]
+            #expect(skillContent != nil, "diagnose SKILL.md should be present")
+            let contentStr = String(data: skillContent ?? Data(), encoding: .utf8) ?? ""
+            #expect(contentStr.contains("New SKILL.md on origin"), "diagnose SKILL.md should be the origin version")
+        }
+        #else
+        // Test is no-op in Release builds (directSeed is not available)
+        #expect(true)
+        #endif
     }
 }
 

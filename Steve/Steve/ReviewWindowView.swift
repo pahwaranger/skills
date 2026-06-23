@@ -735,3 +735,104 @@ private struct BinaryFileNotice: View {
     }
 }
 
+// MARK: — SwiftUI Previews (route b, #if DEBUG)
+
+#if DEBUG && SWIFT_PACKAGE
+
+import FixtureEngine
+
+#Preview("Sidebar — all groups", traits: .fixedLayout(width: 260, height: 500)) {
+    let appModel = AppModel.directSeed(from: FixtureScenario.default)
+    return ReviewSidebarView(
+        model: .constant(ReviewSidebarModel(from: appModel.lastDerivedState ?? DerivedState(states: [:], attention: false, selfHealed: []))),
+        selectedSkillName: .constant("diagnose"),
+        onUpdate: { _ in },
+        onSkip: { _ in }
+    )
+    .frame(maxWidth: .infinity, maxHeight: .infinity)
+    .background(Color(.windowBackgroundColor))
+}
+
+#Preview("DiffPane — rich diff (diagnose)", traits: .fixedLayout(width: 600, height: 500)) {
+    let appModel = AppModel.directSeed(from: FixtureScenario.default)
+    return DiffPane(
+        selectedSkillName: "diagnose",
+        selectedSkillState: .updateAvailable,
+        viewMode: .constant(.split),
+        checkedCount: 0,
+        selectionMode: .none,
+        actionableCount: 3,
+        onCycleSelection: {},
+        onDismissSelection: {},
+        onBulkUpdate: {},
+        onBulkSkip: {},
+        githubURL: URL(string: "https://github.com/test/test/tree/main/skills/diagnose"),
+        appModel: appModel,
+        installedFilesProvider: { skillName in
+            // Return mock installed files for the preview
+            switch skillName {
+            case "diagnose":
+                return [
+                    "SKILL.md": Data("# diagnose\nOld installed SKILL.md.".utf8),
+                    "legacy.md": Data("# legacy content".utf8)
+                ]
+            default:
+                return [:]
+            }
+        }
+    )
+    .frame(maxWidth: .infinity, maxHeight: .infinity)
+    .background(Color(.windowBackgroundColor))
+}
+
+#Preview("DiffPane — all deleted (to-prd)", traits: .fixedLayout(width: 600, height: 400)) {
+    let appModel = AppModel.directSeed(from: FixtureScenario.default)
+    return DiffPane(
+        selectedSkillName: "to-prd",
+        selectedSkillState: .removedOnOrigin,
+        viewMode: .constant(.split),
+        checkedCount: 0,
+        selectionMode: .none,
+        actionableCount: 3,
+        onCycleSelection: {},
+        onDismissSelection: {},
+        onBulkUpdate: {},
+        onBulkSkip: {},
+        githubURL: nil,
+        appModel: appModel,
+        installedFilesProvider: { skillName in
+            switch skillName {
+            case "to-prd":
+                return ["SKILL.md": Data("# to-prd\nInstalled version.".utf8)]
+            default:
+                return [:]
+            }
+        }
+    )
+    .frame(maxWidth: .infinity, maxHeight: .infinity)
+    .background(Color(.windowBackgroundColor))
+}
+
+#Preview("DiffPane — up-to-date (handoff)", traits: .fixedLayout(width: 600, height: 400)) {
+    let appModel = AppModel.directSeed(from: FixtureScenario.default)
+    return DiffPane(
+        selectedSkillName: "handoff",
+        selectedSkillState: .upToDate,
+        viewMode: .constant(.split),
+        checkedCount: 0,
+        selectionMode: .none,
+        actionableCount: 3,
+        onCycleSelection: {},
+        onDismissSelection: {},
+        onBulkUpdate: {},
+        onBulkSkip: {},
+        githubURL: URL(string: "https://github.com/test/test/tree/main/skills/handoff"),
+        appModel: appModel,
+        installedFilesProvider: { _ in [:] }
+    )
+    .frame(maxWidth: .infinity, maxHeight: .infinity)
+    .background(Color(.windowBackgroundColor))
+}
+
+#endif
+
