@@ -17,7 +17,7 @@ APP      := Steve.app
 APP_PATH := $(DERIVED)/Build/Products/$(CONFIG)/$(APP)
 DEST     := /Applications
 
-.PHONY: help build install run test fixtures clean
+.PHONY: help build install run test uitest fixtures clean
 
 help:
 	@echo "Steve — make targets:"
@@ -26,6 +26,7 @@ help:
 	@echo "  run       Install, then launch $(APP)"
 	@echo "  test      Run the Swift test suite"
 	@echo "  fixtures  Build, install, and launch $(APP) in fixture mode (--fixtures)"
+	@echo "  uitest    Run the XCUITest suite"
 	@echo "  clean     Remove build artifacts"
 
 build:
@@ -49,6 +50,11 @@ fixtures: install
 
 test:
 	swift test --package-path .
+
+uitest:
+	xcodebuild test -project $(PROJECT) -scheme $(SCHEME) \
+	  -destination 'platform=macOS' -derivedDataPath $(DERIVED) \
+	  -only-testing:SteveUITests
 
 clean:
 	rm -rf $(DERIVED)

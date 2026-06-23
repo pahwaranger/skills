@@ -48,6 +48,7 @@
 		C0000000000000000000002B /* FixtureScenario.swift in Sources */ = {isa = PBXBuildFile; fileRef = B0000000000000000000002B /* FixtureScenario.swift */; };
 		C0000000000000000000002C /* MultiSkillTarball.swift in Sources */ = {isa = PBXBuildFile; fileRef = B0000000000000000000002C /* MultiSkillTarball.swift */; };
 		C0000000000000000000002D /* InstalledFilesProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = B0000000000000000000002D /* InstalledFilesProvider.swift */; };
+		C0000000000000000000002E /* SteveUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B0000000000000000000000B0 /* SteveUITests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -111,6 +112,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		E000000000000000000000A0 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
@@ -120,6 +128,7 @@
 				D00000000000000000000002 /* Steve */,
 				D00000000000000000000003 /* Sources */,
 				D00000000000000000000009 /* SteveTests */,
+				D0000000000000000000000F /* SteveUITests */,
 				D0000000000000000000000A /* Products */,
 			);
 			sourceTree = "<group>";
@@ -258,11 +267,20 @@
 			path = SteveTests;
 			sourceTree = "<group>";
 		};
+		D0000000000000000000000F /* SteveUITests */ = {
+			isa = PBXGroup;
+			children = (
+				B0000000000000000000000B0 /* SteveUITests.swift */,
+			);
+			path = SteveUITests;
+			sourceTree = "<group>";
+		};
 		D0000000000000000000000A /* Products */ = {
 			isa = PBXGroup;
 			children = (
 				B0000000000000000000000C /* Steve.app */,
 				B0000000000000000000000D /* SteveTests.xctest */,
+				B0000000000000000000000B1 /* SteveUITests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -304,6 +322,23 @@
 			productReference = B0000000000000000000000D /* SteveTests.xctest */;
 			productType = "com.apple.product-type.bundle.unit-test";
 		};
+		F000000000000000000000A1 /* SteveUITests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = E1000000000000000000000A /* Build configuration list for PBXNativeTarget "SteveUITests" */;
+			buildPhases = (
+				E000000000000000000000A1 /* Sources */,
+				E000000000000000000000A0 /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				F000000000000000000000A3 /* PBXTargetDependency */,
+			);
+			name = SteveUITests;
+			productName = SteveUITests;
+			productReference = B0000000000000000000000B1 /* SteveUITests.xctest */;
+			productType = "com.apple.product-type.bundle.ui-testing";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -318,6 +353,10 @@
 						CreatedOnToolsVersion = 16.0;
 					};
 					F00000000000000000000002 = {
+						CreatedOnToolsVersion = 16.0;
+						TestTargetID = F00000000000000000000001;
+					};
+					F000000000000000000000A1 = {
 						CreatedOnToolsVersion = 16.0;
 						TestTargetID = F00000000000000000000001;
 					};
@@ -339,6 +378,7 @@
 			targets = (
 				F00000000000000000000001 /* Steve */,
 				F00000000000000000000002 /* SteveTests */,
+				F000000000000000000000A1 /* SteveUITests */,
 			);
 		};
 /* End PBXProject section */
@@ -413,6 +453,13 @@
 
 /* Begin PBXContainerItemProxy section */
 		F00000000000000000000004 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = A00000000000000000000001 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = F00000000000000000000001;
+			remoteInfo = Steve;
+		};
+		F000000000000000000000A2 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = A00000000000000000000001 /* Project object */;
 			proxyType = 1;
