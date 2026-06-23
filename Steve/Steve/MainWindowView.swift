@@ -26,6 +26,10 @@ import AppCore
 struct MainWindowView: View {
     let appModel: AppModel
 
+    /// Reads installed files for a given skill name.
+    /// Defaults to the real `~/.claude/skills/<name>/` provider; injectable for fixture mode.
+    var installedFilesProvider: (String) -> [String: Data] = ReviewWindowView.defaultInstalledFilesProvider
+
     var body: some View {
         VStack(spacing: 0) {
             // ── Custom title + tab chrome ─────────────────────────────────
@@ -37,7 +41,7 @@ struct MainWindowView: View {
             // Both views remain in the hierarchy; only opacity / hit-testing changes.
             // This preserves the ReviewSession across tab switches (see lifecycle note above).
             ZStack(alignment: .top) {
-                ReviewWindowView(appModel: appModel)
+                ReviewWindowView(appModel: appModel, installedFilesProvider: installedFilesProvider)
                     .opacity(appModel.selectedTab == .review ? 1 : 0)
                     .allowsHitTesting(appModel.selectedTab == .review)
 

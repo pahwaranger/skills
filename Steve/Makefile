@@ -17,7 +17,7 @@ APP      := Steve.app
 APP_PATH := $(DERIVED)/Build/Products/$(CONFIG)/$(APP)
 DEST     := /Applications
 
-.PHONY: help build install run test clean
+.PHONY: help build install run test fixtures clean
 
 help:
 	@echo "Steve — make targets:"
@@ -25,6 +25,7 @@ help:
 	@echo "  install   Build, then install $(APP) into $(DEST)"
 	@echo "  run       Install, then launch $(APP)"
 	@echo "  test      Run the Swift test suite"
+	@echo "  fixtures  Build, install, and launch $(APP) in fixture mode (--fixtures)"
 	@echo "  clean     Remove build artifacts"
 
 build:
@@ -39,6 +40,12 @@ install: build
 
 run: install
 	open "$(DEST)/$(APP)"
+
+# Launch in fixture mode: the app boots with the canned six-skill scenario and
+# auto-opens the Steve window on the Review tab with `diagnose` pre-selected.
+# Passes `--fixtures` so FixtureMode.isActive returns true (ADR 0009).
+fixtures: install
+	open "$(DEST)/$(APP)" --args --fixtures
 
 test:
 	swift test --package-path .
