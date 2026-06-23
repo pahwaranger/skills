@@ -47,6 +47,7 @@
 		C0000000000000000000002A /* FixtureMode.swift in Sources */ = {isa = PBXBuildFile; fileRef = B0000000000000000000002A /* FixtureMode.swift */; };
 		C0000000000000000000002B /* FixtureScenario.swift in Sources */ = {isa = PBXBuildFile; fileRef = B0000000000000000000002B /* FixtureScenario.swift */; };
 		C0000000000000000000002C /* MultiSkillTarball.swift in Sources */ = {isa = PBXBuildFile; fileRef = B0000000000000000000002C /* MultiSkillTarball.swift */; };
+		C0000000000000000000002D /* InstalledFilesProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = B0000000000000000000002D /* InstalledFilesProvider.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -92,6 +93,7 @@
 		B0000000000000000000002A /* FixtureMode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FixtureMode.swift; sourceTree = "<group>"; };
 		B0000000000000000000002B /* FixtureScenario.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FixtureScenario.swift; sourceTree = "<group>"; };
 		B0000000000000000000002C /* MultiSkillTarball.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MultiSkillTarball.swift; sourceTree = "<group>"; };
+		B0000000000000000000002D /* InstalledFilesProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InstalledFilesProvider.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -242,6 +244,7 @@
 				B0000000000000000000002A /* FixtureMode.swift */,
 				B0000000000000000000002B /* FixtureScenario.swift */,
 				B0000000000000000000002C /* MultiSkillTarball.swift */,
+				B0000000000000000000002D /* InstalledFilesProvider.swift */,
 			);
 			path = FixtureEngine;
 			sourceTree = "<group>";
@@ -392,6 +395,7 @@
 				C0000000000000000000002A /* FixtureMode.swift in Sources */,
 				C0000000000000000000002B /* FixtureScenario.swift in Sources */,
 				C0000000000000000000002C /* MultiSkillTarball.swift in Sources */,
+				C0000000000000000000002D /* InstalledFilesProvider.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

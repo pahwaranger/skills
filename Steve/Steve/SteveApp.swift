@@ -52,7 +52,7 @@ struct SteveApp: App {
             // Build the installed-files provider from the SAME sandboxSkillsDir so
             // the state (hash provider built inside fixtureMode) and the diff (this
             // provider) both read from the same sandbox tree.
-            installedFilesProvider = Self.makeSandboxFilesProvider(skillsDir: sandboxSkillsDir)
+            installedFilesProvider = makeInstalledFilesProvider(skillsDir: sandboxSkillsDir)
         } else {
             // Production path — byte-for-byte unchanged (ADR 0009).
             let settings = SettingsStore()
@@ -119,27 +119,6 @@ struct SteveApp: App {
         .windowStyle(.hiddenTitleBar)
     }
 
-    // MARK: — Private helpers
-
-    /// Builds a provider that reads installed files from the given sandbox skills dir.
-    /// Used by fixture mode so the diff pane reads the SAME directory as the hash provider.
-    private static func makeSandboxFilesProvider(
-        skillsDir: URL
-    ) -> (String) -> [String: Data] {
-        return { skillName in
-            let skillDir = skillsDir.appending(path: skillName, directoryHint: .isDirectory)
-            guard let entries = try? FileManager.default.contentsOfDirectory(
-                at: skillDir, includingPropertiesForKeys: nil
-            ) else { return [:] }
-            var result: [String: Data] = [:]
-            for url in entries {
-                if let data = try? Data(contentsOf: url) {
-                    result[url.lastPathComponent] = data
-                }
-            }
-            return result
-        }
-    }
 }
 
 // MARK: — Fixture auto-open modifier
