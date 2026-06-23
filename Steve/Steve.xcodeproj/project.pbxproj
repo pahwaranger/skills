@@ -95,6 +95,8 @@
 		B0000000000000000000002B /* FixtureScenario.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FixtureScenario.swift; sourceTree = "<group>"; };
 		B0000000000000000000002C /* MultiSkillTarball.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MultiSkillTarball.swift; sourceTree = "<group>"; };
 		B0000000000000000000002D /* InstalledFilesProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InstalledFilesProvider.swift; sourceTree = "<group>"; };
+		B0000000000000000000000B0 /* SteveUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SteveUITests.swift; sourceTree = "<group>"; };
+		B0000000000000000000000B1 /* SteveUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = SteveUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -449,6 +451,14 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		E000000000000000000000A1 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				C0000000000000000000002E /* SteveUITests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXContainerItemProxy section */
@@ -466,6 +476,13 @@
 			remoteGlobalIDString = F00000000000000000000001;
 			remoteInfo = Steve;
 		};
+		F000000000000000000000A4 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = A00000000000000000000001 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = F00000000000000000000001;
+			remoteInfo = Steve;
+		};
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXTargetDependency section */
@@ -473,6 +490,11 @@
 			isa = PBXTargetDependency;
 			target = F00000000000000000000001 /* Steve */;
 			targetProxy = F00000000000000000000004 /* PBXContainerItemProxy */;
+		};
+		F000000000000000000000A3 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = F00000000000000000000001 /* Steve */;
+			targetProxy = F000000000000000000000A4 /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 
@@ -669,6 +691,47 @@
 			buildConfigurations = (
 				E10000000000000000000007 /* Debug */,
 				E10000000000000000000008 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		E1000000000000000000000B /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 15.0;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.pahwaranger.SteveUITests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 6.0;
+				TEST_TARGET_NAME = Steve;
+			};
+			name = Debug;
+		};
+		E1000000000000000000000C /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 15.0;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.pahwaranger.SteveUITests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 6.0;
+				TEST_TARGET_NAME = Steve;
+			};
+			name = Release;
+		};
+		E1000000000000000000000A /* Build configuration list for PBXNativeTarget "SteveUITests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				E1000000000000000000000B /* Debug */,
+				E1000000000000000000000C /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

@@ -15,6 +15,7 @@ import XCTest
 // Screenshots are attached as XCTAttachment (.keepAlways) AND written as PNGs to
 // STEVE_SCREENSHOT_DIR (defaults to $TMPDIR/SteveUITests-screenshots/).
 
+@MainActor
 final class SteveUITests: XCTestCase {
 
     private var app: XCUIApplication!
@@ -55,7 +56,7 @@ final class SteveUITests: XCTestCase {
     func testSidebarGroupHeaders() throws {
         // Fixture scenario seeds: removed, updateAvailable, skipped, upToDate skills.
         // The sidebar shows exactly these four group header labels.
-        let expectedGroups = ["removed", "updates", "skipped", "up-to-date"]
+        let expectedGroups = ["removed", "updates", "skipped", "up to date"]
         for group in expectedGroups {
             let header = app.staticTexts.matching(
                 NSPredicate(format: "identifier == %@", "sidebar.group.\(group)")
@@ -73,6 +74,7 @@ final class SteveUITests: XCTestCase {
     func testDiagnoseFileCardsAndStatusPills() throws {
         // `diagnose` is pre-selected in fixture mode (auto-opened by FixtureAutoOpenModifier).
         // Wait for at least one file card to appear.
+        // File card buttons appear with identifiers like "filecard.diagnose/SKILL.md".
         let anyFileCard = app.buttons.matching(
             NSPredicate(format: "identifier BEGINSWITH %@", "filecard.")
         ).firstMatch
@@ -81,12 +83,22 @@ final class SteveUITests: XCTestCase {
             "No file cards found for selected skill 'diagnose'"
         )
 
-        // Check for the three status pill labels (Modified / Added / Deleted).
-        // The fixture diff for diagnose has at least one file with a status pill.
-        // We assert each pill type exists somewhere across the visible cards.
-        let pillPredicate = NSPredicate(format: "identifier BEGINSWITH %@", "pill.")
-        let pills = app.staticTexts.matching(pillPredicate)
-        XCTAssertGreaterThan(pills.count, 0, "No status pills found in file cards")
+        // The file card button accessibility label includes the status pill text,
+        // e.g. "SKILL.md, Modified, +1, −1" — check that at least one card has
+        // a pill label (Modified / Added / Deleted) in its label.
+        // This is what macOS accessibility actually exposes for SwiftUI Button children.
+        let allFileCards = app.buttons.matching(
+            NSPredicate(format: "identifier BEGINSWITH %@", "filecard.")
+        )
+        var foundPill = false
+        for i in 0..<allFileCards.count {
+            let label = allFileCards.element(boundBy: i).label
+            if label.contains("Modified") || label.contains("Added") || label.contains("Deleted") {
+                foundPill = true
+                break
+            }
+        }
+        XCTAssertTrue(foundPill, "No status pills found in file card labels")
         attachScreenshot(named: "b_file_cards_status_pills")
     }
 
@@ -95,12 +107,23 @@ final class SteveUITests: XCTestCase {
     func testPaneHeaderStateChip() throws {
         // The state chip appears next to the skill name in the pane header for actionable skills.
         // diagnose is updateAvailable in the fixture scenario → chip label "Update".
-        let chip = app.staticTexts.matching(
-            NSPredicate(format: "identifier BEGINSWITH %@", "chip.state.")
+        //
+        // macOS accessibility merges the chip text into the pane header container's label.
+        // The pane header appears as an `otherElement` with id="pane.header" and
+        // label="Update" (the chip's label text). Check it directly:
+        let paneHeader = app.otherElements.matching(
+            NSPredicate(format: "identifier == %@", "pane.header")
         ).firstMatch
         XCTAssertTrue(
-            chip.waitForExistence(timeout: 10),
-            "Pane-header state chip not found"
+            paneHeader.waitForExistence(timeout: 10),
+            "Pane-header element not found"
+        )
+        // The chip label (Update / Removed / Skipped) should appear in the pane header's label.
+        let headerLabel = paneHeader.label
+        let hasChip = ["update", "removed", "skipped"].contains(headerLabel.lowercased())
+        XCTAssertTrue(
+            hasChip,
+            "Pane-header state chip not found in label '\(headerLabel)'"
         )
         attachScreenshot(named: "c_state_chip")
     }
@@ -109,42 +132,29 @@ final class SteveUITests: XCTestCase {
 
     func testMaterialisingToolbarAppearsOnCheck() throws {
         // The materialising toolbar appears when ≥1 skill row is checked.
-        // Tap the checkbox for the `diagnose` skill row.
-        let diagnoseRow = app.groups.matching(
+        //
+        // macOS accessibility exposes the SidebarSkillRow HStack with identifier
+        // "sidebar.skill.diagnose" as a button (its label is "Square" = unchecked checkbox).
+        // Tapping it calls onToggle which adds diagnose to selectedSkillNames.
+        let checkbox = app.buttons.matching(
             NSPredicate(format: "identifier == %@", "sidebar.skill.diagnose")
         ).firstMatch
+        XCTAssertTrue(
+            checkbox.waitForExistence(timeout: 10),
+            "Checkbox button for diagnose skill row not found"
+        )
+        checkbox.tap()
 
-        // If the group identifier isn't found, try the row's checkbox button within the sidebar.
-        if diagnoseRow.waitForExistence(timeout: 5) {
-            diagnoseRow.tap()
-        } else {
-            // Fall back: find the checkbox button that is a child of the sidebar area.
-            // The skill row is identified; tap the checkbox image inside it.
-            let checkboxes = app.buttons.matching(
-                NSPredicate(format: "identifier BEGINSWITH %@", "sidebar.skill.")
-            )
-            if checkboxes.count > 0 {
-                checkboxes.firstMatch.tap()
-            } else {
-                // Final fallback: tap any square checkbox image in the sidebar area.
-                let squares = app.images.matching(identifier: "square")
-                XCTAssertTrue(squares.count > 0, "No checkbox images found in sidebar")
-                squares.firstMatch.tap()
-            }
-        }
-
-        // After tapping a skill row checkbox, the materialising toolbar should appear.
-        let toolbar = app.groups.matching(
+        // After tapping, the materialising toolbar materialises. Its child buttons
+        // all share the identifier "toolbar.materialising" (SwiftUI propagates the
+        // HStack identifier to its Button children on macOS accessibility).
+        let toolbar = app.buttons.matching(
             NSPredicate(format: "identifier == %@", "toolbar.materialising")
         ).firstMatch
-
-        // Also try staticTexts with the toolbar identifier (depending on how SwiftUI wraps it).
-        let toolbarAlt = app.otherElements.matching(
-            NSPredicate(format: "identifier == %@", "toolbar.materialising")
-        ).firstMatch
-
-        let toolbarAppeared = toolbar.waitForExistence(timeout: 5) || toolbarAlt.waitForExistence(timeout: 2)
-        XCTAssertTrue(toolbarAppeared, "Materialising toolbar did not appear after checking a skill")
+        XCTAssertTrue(
+            toolbar.waitForExistence(timeout: 5),
+            "Materialising toolbar did not appear after checking a skill"
+        )
         attachScreenshot(named: "d_materialising_toolbar")
     }
 

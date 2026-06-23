@@ -113,10 +113,26 @@ struct SteveApp: App {
         // centered "Steve" label + two-tab chrome.
         Window("Steve", id: "main") {
             MainWindowView(appModel: appModel, installedFilesProvider: installedFilesProvider)
+                // In fixture mode (XCUITest): start the app model and pre-arm the review tab
+                // directly from the window content, since the dropdown is never opened.
+                // In production this is a no-op (.task only fires when FixtureMode.isActive).
+                .task(id: FixtureMode.isActive) {
+                    guard FixtureMode.isActive else { return }
+                    appModel.selectedTab = .review
+                    appModel.reviewFocusSkill = "diagnose"
+                    await appModel.start()
+                    // After the fixture check completes, open the review session so the
+                    // diff pane can compute installed-vs-origin diffs (the SHA and skill
+                    // files are now available from the completed check).
+                    appModel.openReviewSession()
+                }
         }
         .defaultSize(width: 900, height: 640)
         .defaultPosition(.center)
         .windowStyle(.hiddenTitleBar)
+        // In fixture mode (XCUITest): present the window automatically at launch so
+        // XCUITest can find it without needing to click the menu-bar item first.
+        .defaultLaunchBehavior(FixtureMode.isActive ? .presented : .suppressed)
     }
 
 }

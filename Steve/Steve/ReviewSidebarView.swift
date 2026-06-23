@@ -224,6 +224,7 @@ private struct SidebarSkillRow: View {
                 }
                 .buttonStyle(.plain)
                 .frame(width: 18)
+                .accessibilityIdentifier("sidebar.skill.check.\(skillName)")
             } else {
                 Spacer().frame(width: 18)
             }
