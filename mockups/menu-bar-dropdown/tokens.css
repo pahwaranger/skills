@@ -5,6 +5,8 @@
  */
 
 :root {
+  color-scheme: light dark;
+
   /* Page / scene */
   --bg-page:   #DCDCDC;
 
