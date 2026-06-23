@@ -15,7 +15,7 @@
     attention    [DEFAULT] — all four buckets: removed + update + skipped + up-to-date; icon red
     updates                — update + up-to-date buckets only; icon red
     removed                — removed + up-to-date buckets only; icon red
-    up-to-date             — clean; neutral banner; up-to-date only (no section header); icon mono
+    up-to-date             — clean; neutral banner; up-to-date only (UP TO DATE section header shown); icon mono
     checking               — banner "Checking…"; Check button disabled+spinner; icon pulsing mono
 
   Provenance: prototypes/menu-bar-dropdown/ (Variant B)
@@ -293,7 +293,7 @@
   .dd-row.s-removed::before { background: var(--cr); }
   .dd-row.s-update::before  { background: var(--cu); }
   .dd-row.s-skipped::before { background: var(--cs); }
-  .dd-row.s-current::before { background: transparent; }
+  .dd-row.s-current::before { background: var(--cc); }
 
   /* Zone 4: Footer */
   .dd-sep { height: 1px; background: var(--sep); margin: 3px 0; }
@@ -659,7 +659,8 @@
     // Zone 2: Check for updates button
     const disabled = checkDisabled ? ' disabled' : '';
     const spinner  = checkDisabled ? '<span class="vb-spinner"></span>' : '';
-    html += `<button class="vb-cfu"${disabled}>${spinner}↺ Check for updates</button>`;
+    const inner    = checkDisabled ? `${spinner}Check for updates` : `↺ Check for updates`;
+    html += `<button class="vb-cfu"${disabled}>${inner}</button>`;
 
     // Zone 3: Skill list with uppercase section labels + left-bar accents
     const actionableGroups = activeGroups.filter(s => s !== 'current');
@@ -679,7 +680,8 @@
         }
       }
     } else if (groups['current'].length) {
-      // Clean state: only up-to-date skills, omit section header for brevity
+      // Clean state: only up-to-date skills — show section header for consistency
+      html += `<div class="vb-sec">${STATE_LABELS['current']}</div>`;
       for (const name of groups['current']) {
         html += `<div class="dd-row s-current"><span class="rn">${name}</span></div>`;
       }
