@@ -17,7 +17,10 @@ reconstruct.
 | Settings tab | **C — Grouped + disable** (two captioned cards; interval nested under its toggle, greyed-but-visible when automatic checks are off) | [`mockups/settings-tab/`](../../mockups/settings-tab/) | [SPEC.md](../../mockups/settings-tab/SPEC.md) |
 
 The detailed rationale and the rejected variants for each surface live in that
-surface's prototype documentation. UI vocabulary that came out of these choices
+surface's prototype `NOTES.md` — see
+[menu-bar-dropdown](../../prototypes/menu-bar-dropdown/NOTES.md),
+[review-diff](../../prototypes/review-diff/NOTES.md), and
+[settings](../../prototypes/settings/NOTES.md). UI vocabulary that came out of these choices
 (Review tab, Sidebar, Action header, Diff pane, File card, Materialising toolbar,
 3-state select toggle) is defined in [CONTEXT.md](../../CONTEXT.md).
 
