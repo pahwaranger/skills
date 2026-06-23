@@ -8,6 +8,12 @@ import Scheduler
 import Installer
 #endif
 
+#if DEBUG
+#if SWIFT_PACKAGE
+import FixtureEngine
+#endif
+#endif
+
 /// The two tabs hosted in the unified "Steve" window (Issue #45).
 /// The dropdown sets `AppModel.selectedTab` before calling `openWindow(id: "main")`
 /// so the window opens on the correct tab without any AppKit hacks.
@@ -495,6 +501,90 @@ extension AppModel {
         }
     }
 }
+
+// MARK: — Direct-seed preview initializer (route b)
+
+#if DEBUG
+
+/// Stub transport for preview direct-seeding. Routes all requests to a handler;
+/// used in the direct-seed factory so previews don't make real network calls.
+private final class PreviewStubTransport: HTTPTransport {
+    private let handler: @Sendable (URL) async throws -> HTTPResponse
+
+    init(handler: @escaping @Sendable (URL) async throws -> HTTPResponse) {
+        self.handler = handler
+    }
+
+    func get(url: URL, headers: [String: String]) async throws -> HTTPResponse {
+        try await handler(url)
+    }
+}
+
+extension AppModel {
+    /// Direct-seed initializer for SwiftUI previews (route b).
+    /// Directly assigns `lastDerivedState` and `reviewSession` from a `FixtureScenario`,
+    /// bypassing the async sandbox-derive pipeline.
+    /// Compiled out of Release builds (ADR 0009).
+    ///
+    /// - Parameters:
+    ///   - scenario: The `FixtureScenario` providing target states and origin files.
+    ///   - owner, repo, branch: Stored for GitHub URL construction (same as production init).
+    ///
+    /// Returns an `AppModel` with seeded state ready for preview rendering.
+    public static func directSeed(
+        from scenario: FixtureScenario,
+        owner: String = "test",
+        repo: String = "test",
+        branch: String = "main"
+    ) -> AppModel {
+        // Build a DerivedState with per-skill states from the scenario.
+        // Map scenario entries -> states map for StateEngine.
+        var states: [String: SkillState] = [:]
+        for entry in scenario.skills {
+            states[entry.name] = entry.targetState
+        }
+
+        let derivedState = DerivedState(
+            states: states,
+            attention: states.values.contains(where: { $0 != .upToDate }),
+            selfHealed: []
+        )
+
+        // Build a ReviewSession with per-skill origin files from the scenario.
+        var skillFiles: [String: [String: Data]] = [:]
+        for entry in scenario.skills {
+            if let originFiles = entry.originFiles {
+                skillFiles[entry.name] = originFiles
+            }
+        }
+
+        let reviewSession = ReviewSession(
+            originSHA: "direct-seed-sha",
+            skillFiles: skillFiles
+        )
+
+        // Create an AppModel with a stub transport (previews don't make network calls).
+        let stubTransport = PreviewStubTransport { _ in
+            HTTPResponse(status: 404, headers: [:], body: Data())
+        }
+
+        let model = AppModel(
+            owner: owner,
+            repo: repo,
+            branch: branch,
+            transport: stubTransport,
+            automaticChecksEnabled: false
+        )
+
+        // Directly assign the seeded state.
+        model.lastDerivedState = derivedState
+        model.reviewSession = reviewSession
+
+        return model
+    }
+}
+
+#endif
 
 // MARK: — Wall-clock SchedulerClock
 

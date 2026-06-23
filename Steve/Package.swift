@@ -74,7 +74,7 @@ let package = Package(
         ),
         .testTarget(
             name: "AppCoreTests",
-            dependencies: ["AppCore", "Cache", "OriginClient", "StateEngine", "Scheduler"],
+            dependencies: ["AppCore", "Cache", "OriginClient", "StateEngine", "Scheduler", "FixtureEngine"],
             path: "SteveTests",
             sources: ["AppCoreTests.swift"]
         ),

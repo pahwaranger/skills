@@ -325,3 +325,20 @@ private struct DropdownActionRow: View {
         .onHover { isHovered = $0 }
     }
 }
+
+// MARK: — SwiftUI Previews (route b, #if DEBUG)
+
+#if DEBUG
+
+#if SWIFT_PACKAGE
+import FixtureEngine
+#endif
+
+#Preview("Dropdown — rich sections", traits: .fixedLayout(width: 280, height: 550)) {
+    let appModel = AppModel.directSeed(from: FixtureScenario.default)
+    return DropdownView(appModel: appModel)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(Color(.controlBackgroundColor))
+}
+
+#endif // DEBUG
