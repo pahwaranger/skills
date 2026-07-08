@@ -67,6 +67,8 @@ Iterate until the user approves the breakdown.
 
 For each approved slice, publish a new ticket to the ticket tracker. Use the ticket body template below. These tickets are considered ready for AFK agents, so publish them with the correct triage label unless instructed otherwise.
 
+**If applying a triage label fails because the label doesn't exist** (e.g. `gh`/`glab` reject an unknown label — this does not apply to the local-markdown tracker, which has no labels), **stop** and tell the user to run `/setup-skills` to create the triage labels, then retry. Do not create the label yourself — label creation is owned by `setup-skills`.
+
 Publish tickets in dependency order (blockers first) so you can reference real ticket identifiers in the "Blocked by" field.
 
 <ticket-template>

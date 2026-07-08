@@ -30,6 +30,8 @@ The review **loop** below is identical across venues; only the medium changes.
 
 ## 3. Discover and scope
 
+**Pre-flight: verify the triage labels exist (fail-fast).** Before filtering for `ready-for-agent` tickets, confirm that the triage labels this run depends on actually exist in the tracker (list the tracker's labels and check the strings from `docs/agents/triage-labels.md`). This is a label-backed tracker check only — **skip it for the local-markdown tracker**, which has no labels (triage state is a `Status:` line). If any required label is missing (e.g. `gh`/`glab` has no `ready-for-agent` label), **abort kickoff immediately** and tell the user to run `/setup-skills` to create the triage labels — before implementing any ticket, so this isn't discovered several tickets deep. Do not create the labels yourself — label creation is owned by `setup-skills`.
+
 Find the in-scope tickets:
 
 - **Default**: every open ticket carrying the `ready-for-agent` role, per `docs/agents/triage-labels.md`. Filter strictly to AFK — exclude `ready-for-human`, `needs-info`, `needs-triage`, `wontfix`.
