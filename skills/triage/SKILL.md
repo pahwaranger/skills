@@ -76,6 +76,8 @@ Show counts and a one-line summary per ticket. Let the maintainer pick.
    - `wontfix` (enhancement) — write to `.out-of-scope/`, link to it from a comment, then close ([OUT-OF-SCOPE.md](OUT-OF-SCOPE.md)).
    - `needs-triage` — apply the role. Optional comment if there's partial progress.
 
+**If applying a role fails because the triage label doesn't exist** (e.g. `gh`/`glab` reject an unknown label — this does not apply to the local-markdown tracker, which has no labels), **stop** and tell the maintainer to run `/setup-skills` to create the triage labels, then retry. Do not create the label yourself — label creation is owned by `setup-skills`.
+
 ## Quick state override
 
 If the maintainer says "move #42 to ready-for-agent", trust them and apply the role directly. Confirm what you're about to do (role changes, comment, close), then act. Skip grilling. If moving to `ready-for-agent` without a grilling session, ask whether they want to write an agent brief.
