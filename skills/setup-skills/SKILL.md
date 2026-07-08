@@ -58,6 +58,41 @@ The five canonical roles:
 
 Default: each role's string equals its name. Ask the user if they want to override any. If their ticket tracker has no existing labels, the defaults are fine.
 
+**Once the vocabulary is settled, offer to pre-create the labels.** This is the last thing Section B does, before moving on to Section C.
+
+> Explainer: `gh` and `glab` do **not** auto-create labels — applying a label that doesn't exist errors out, which is exactly what would break `triage` and `to-tickets` the first time they try to move a ticket. So the labels need to exist in the tracker before those skills run. I can create the five triage labels for you now.
+
+Ask a **yes/no** question. Pre-creating is the **recommended default**, but it's genuinely declinable — if the user says no, record the mapping only (as today) and create nothing. Behave per the tracker chosen in Section A:
+
+- **GitHub / GitLab** — offer to create the labels now and, on "yes", run the create commands yourself (see below). This is the recommended default.
+- **Local markdown** — skip this entirely. There is no label system; triage state is a `Status:` line in the ticket file, so there are no labels to create and **no prompt appears**.
+- **Other / freeform** (Jira, Linear, …) — don't offer to run anything (the CLI is unknown). Instead, note that the generated `docs/agents/ticket-tracker.md` will carry a one-line recommendation to pre-create the five labels in that tool (see step 4).
+
+**Creating the labels (GitHub / GitLab, on "yes"):**
+
+Use the **description** for each role verbatim from the "Meaning" column of the table in [triage-labels.md](./triage-labels.md), and this fixed color palette. Colors and descriptions are applied **only to labels you newly create** — never to ones that already exist.
+
+| role              | color    |
+| ----------------- | -------- |
+| `needs-triage`    | `fbca04` |
+| `needs-info`      | `d93f0b` |
+| `ready-for-agent` | `0e8a16` |
+| `ready-for-human` | `1d76db` |
+| `wontfix`         | `ffffff` |
+
+**List-then-create-missing.** First list the tracker's existing labels, then create only the ones that are absent:
+
+- GitHub: `gh label list --json name --jq '.[].name'` to list; `gh label create <name> --color <hex> --description "<desc>"` for each missing label.
+- GitLab: `glab label list -F json` (parse the `name` fields) to list; `glab label create --name <name> --color <hex> --description "<desc>"` for each missing label.
+
+Match against the label **strings from the Section B mapping** (which may be custom, e.g. `bug:triage`), not the canonical role names. **Never** pass `--force`; **never** overwrite the color or description of a label that already exists — if a role is mapped to an existing custom label, leave it untouched. When done, report the result, e.g. "created 3, skipped 2 that already existed".
+
+**Graceful degradation.** Label provisioning must **never** gate setup completion. If the CLI is missing or unauthenticated, or a create command fails:
+
+- Tell the user what went wrong (e.g. `glab` not installed, or not authenticated).
+- Emit the **exact** create commands so they can run them later.
+- Continue with the rest of setup anyway — the `## Agent skills` block and all three docs files still get written.
+
 **Section C — Domain docs.**
 
 > Explainer: Some skills (`improve-codebase-architecture`, `diagnose`, `tdd`) read a `CONTEXT.md` file to learn the project's domain language, and `docs/adr/` for past architectural decisions. They need to know whether the repo has one global context or multiple (e.g. a monorepo with separate frontend/backend contexts) so they look in the right place.
@@ -114,7 +149,7 @@ Then write the three docs files using the seed templates in this skill folder as
 - [triage-labels.md](./triage-labels.md) — label mapping
 - [domain.md](./domain.md) — domain doc consumer rules + layout
 
-For "other" ticket trackers, write `docs/agents/ticket-tracker.md` from scratch using the user's description.
+For "other" ticket trackers, write `docs/agents/ticket-tracker.md` from scratch using the user's description. Because the skill can't drive an unknown CLI, include a one-line recommendation in that file to pre-create the five triage labels (from `triage-labels.md`) in that tool before running `triage` or `to-tickets` — don't run any command yourself.
 
 ### 5. Done
 
