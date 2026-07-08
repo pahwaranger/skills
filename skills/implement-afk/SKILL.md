@@ -65,11 +65,14 @@ For each ticket in dependency order:
    - **Reviewer B** — test quality + scope/domain fit: are the tests real (not tautological)? Is scope respected (no creep), domain glossary in `CONTEXT.md` honored, relevant ADRs respected, codebase left clean and mergeable?
 
    Reviewers post feedback through the venue's medium (PR/MR comments, or coordinator-relayed for local).
+
+   **Intention check (only when you authored these tickets).** If you — the coordinator — are the same agent that created the tickets being implemented (e.g. you ran `to-tickets` earlier in this same session), do one **additional** review yourself before the merge gate, on top of the reviewer subagents. You hold context the ticket body never fully captured — the *intent* behind the slice, why it was scoped the way it was, and what a technically-conforming-but-wrong implementation would look like. The reviewer subagents only see the ticket text; you see the intention. Read the branch diff against your original intent and confirm the subagent understood what the ticket was *for*, not just what it literally said — that it built the fix you meant, didn't satisfy the letter while missing the point, and didn't paper over the actual problem. If it diverges, relay the gap as review feedback (another round in step 4) rather than merging. Only skip this check when the tickets were authored elsewhere and you have no more intent-context than their bodies carry.
 4. **Address feedback**: the original implementer subagent (keeping its scouted sizing) addresses review feedback over **at most 3 rounds**, re-requesting review each round; re-scout the reviewers before each fresh review round.
 5. **Merge gate** — all of:
    - every acceptance-criteria behavior covered by passing tests,
    - the full test suite green locally,
    - both reviewers approve,
+   - your intention check passes, when you authored the tickets (above),
    - CI green, if the remote has it.
 6. **On pass**: merge. Link the PR/MR to the ticket so the merge auto-closes it (`Closes #N`); for GitLab and the local tracker, close explicitly / set `Status: done` and append a merge note. Mark the ticket's task `completed` (`Merged #12`). Re-base or update main, then move to the next ticket.
 7. **On fail** (round cap hit, tests won't pass, or the ticket turns out to need a human): **never merge broken code.** Push the branch and open a **draft** PR/MR (or, on local/no-remote, leave the branch named clearly) with the partial work and an explanation. Leave the ticket open — relabel toward `needs-info` / `ready-for-human` when a human is genuinely needed. Mark the ticket's task `completed` with the skip outcome (`⚠ Skipped #12 — draft PR, needs human: <reason>`). **Skip every ticket Blocked-by it** — mark each of those tasks `completed` as `Skipped — blocked by #12` — then continue with the next independent ticket.
