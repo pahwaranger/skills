@@ -118,12 +118,12 @@ _Avoid_: modal, popup, dialog (it's a reusable window, not a modal).
 **Review tab**:
 The primary window tab where the user inspects and acts on pending skill changes.
 Contains the sidebar and the diff pane. Design locked; see
-`prototypes/review-diff/NOTES.md`.
+`mockups/review-tab/`.
 _Avoid_: sync window, update window.
 
 **Settings tab**:
 The secondary window tab for app preferences (launch-at-login, check interval,
-default diff view). Design locked; see `prototypes/settings/NOTES.md`.
+default diff view). Design locked; see `mockups/settings-tab/`.
 
 **Sidebar** (Review tab):
 The left panel of the Review tab. Lists all managed skills grouped by state
